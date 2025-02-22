@@ -25,8 +25,10 @@ describe("Dashboard", () => {
     { id: "2", name: "random" },
   ];
 
+  const renderDashboard = () => <Dashboard />;
+
   beforeEach(() => {
-    (useSession as jest.Mock).mockReturnValue({
+    useSession.mockReturnValue({
       data: { user: { email: "test@example.com" } },
       status: "authenticated",
     });
@@ -36,17 +38,17 @@ describe("Dashboard", () => {
       .mockImplementationOnce(() =>
         Promise.resolve({
           json: () => Promise.resolve(mockArticles),
-        }),
+        })
       )
       .mockImplementationOnce(() =>
         Promise.resolve({
           json: () => Promise.resolve(mockChannels),
-        }),
+        })
       );
   });
 
   it("renders dashboard with articles and channels", async () => {
-    render(<Dashboard />);
+    render(renderDashboard());
 
     await waitFor(() => {
       expect(screen.getByText("Workspace Dashboard")).toBeInTheDocument();
@@ -61,7 +63,7 @@ describe("Dashboard", () => {
     const consoleSpy = jest.spyOn(console, "error").mockImplementation();
     global.fetch = jest.fn().mockRejectedValue(new Error("API Error"));
 
-    render(<Dashboard />);
+    render(renderDashboard());
 
     await waitFor(() => {
       expect(screen.getByText("Workspace Dashboard")).toBeInTheDocument();
@@ -72,12 +74,12 @@ describe("Dashboard", () => {
   });
 
   it("does not fetch data when not authenticated", async () => {
-    (useSession as jest.Mock).mockReturnValue({
+    useSession.mockReturnValue({
       data: null,
       status: "unauthenticated",
     });
 
-    render(<Dashboard />);
+    render(renderDashboard());
 
     await waitFor(() => {
       expect(global.fetch).not.toHaveBeenCalled();

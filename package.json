@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "prettier": "prettier --write ."
+    "prettier": "prettier --write .",
+    "test": "jest"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",

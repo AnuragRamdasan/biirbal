@@ -1,4 +1,3 @@
-import { NextApiRequest, NextApiResponse } from "next";
 import { getServerSession } from "next-auth";
 import handler from "@/pages/api/workspace/channels";
 import { PrismaClient } from "@prisma/client";
@@ -7,9 +6,9 @@ jest.mock("next-auth");
 jest.mock("@prisma/client");
 
 describe("Workspace Channels API", () => {
-  let mockReq: Partial<NextApiRequest>;
-  let mockRes: Partial<NextApiResponse>;
-  let mockPrisma: jest.Mocked<PrismaClient>;
+  let mockReq;
+  let mockRes;
+  let mockPrisma;
 
   beforeEach(() => {
     mockReq = {
@@ -23,10 +22,10 @@ describe("Workspace Channels API", () => {
       channel: {
         findMany: jest.fn(),
       },
-    } as any;
+    };
 
-    (PrismaClient as jest.Mock).mockImplementation(() => mockPrisma);
-    (getServerSession as jest.Mock).mockResolvedValue({
+    PrismaClient.mockImplementation(() => mockPrisma);
+    getServerSession.mockResolvedValue({
       user: { email: "test@example.com" },
       workspaceId: "workspace1",
     });
@@ -40,7 +39,7 @@ describe("Workspace Channels API", () => {
 
     mockPrisma.channel.findMany.mockResolvedValue(mockChannels);
 
-    await handler(mockReq as NextApiRequest, mockRes as NextApiResponse);
+    await handler(mockReq, mockRes);
 
     expect(mockPrisma.channel.findMany).toHaveBeenCalledWith({
       where: { workspaceId: "workspace1" },
@@ -49,11 +48,11 @@ describe("Workspace Channels API", () => {
   });
 
   it("handles unauthorized access", async () => {
-    (getServerSession as jest.Mock).mockResolvedValue(null);
+    getServerSession.mockResolvedValue(null);
 
-    await handler(mockReq as NextApiRequest, mockRes as NextApiResponse);
+    await handler(mockReq, mockRes);
 
     expect(mockRes.status).toHaveBeenCalledWith(401);
     expect(mockRes.json).toHaveBeenCalledWith({ error: "Unauthorized" });
   });
-});
+}); 

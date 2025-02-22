@@ -1,4 +1,3 @@
-import { NextApiRequest, NextApiResponse } from "next";
 import { getServerSession } from "next-auth";
 import Stripe from "stripe";
 import handler from "@/pages/api/stripe/create-checkout-session";
@@ -7,8 +6,8 @@ jest.mock("next-auth");
 jest.mock("stripe");
 
 describe("Create Checkout Session API", () => {
-  let mockReq: Partial<NextApiRequest>;
-  let mockRes: Partial<NextApiResponse>;
+  let mockReq;
+  let mockRes;
 
   beforeEach(() => {
     mockReq = {
@@ -24,18 +23,16 @@ describe("Create Checkout Session API", () => {
     process.env.STRIPE_PRO_PRICE_ID = "price_pro";
     process.env.NEXTAUTH_URL = "http://localhost:3000";
 
-    (getServerSession as jest.Mock).mockResolvedValue({
+    getServerSession.mockResolvedValue({
       workspaceId: "workspace1",
     });
   });
 
   it("creates a checkout session", async () => {
     const mockSession = { id: "cs_test_123" };
-    (Stripe.prototype.checkout.sessions.create as jest.Mock).mockResolvedValue(
-      mockSession,
-    );
+    Stripe.prototype.checkout.sessions.create.mockResolvedValue(mockSession);
 
-    await handler(mockReq as NextApiRequest, mockRes as NextApiResponse);
+    await handler(mockReq, mockRes);
 
     expect(Stripe.prototype.checkout.sessions.create).toHaveBeenCalledWith({
       mode: "subscription",
@@ -57,9 +54,9 @@ describe("Create Checkout Session API", () => {
   });
 
   it("handles unauthorized access", async () => {
-    (getServerSession as jest.Mock).mockResolvedValue(null);
+    getServerSession.mockResolvedValue(null);
 
-    await handler(mockReq as NextApiRequest, mockRes as NextApiResponse);
+    await handler(mockReq, mockRes);
 
     expect(mockRes.status).toHaveBeenCalledWith(401);
     expect(mockRes.json).toHaveBeenCalledWith({ error: "Unauthorized" });
@@ -68,9 +65,9 @@ describe("Create Checkout Session API", () => {
   it("validates price ID", async () => {
     mockReq.body = { priceId: "invalid" };
 
-    await handler(mockReq as NextApiRequest, mockRes as NextApiResponse);
+    await handler(mockReq, mockRes);
 
     expect(mockRes.status).toHaveBeenCalledWith(400);
     expect(mockRes.json).toHaveBeenCalledWith({ error: "Invalid price ID" });
   });
-});
+}); 

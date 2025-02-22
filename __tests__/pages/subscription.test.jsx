@@ -7,7 +7,7 @@ jest.mock("@stripe/stripe-js");
 
 describe("Subscription Page", () => {
   beforeEach(() => {
-    (useSession as jest.Mock).mockReturnValue({
+    useSession.mockReturnValue({
       data: { user: { email: "test@example.com" } },
       status: "authenticated",
     });

@@ -1,9 +1,8 @@
-import { NextApiRequest, NextApiResponse } from "next";
-import handler from "@/pages/api/slack/events";
-import { PrismaClient } from "@prisma/client";
-import { extractTextFromUrl } from "@/lib/textExtractor";
-import { generateAudio } from "@/lib/audioGenerator";
-import { uploadToS3 } from "@/lib/s3";
+const { PrismaClient } = require("@prisma/client");
+const handler = require("@/pages/api/slack/events").default;
+const { extractTextFromUrl } = require("@/lib/textExtractor");
+const { generateAudio } = require("@/lib/audioGenerator");
+const { uploadToS3 } = require("@/lib/s3");
 
 jest.mock("@prisma/client");
 jest.mock("@/lib/textExtractor");
@@ -12,9 +11,9 @@ jest.mock("@/lib/s3");
 jest.mock("@slack/bolt");
 
 describe("Slack Events API", () => {
-  let mockReq: Partial<NextApiRequest>;
-  let mockRes: Partial<NextApiResponse>;
-  let mockPrisma: jest.Mocked<PrismaClient>;
+  let mockReq;
+  let mockRes;
+  let mockPrisma;
 
   beforeEach(() => {
     mockReq = {
@@ -32,9 +31,9 @@ describe("Slack Events API", () => {
       article: {
         create: jest.fn(),
       },
-    } as any;
+    };
 
-    (PrismaClient as jest.Mock).mockImplementation(() => mockPrisma);
+    PrismaClient.mockImplementation(() => mockPrisma);
   });
 
   it("handles URL verification", async () => {
@@ -43,7 +42,7 @@ describe("Slack Events API", () => {
       challenge: "test_challenge",
     };
 
-    await handler(mockReq as NextApiRequest, mockRes as NextApiResponse);
+    await handler(mockReq, mockRes);
 
     expect(mockRes.status).toHaveBeenCalledWith(200);
     expect(mockRes.json).toHaveBeenCalledWith({ challenge: "test_challenge" });
@@ -54,10 +53,10 @@ describe("Slack Events API", () => {
       id: "workspace1",
       subscription: { status: "active" },
     };
-    mockPrisma.workspace.findFirst.mockResolvedValue(mockWorkspace as any);
-    (extractTextFromUrl as jest.Mock).mockResolvedValue("Article text");
-    (generateAudio as jest.Mock).mockResolvedValue(Buffer.from("audio"));
-    (uploadToS3 as jest.Mock).mockResolvedValue("https://audio-url.mp3");
+    mockPrisma.workspace.findFirst.mockResolvedValue(mockWorkspace);
+    extractTextFromUrl.mockResolvedValue("Article text");
+    generateAudio.mockResolvedValue(Buffer.from("audio"));
+    uploadToS3.mockResolvedValue("https://audio-url.mp3");
 
     mockReq.body = {
       type: "event_callback",
@@ -69,10 +68,10 @@ describe("Slack Events API", () => {
       },
     };
 
-    await handler(mockReq as NextApiRequest, mockRes as NextApiResponse);
+    await handler(mockReq, mockRes);
 
     expect(extractTextFromUrl).toHaveBeenCalledWith(
-      "https://example.com/article",
+      "https://example.com/article"
     );
     expect(generateAudio).toHaveBeenCalled();
     expect(uploadToS3).toHaveBeenCalled();
@@ -91,10 +90,10 @@ describe("Slack Events API", () => {
       },
     };
 
-    await handler(mockReq as NextApiRequest, mockRes as NextApiResponse);
+    await handler(mockReq, mockRes);
 
     expect(mockRes.json).toHaveBeenCalledWith({
       message: "Workspace not found or no active subscription",
     });
   });
-});
+}); 

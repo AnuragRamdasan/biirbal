@@ -10,7 +10,7 @@ describe("s3", () => {
   };
 
   beforeEach(() => {
-    (AWS.S3 as jest.Mock).mockImplementation(() => mockS3);
+    AWS.S3.mockImplementation(() => mockS3);
     process.env.AWS_S3_BUCKET = "test-bucket";
     process.env.AWS_REGION = "us-east-1";
   });

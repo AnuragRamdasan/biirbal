@@ -13,7 +13,7 @@ describe("audioGenerator", () => {
   };
 
   beforeEach(() => {
-    (OpenAI as jest.Mock).mockImplementation(() => mockOpenAI);
+    OpenAI.mockImplementation(() => mockOpenAI);
   });
 
   it("should generate audio from text", async () => {
@@ -37,7 +37,7 @@ describe("audioGenerator", () => {
     mockOpenAI.audio.speech.create.mockRejectedValue(new Error("API error"));
 
     await expect(generateAudio("Test text")).rejects.toThrow(
-      "Failed to generate audio",
+      "Failed to generate audio"
     );
   });
 });

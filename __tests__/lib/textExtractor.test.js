@@ -1,8 +1,7 @@
-import { extractTextFromUrl } from "@/lib/textExtractor";
-import axios from "axios";
+const { extractTextFromUrl } = require("@/lib/textExtractor");
+const axios = require("axios");
 
 jest.mock("axios");
-const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 describe("textExtractor", () => {
   beforeEach(() => {
@@ -19,7 +18,7 @@ describe("textExtractor", () => {
       </html>
     `;
 
-    mockedAxios.get.mockResolvedValueOnce({ data: mockHtml });
+    axios.get.mockResolvedValueOnce({ data: mockHtml });
 
     const result = await extractTextFromUrl("https://test.com/article");
     expect(result).toBe("Test article content");
@@ -34,17 +33,17 @@ describe("textExtractor", () => {
       </html>
     `;
 
-    mockedAxios.get.mockResolvedValueOnce({ data: mockHtml });
+    axios.get.mockResolvedValueOnce({ data: mockHtml });
 
     const result = await extractTextFromUrl("https://test.com/article");
     expect(result).toBe("Main content");
   });
 
   it("should handle errors gracefully", async () => {
-    mockedAxios.get.mockRejectedValueOnce(new Error("Network error"));
+    axios.get.mockRejectedValueOnce(new Error("Network error"));
 
     await expect(
-      extractTextFromUrl("https://test.com/article"),
+      extractTextFromUrl("https://test.com/article")
     ).rejects.toThrow("Failed to extract text from URL");
   });
 });

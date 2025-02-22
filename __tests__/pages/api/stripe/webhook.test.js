@@ -1,18 +1,17 @@
-import { NextApiRequest, NextApiResponse } from "next";
-import { buffer } from "micro";
-import Stripe from "stripe";
-import handler from "@/pages/api/stripe/webhook";
-import { PrismaClient } from "@prisma/client";
+const { buffer } = require("micro");
+const Stripe = require("stripe");
+const handler = require("@/pages/api/stripe/webhook").default;
+const { PrismaClient } = require("@prisma/client");
 
 jest.mock("micro");
 jest.mock("stripe");
 jest.mock("@prisma/client");
 
 describe("Stripe Webhook Handler", () => {
-  let mockReq: Partial<NextApiRequest>;
-  let mockRes: Partial<NextApiResponse>;
-  let mockPrisma: jest.Mocked<PrismaClient>;
-  let mockStripe: jest.Mocked<Stripe>;
+  let mockReq;
+  let mockRes;
+  let mockPrisma;
+  let mockStripe;
 
   beforeEach(() => {
     mockReq = {
@@ -31,10 +30,10 @@ describe("Stripe Webhook Handler", () => {
         upsert: jest.fn(),
         update: jest.fn(),
       },
-    } as any;
+    };
 
-    (PrismaClient as jest.Mock).mockImplementation(() => mockPrisma);
-    (buffer as jest.Mock).mockResolvedValue(Buffer.from("test"));
+    PrismaClient.mockImplementation(() => mockPrisma);
+    buffer.mockResolvedValue(Buffer.from("test"));
     process.env.STRIPE_WEBHOOK_SECRET = "test_secret";
   });
 
@@ -56,11 +55,9 @@ describe("Stripe Webhook Handler", () => {
       },
     };
 
-    (Stripe.prototype.webhooks.constructEvent as jest.Mock).mockReturnValue(
-      mockEvent,
-    );
+    Stripe.prototype.webhooks.constructEvent.mockReturnValue(mockEvent);
 
-    await handler(mockReq as NextApiRequest, mockRes as NextApiResponse);
+    await handler(mockReq, mockRes);
 
     expect(mockPrisma.subscription.upsert).toHaveBeenCalledWith({
       where: {
@@ -82,11 +79,9 @@ describe("Stripe Webhook Handler", () => {
       },
     };
 
-    (Stripe.prototype.webhooks.constructEvent as jest.Mock).mockReturnValue(
-      mockEvent,
-    );
+    Stripe.prototype.webhooks.constructEvent.mockReturnValue(mockEvent);
 
-    await handler(mockReq as NextApiRequest, mockRes as NextApiResponse);
+    await handler(mockReq, mockRes);
 
     expect(mockPrisma.subscription.update).toHaveBeenCalledWith({
       where: {
@@ -99,17 +94,13 @@ describe("Stripe Webhook Handler", () => {
   });
 
   it("handles signature verification errors", async () => {
-    (Stripe.prototype.webhooks.constructEvent as jest.Mock).mockImplementation(
-      () => {
-        throw new Error("Invalid signature");
-      },
-    );
+    Stripe.prototype.webhooks.constructEvent.mockImplementation(() => {
+      throw new Error("Invalid signature");
+    });
 
-    await handler(mockReq as NextApiRequest, mockRes as NextApiResponse);
+    await handler(mockReq, mockRes);
 
     expect(mockRes.status).toHaveBeenCalledWith(400);
-    expect(mockRes.send).toHaveBeenCalledWith(
-      "Webhook Error: Invalid signature",
-    );
+    expect(mockRes.send).toHaveBeenCalledWith("Webhook Error: Invalid signature");
   });
-});
+}); 
