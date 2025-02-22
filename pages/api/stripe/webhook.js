@@ -1,9 +1,8 @@
-import { NextApiRequest, NextApiResponse } from 'next';
 import { buffer } from 'micro';
 import Stripe from 'stripe';
 import { PrismaClient } from '@prisma/client';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16',
 });
 const prisma = new PrismaClient();
@@ -14,24 +13,21 @@ export const config = {
   },
 };
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const buf = await buffer(req);
-  const sig = req.headers['stripe-signature']!;
+  const sig = req.headers['stripe-signature'];
 
-  let event: Stripe.Event;
+  let event;
 
   try {
     event = stripe.webhooks.constructEvent(
       buf,
       sig,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      process.env.STRIPE_WEBHOOK_SECRET
     );
   } catch (err) {
     return res.status(400).send(`Webhook Error: ${err.message}`);
@@ -40,7 +36,7 @@ export default async function handler(
   switch (event.type) {
     case 'customer.subscription.created':
     case 'customer.subscription.updated':
-      const subscription = event.data.object as Stripe.Subscription;
+      const subscription = event.data.object;
       await prisma.subscription.upsert({
         where: {
           stripeSubscriptionId: subscription.id,
@@ -51,7 +47,7 @@ export default async function handler(
         },
         create: {
           stripeSubscriptionId: subscription.id,
-          stripeCustomerId: subscription.customer as string,
+          stripeCustomerId: subscription.customer,
           stripePriceId: subscription.items.data[0].price.id,
           status: subscription.status,
           workspaceId: subscription.metadata.workspaceId,
@@ -60,7 +56,7 @@ export default async function handler(
       break;
 
     case 'customer.subscription.deleted':
-      const deletedSubscription = event.data.object as Stripe.Subscription;
+      const deletedSubscription = event.data.object;
       await prisma.subscription.update({
         where: {
           stripeSubscriptionId: deletedSubscription.id,

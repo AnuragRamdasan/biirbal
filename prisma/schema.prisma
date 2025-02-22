@@ -10,7 +10,8 @@ generator client {
 model Workspace {
   id            String    @id
   name          String
-  accessToken   String
+  botId         String
+  botToken      String
   channels      Channel[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

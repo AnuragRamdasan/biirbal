@@ -1,13 +1,9 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { getServerSession } from 'next-auth';
 import { PrismaClient } from '@prisma/client';
+import { getServerSession } from 'next-auth';
 
 const prisma = new PrismaClient();
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+export default async function handler(req, res) {
   const session = await getServerSession(req, res);
 
   if (!session || !session.workspaceId) {

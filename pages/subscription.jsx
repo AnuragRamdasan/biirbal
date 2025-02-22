@@ -2,7 +2,7 @@ import { useSession } from 'next-auth/react';
 import { loadStripe } from '@stripe/stripe-js';
 import { useState } from 'react';
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
 const PLANS = [
   {
@@ -23,7 +23,7 @@ export default function Subscription() {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
 
-  const handleSubscribe = async (priceId: string) => {
+  const handleSubscribe = async (priceId) => {
     setLoading(true);
     try {
       const response = await fetch('/api/stripe/create-checkout-session', {
