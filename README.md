@@ -23,6 +23,7 @@ A Next.js application that automatically converts article links shared in Slack 
 ## Local Development Setup
 
 1. Clone and install dependencies:
+
 ```bash
 git clone https://github.com/yourusername/slack-article-reader.git
 cd slack-article-reader
@@ -30,11 +31,13 @@ npm install
 ```
 
 2. Set up your environment variables:
+
 ```bash
 cp .env.example .env
 ```
 
 3. Set up the database:
+
 ```bash
 # Create database
 createdb slack_article_reader
@@ -44,6 +47,7 @@ npx prisma migrate dev
 ```
 
 4. Start the development server:
+
 ```bash
 npm run dev
 ```
@@ -53,11 +57,13 @@ npm run dev
 1. Create a new Slack app at https://api.slack.com/apps
 
 2. Under "Basic Information", note down:
+
    - Client ID
    - Client Secret
    - Signing Secret
 
 3. Add OAuth Scopes:
+
    - `channels:history`
    - `channels:read`
    - `chat:write`
@@ -65,6 +71,7 @@ npm run dev
    - `team:read`
 
 4. Configure Event Subscriptions:
+
    - Enable events
    - Set Request URL: `https://your-domain.com/api/slack/events`
    - Subscribe to:
@@ -76,16 +83,19 @@ npm run dev
 ## AWS S3 Setup
 
 1. Create an S3 bucket:
+
    - Go to AWS Console > S3
    - Create a new bucket
    - Enable public access (for audio file hosting)
 
 2. Create IAM user:
+
    - Go to IAM > Users > Add user
    - Create access key
    - Attach S3FullAccess policy
 
 3. Configure CORS:
+
 ```json
 {
   "CORSRules": [
@@ -102,6 +112,7 @@ npm run dev
 ## Stripe Integration
 
 1. Create products in Stripe Dashboard:
+
    - Basic Plan ($10/month)
    - Pro Plan ($25/month)
 
@@ -115,11 +126,13 @@ npm run dev
 ## Testing
 
 Run the test suite:
+
 ```bash
 npm test
 ```
 
 View coverage report:
+
 ```bash
 npm test -- --coverage
 ```
