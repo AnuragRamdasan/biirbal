@@ -1,36 +1,136 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Slack Article Reader
 
-## Getting Started
+A Next.js application that automatically converts article links shared in Slack channels to audio format using OpenAI's TTS service.
 
-First, run the development server:
+## Features
 
+- 🔗 Automatically detects links shared in configured Slack channels
+- 📝 Extracts article text using web scraping
+- 🎧 Converts text to audio using OpenAI's TTS service
+- 💾 Stores articles and audio files in PostgreSQL and S3
+- 💰 Subscription-based pricing with usage limits
+- 📊 Dashboard for workspace owners to track usage
+
+## Prerequisites
+
+- Node.js 18+
+- PostgreSQL
+- AWS Account
+- Slack App credentials
+- OpenAI API key
+- Stripe account
+
+## Local Development Setup
+
+1. Clone and install dependencies:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/yourusername/slack-article-reader.git
+cd slack-article-reader
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Set up your environment variables:
+```bash
+cp .env.example .env
+```
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+3. Set up the database:
+```bash
+# Create database
+createdb slack_article_reader
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Run migrations
+npx prisma migrate dev
+```
 
-## Learn More
+4. Start the development server:
+```bash
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Slack App Configuration
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Create a new Slack app at https://api.slack.com/apps
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+2. Under "Basic Information", note down:
+   - Client ID
+   - Client Secret
+   - Signing Secret
 
-## Deploy on Vercel
+3. Add OAuth Scopes:
+   - `channels:history`
+   - `channels:read`
+   - `chat:write`
+   - `links:read`
+   - `team:read`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+4. Configure Event Subscriptions:
+   - Enable events
+   - Set Request URL: `https://your-domain.com/api/slack/events`
+   - Subscribe to:
+     - `message.channels`
+     - `link_shared`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+5. Install the app to your workspace
+
+## AWS S3 Setup
+
+1. Create an S3 bucket:
+   - Go to AWS Console > S3
+   - Create a new bucket
+   - Enable public access (for audio file hosting)
+
+2. Create IAM user:
+   - Go to IAM > Users > Add user
+   - Create access key
+   - Attach S3FullAccess policy
+
+3. Configure CORS:
+```json
+{
+  "CORSRules": [
+    {
+      "AllowedOrigins": ["*"],
+      "AllowedHeaders": ["*"],
+      "AllowedMethods": ["GET", "PUT", "POST"],
+      "MaxAgeSeconds": 3000
+    }
+  ]
+}
+```
+
+## Stripe Integration
+
+1. Create products in Stripe Dashboard:
+   - Basic Plan ($10/month)
+   - Pro Plan ($25/month)
+
+2. Configure webhook:
+   - Add endpoint: `https://your-domain.com/api/stripe/webhook`
+   - Select events:
+     - `customer.subscription.created`
+     - `customer.subscription.updated`
+     - `customer.subscription.deleted`
+
+## Testing
+
+Run the test suite:
+```bash
+npm test
+```
+
+View coverage report:
+```bash
+npm test -- --coverage
+```
+
+## Deployment
+
+1. Set up a PostgreSQL database
+2. Configure environment variables
+3. Deploy to your platform of choice (Vercel recommended)
+4. Update Slack app configuration with production URLs
+
+## License
+
+MIT
