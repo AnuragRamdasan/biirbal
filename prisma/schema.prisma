@@ -8,15 +8,15 @@ generator client {
 }
 
 model Workspace {
-  id            String    @id
-  name          String
-  botId         String
-  botToken      String
-  channels      Channel[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  subscription  Subscription?
-  articles      Article[]
+  id           String        @id
+  name         String
+  botId        String
+  botToken     String
+  channels     Channel[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  subscription Subscription?
+  articles     Article[]
 }
 
 model Channel {
@@ -35,21 +35,21 @@ model Article {
   text        String    @db.Text
   audioUrl    String?
   channelId   String
-  channel     Channel   @relation(fields: [channelId], references: [id])
   workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  Workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  Channel     Channel   @relation(fields: [channelId], references: [id])
 }
 
 model Subscription {
-  id          String    @id @default(cuid())
-  workspaceId String    @unique
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
-  stripeCustomerId String  @unique
-  stripePriceId    String
-  stripeSubscriptionId String @unique
-  status      String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-} 
+  id                   String    @id @default(cuid())
+  workspaceId          String    @unique
+  workspace            Workspace @relation(fields: [workspaceId], references: [id])
+  stripeCustomerId     String    @unique
+  stripePriceId        String
+  stripeSubscriptionId String    @unique
+  status               String
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+}
