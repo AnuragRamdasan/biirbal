@@ -1,92 +1,108 @@
-import Image from 'next/image'
+import { PrismaClient } from '@prisma/client'
 import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
+import { formatDistanceToNow } from 'date-fns'
+
+const prisma = new PrismaClient()
+
+async function getArticles(workspaceId) {
+  try {
+    return await prisma.article.findMany({
+      where: {
+        workspaceId: workspaceId,
+      },
+      include: {
+        Channel: true,
+        Workspace: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    })
+  } catch (error) {
+    console.error('Error fetching articles:', error)
+    return []
+  }
+}
 
 export default async function Home() {
   const cookieStore = await cookies()
   const workspaceId = cookieStore.get('workspaceId')
-  const workspaceName = cookieStore.get('workspaceName')
-
-  // Get error from URL if present
-  let error = null
-  let errorDescription = null
-  if (typeof window !== 'undefined') {
-    const searchParams = new URLSearchParams(window.location.search)
-    error = searchParams.get('error')
-    errorDescription = searchParams.get('error_description')
-  }
-
-  if (!workspaceId) {
-    return (
-      <div className="grid min-h-screen grid-rows-[20px_1fr_20px] items-center justify-items-center gap-16 p-8 pb-20 font-[family-name:var(--font-geist-sans)] sm:p-20">
-        <main className="row-start-2 flex flex-col items-center gap-8 sm:items-start">
-          {error && (
-            <div
-              className="relative rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700"
-              role="alert"
-            >
-              <strong className="font-bold">Error: </strong>
-              <span className="block sm:inline">
-                {decodeURIComponent(errorDescription || error)}
-              </span>
-            </div>
-          )}
-          <a href="/api/slack/install">
-            <img
-              alt="Add to Slack"
-              height="40"
-              width="139"
-              src="https://platform.slack-edge.com/img/add_to_slack.png"
-              srcSet="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x"
-            />
-          </a>
-        </main>
-        <footer className="row-start-3 flex flex-wrap items-center justify-center gap-6">
-          <a
-            className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-            href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image aria-hidden src="/file.svg" alt="File icon" width={16} height={16} />
-            Learn
-          </a>
-          <a
-            className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-            href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image aria-hidden src="/window.svg" alt="Window icon" width={16} height={16} />
-            Examples
-          </a>
-          <a
-            className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-            href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image aria-hidden src="/globe.svg" alt="Globe icon" width={16} height={16} />
-            Go to nextjs.org →
-          </a>
-        </footer>
-      </div>
-    )
-  }
+  const articles = await getArticles(workspaceId && workspaceId.value)
 
   return (
-    <div className="grid min-h-screen grid-rows-[20px_1fr_20px] items-center justify-items-center gap-16 p-8 pb-20 sm:p-20">
-      <main className="row-start-2 flex flex-col items-center gap-8">
-        <h1 className="text-2xl font-bold">
-          Welcome to workspace: {decodeURIComponent(workspaceName?.value || '')}
-        </h1>
-        <a
-          href="/dashboard"
-          className="rounded bg-blue-500 px-4 py-2 text-white transition-colors hover:bg-blue-600"
-        >
-          Go to Dashboard
-        </a>
-      </main>
-    </div>
+    <main className="min-h-screen p-8">
+      <div className="mx-auto max-w-6xl">
+        <h1 className="mb-8 text-3xl font-bold">Article Audio Library</h1>
+
+        <div className="grid gap-6">
+          {articles.length > 0 ? (
+            articles.map((article) => (
+              <div key={article.id} className="space-y-4 rounded-lg bg-white p-6 shadow-md">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2">
+                    <h2 className="text-xl font-semibold">
+                      <a
+                        href={article.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        {new URL(article.url).hostname}
+                      </a>
+                    </h2>
+                    <div className="space-x-3 text-sm text-gray-500">
+                      <span>Channel: #{article.Channel.name}</span>
+                      <span>•</span>
+                      <span>Workspace: {article.Workspace.name}</span>
+                      <span>•</span>
+                      <span>{formatDistanceToNow(new Date(article.createdAt))} ago</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg bg-gray-50 p-4">
+                  <div className="mb-4 line-clamp-3 text-sm text-gray-600">{article.text}</div>
+
+                  {article.audioUrl && (
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium text-gray-700">🎧 Audio Version</div>
+                      <audio controls className="w-full" src={article.audioUrl}>
+                        Your browser does not support the audio element.
+                      </audio>
+                      <a
+                        href={article.audioUrl}
+                        download
+                        className="flex items-center gap-1 text-sm text-blue-600 hover:underline"
+                      >
+                        <svg
+                          className="h-4 w-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                          />
+                        </svg>
+                        Download MP3
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="rounded-lg bg-gray-50 py-12 text-center">
+              <p className="text-gray-600">
+                No articles have been processed yet. Share some links in your Slack channels!
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </main>
   )
 }
