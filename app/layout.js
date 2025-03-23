@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata = {
-  title: 'Article Audio - Dashboard',
+  title: 'Taansen.ai',
   description: 'Convert your articles to audio',
 }
 
@@ -97,7 +97,7 @@ function Header() {
       <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center">
           <Link href="/" className="text-xl font-bold">
-            Article Audio
+            Taansen.ai
           </Link>
         </div>
         <div className="flex items-center gap-4">
