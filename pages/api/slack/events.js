@@ -91,21 +91,21 @@ app.message(async ({ message, say, client }) => {
             channel: message.channel,
           })
 
+          const workspace = await prisma.workspace.findUnique({
+            where: { id: message.team },
+          })
+
           // Create or update channel in database
           const channel = await prisma.channel.upsert({
             where: { id: message.channel },
             create: {
               id: message.channel,
               name: channelInfo.channel.name,
-              workspaceId: message.team,
+              workspaceId: workspace.id,
             },
             update: {
               name: channelInfo.channel.name,
             },
-          })
-
-          const workspace = await prisma.workspace.findUnique({
-            where: { id: message.team },
           })
 
           // Save to database
@@ -122,6 +122,7 @@ app.message(async ({ message, say, client }) => {
           // Use the workspace-specific client to send message with the extracted text
           await workspaceClient.chat.postMessage({
             channel: message.channel,
+            thread_ts: message.ts,
             text: `🎧 Audio version available: ${audioUrl}\n_Click to listen or download_`,
             blocks: [
               {
