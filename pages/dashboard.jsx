@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import { useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
@@ -77,4 +77,10 @@ export default function Dashboard() {
       </div>
     </div>
   )
+}
+
+export async function getServerSideProps(context) {
+  return {
+    props: {},
+  }
 }
