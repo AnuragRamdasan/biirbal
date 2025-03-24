@@ -1,73 +1,62 @@
-import { useSession } from "next-auth/react";
-import { loadStripe } from "@stripe/stripe-js";
-import { useState } from "react";
+import { useSession } from 'next-auth/react'
+import { loadStripe } from '@stripe/stripe-js'
+import { useState } from 'react'
 
-const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
-);
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
 
 const PLANS = [
   {
-    id: "basic",
-    name: "Basic",
+    id: 'basic',
+    name: 'Basic',
     price: 10,
-    features: [
-      "Up to 100 articles/month",
-      "2 channels",
-      "Standard quality TTS",
-    ],
+    features: ['Up to 100 articles/month', '2 channels', 'Standard quality TTS'],
   },
   {
-    id: "pro",
-    name: "Pro",
+    id: 'pro',
+    name: 'Pro',
     price: 25,
-    features: [
-      "Up to 500 articles/month",
-      "10 channels",
-      "Premium quality TTS",
-    ],
+    features: ['Up to 500 articles/month', '10 channels', 'Premium quality TTS'],
   },
-];
+]
 
 export default function Subscription() {
-  const { data: session } = useSession();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false)
 
   const handleSubscribe = async (priceId) => {
-    setLoading(true);
+    setLoading(true)
     try {
-      const response = await fetch("/api/stripe/create-checkout-session", {
-        method: "POST",
+      const response = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ priceId }),
-      });
+      })
 
-      const { sessionId } = await response.json();
-      const stripe = await stripePromise;
-      await stripe?.redirectToCheckout({ sessionId });
+      const { sessionId } = await response.json()
+      const stripe = await stripePromise
+      await stripe?.redirectToCheckout({ sessionId })
     } catch (error) {
-      console.error("Error:", error);
+      console.error('Error:', error)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Choose Your Plan</h1>
+      <h1 className="mb-8 text-3xl font-bold">Choose Your Plan</h1>
 
-      <div className="grid md:grid-cols-2 gap-8">
+      <div className="grid gap-8 md:grid-cols-2">
         {PLANS.map((plan) => (
-          <div key={plan.id} className="border rounded-lg p-6">
+          <div key={plan.id} className="rounded-lg border p-6">
             <h2 className="text-2xl font-bold">{plan.name}</h2>
-            <p className="text-3xl font-bold mt-4">${plan.price}/month</p>
+            <p className="mt-4 text-3xl font-bold">${plan.price}/month</p>
             <ul className="mt-4 space-y-2">
               {plan.features.map((feature) => (
                 <li key={feature} className="flex items-center">
                   <svg
-                    className="w-5 h-5 text-green-500 mr-2"
+                    className="mr-2 h-5 w-5 text-green-500"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -84,13 +73,13 @@ export default function Subscription() {
             <button
               onClick={() => handleSubscribe(plan.id)}
               disabled={loading}
-              className="mt-6 w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="mt-6 w-full rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              {loading ? "Processing..." : "Subscribe"}
+              {loading ? 'Processing...' : 'Subscribe'}
             </button>
           </div>
         ))}
       </div>
     </div>
-  );
+  )
 }
