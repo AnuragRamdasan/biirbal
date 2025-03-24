@@ -1,11 +1,20 @@
+'use client'
+
 import { useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
-import { PrismaClient } from '@prisma/client'
+import { useRouter } from 'next/router'
 
 export default function Dashboard() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
+  const router = useRouter()
   const [articles, setArticles] = useState([])
   const [channels, setChannels] = useState([])
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/')
+    }
+  }, [status, router])
 
   useEffect(() => {
     if (session) {
@@ -18,6 +27,20 @@ export default function Dashboard() {
         .then((data) => setChannels(data))
     }
   }, [session])
+
+  if (status === 'loading') {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!session) {
+    return null
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
