@@ -5,6 +5,11 @@ import { formatDistanceToNow } from 'date-fns'
 const prisma = new PrismaClient()
 
 async function getArticles(workspaceId) {
+  console.log('workspaceId')
+  console.log(workspaceId)
+  if (!workspaceId) {
+    return []
+  }
   try {
     return await prisma.article.findMany({
       where: {
@@ -29,6 +34,8 @@ export default async function Home() {
   const workspaceId = cookieStore.get('workspaceId')
   const articles = await getArticles(workspaceId && workspaceId.value)
 
+  console.log(articles)
+  console.log(workspaceId)
   return (
     <main className="min-h-screen p-8">
       <div className="mx-auto max-w-6xl">
