@@ -33,6 +33,7 @@ model Article {
   id          String    @id @default(cuid())
   url         String
   text        String    @db.Text
+  summarizedText String?    @db.Text
   audioUrl    String?
   channelId   String
   workspaceId String

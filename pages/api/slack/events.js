@@ -5,6 +5,7 @@ import { WebClient } from '@slack/web-api'
 import { extractTextFromUrl } from '@/lib/textExtractor'
 import { generateAudio } from '@/lib/audioGenerator'
 import { uploadToS3 } from '@/lib/s3'
+import { summarizeText } from '@/lib/textSummarizer'
 const prisma = new PrismaClient()
 
 export const appRunner = new AppRunner({
@@ -49,7 +50,6 @@ app.event('link_shared', async ({ event }) => {
 })
 
 app.message(async ({ message, say, client }) => {
-  console.log('message', message)
   // Ignore messages from the bot itself
   if (message.bot_id) return
 
@@ -75,10 +75,11 @@ app.message(async ({ message, say, client }) => {
       for (const url of urls) {
         try {
           const link = url.substring(0, url.length - 1)
-          const text = await extractTextFromUrl(link)
+          const originalText = await extractTextFromUrl(link)
+          const summarizedText = await summarizeText(originalText)
 
           // Generate audio from text
-          const audioBuffer = await generateAudio(text)
+          const audioBuffer = await generateAudio(summarizedText)
 
           // Upload audio to S3
           const audioUrl = await uploadToS3(
@@ -112,7 +113,8 @@ app.message(async ({ message, say, client }) => {
           await prisma.article.create({
             data: {
               url,
-              text,
+              text: originalText,
+              summarizedText,
               audioUrl,
               channelId: channel.id,
               workspaceId: workspace.id,
@@ -149,7 +151,7 @@ app.message(async ({ message, say, client }) => {
             ],
           })
         } catch (urlError) {
-          console.error(`Error extracting text from URL :`, urlError)
+          console.error(`Error extracting text from URL :`, urlError.stack)
         }
       }
     } else {
@@ -165,10 +167,6 @@ app.message(async ({ message, say, client }) => {
       console.error('Slack API Error:', error.data)
     }
   }
-})
-
-app.event('channel_join', async ({ event }) => {
-  console.log('channel_join', event)
 })
 
 app.event('url_verification', async ({ challenge }) => {
