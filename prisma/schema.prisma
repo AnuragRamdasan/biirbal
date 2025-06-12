@@ -12,11 +12,14 @@ model Workspace {
   name         String
   botId        String
   botToken     String
+  accessToken  String?       // User access token from OAuth
   channels     Channel[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   subscription Subscription?
   articles     Article[]
+
+  @@index([botId])
 }
 
 model Channel {
@@ -30,17 +33,23 @@ model Channel {
 }
 
 model Article {
-  id          String    @id @default(cuid())
-  url         String
-  text        String    @db.Text
-  summarizedText String?    @db.Text
-  audioUrl    String?
-  channelId   String
-  workspaceId String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  Workspace   Workspace @relation(fields: [workspaceId], references: [id])
-  Channel     Channel   @relation(fields: [channelId], references: [id])
+  id             String    @id @default(cuid())
+  url            String
+  text           String    @db.Text
+  summarizedText String?   @db.Text
+  audioUrl       String?
+  status         String    @default("processing") // processing, completed, failed
+  channelId      String
+  workspaceId    String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  workspace      Workspace @relation(fields: [workspaceId], references: [id])
+  channel        Channel   @relation(fields: [channelId], references: [id])
+
+  @@unique([url, workspaceId]) // Prevent duplicate URLs per workspace
+  @@index([workspaceId])
+  @@index([channelId])
+  @@index([status])
 }
 
 model Subscription {

@@ -160,7 +160,7 @@ export default async function RootLayout({ children }) {
             <Header />
             {workspaceId && <Sidebar />}
             <main className={`min-h-screen pb-16 pt-16 ${workspaceId ? 'pl-64' : ''}`}>
-              <div className="container mx-auto p-6">{children}</div>
+              <div className="mx-auto">{children}</div>
             </main>
             <Footer className={workspaceId ? 'pl-64' : ''} />
           </div>

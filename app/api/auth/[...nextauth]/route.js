@@ -12,8 +12,8 @@ export const authOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     SlackProvider({
-      clientId: process.env.SLACK_CLIENT_ID,
-      clientSecret: process.env.SLACK_CLIENT_SECRET,
+      clientId: process.env.NEXTAUTH_SLACK_CLIENT_ID || process.env.SLACK_CLIENT_ID,
+      clientSecret: process.env.NEXTAUTH_SLACK_CLIENT_SECRET || process.env.SLACK_CLIENT_SECRET,
       authorization: {
         params: {
           scope: 'identity.basic identity.email identity.avatar identity.team',
