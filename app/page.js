@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import { cookies } from 'next/headers'
 import { formatDistanceToNow } from 'date-fns'
+import LandingPage from '@/components/LandingPage'
 
 const prisma = new PrismaClient()
 
@@ -34,8 +35,9 @@ export default async function Home() {
   const workspaceId = cookieStore.get('workspaceId')
   const articles = await getArticles(workspaceId && workspaceId.value)
 
-  console.log(articles)
-  console.log(workspaceId)
+  if (!workspaceId) {
+    return <LandingPage />
+  }
   return (
     <main className="min-h-screen p-8">
       <div className="mx-auto max-w-6xl">

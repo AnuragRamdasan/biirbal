@@ -24,6 +24,7 @@
     "@tailwindcss/typography": "^0.5.16",
     "aws-sdk": "^2.1692.0",
     "axios": "^1.7.9",
+    "bcryptjs": "^3.0.2",
     "cheerio": "^1.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

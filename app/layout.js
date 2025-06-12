@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Header } from '@/components/Header'
 import { NextAuthProvider } from '@/components/NextAuthProvider'
+import { cookies } from 'next/headers'
+import { useSession } from 'next-auth/react'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -147,24 +149,20 @@ function Footer() {
   )
 }
 
-const signOut = async () => {
+export default async function RootLayout({ children }) {
   const cookieStore = await cookies()
-  cookieStore.delete('workspaceId')
-  cookieStore.delete('workspaceName')
-}
-
-export default function RootLayout({ children }) {
+  const workspaceId = cookieStore.get('workspaceId')
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <NextAuthProvider>
           <div className="relative min-h-screen bg-background">
             <Header />
-            <Sidebar />
-            <main className="min-h-screen pb-16 pl-64 pt-16">
+            {workspaceId && <Sidebar />}
+            <main className={`min-h-screen pb-16 pt-16 ${workspaceId ? 'pl-64' : ''}`}>
               <div className="container mx-auto p-6">{children}</div>
             </main>
-            <Footer />
+            <Footer className={workspaceId ? 'pl-64' : ''} />
           </div>
         </NextAuthProvider>
       </body>

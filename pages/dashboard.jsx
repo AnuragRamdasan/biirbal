@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 import { useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
@@ -38,6 +38,8 @@ export default function Dashboard() {
     )
   }
 
+  console.log('session')
+  console.log(session)
   if (!session) {
     return null
   }
