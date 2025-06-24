@@ -1,0 +1,220 @@
+import { prisma } from './prisma'
+import { extractContentFromUrl, summarizeForAudio } from './content-extractor'
+import { generateAudioSummary, uploadAudioToStorage, saveAudioLocally } from './text-to-speech'
+import { WebClient } from '@slack/web-api'
+import { Readable } from 'stream'
+
+interface ProcessLinkParams {
+  url: string
+  messageTs: string
+  channelId: string
+  teamId: string
+  slackTeamId: string
+}
+
+export async function processLinkInBackground(params: ProcessLinkParams) {
+  // Process in background to avoid blocking the Slack event response
+  setImmediate(async () => {
+    try {
+      await processLink(params)
+    } catch (error) {
+      console.error('Background link processing failed:', error)
+    }
+  })
+}
+
+export async function processLink({
+  url,
+  messageTs,
+  channelId,
+  teamId,
+  slackTeamId
+}: ProcessLinkParams): Promise<void> {
+  let processedLink
+  
+  try {
+    // Create or get existing processed link record
+    processedLink = await prisma.processedLink.upsert({
+      where: {
+        url_messageTs_channelId: {
+          url,
+          messageTs,
+          channelId
+        }
+      },
+      update: {
+        processingStatus: 'PROCESSING'
+      },
+      create: {
+        url,
+        messageTs,
+        channelId,
+        teamId,
+        processingStatus: 'PROCESSING'
+      }
+    })
+
+    // Get team info for Slack client
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+      include: { subscription: true }
+    })
+
+    if (!team) {
+      throw new Error('Team not found')
+    }
+
+    const slackClient = new WebClient(team.accessToken)
+
+    // Step 1: Extract content from URL
+    console.log('Extracting content from:', url)
+    const extractedContent = await extractContentFromUrl(url)
+
+    // Step 2: Summarize content for audio
+    const audioText = summarizeForAudio(extractedContent.text, 200)
+
+    // Step 3: Generate audio summary
+    console.log('Generating audio summary for:', extractedContent.title)
+    const audioResult = await generateAudioSummary(
+      audioText,
+      extractedContent.title,
+      parseInt(process.env.MAX_AUDIO_DURATION_SECONDS || '90')
+    )
+
+    // Step 4: Upload audio file
+    let audioUrl: string
+    if (process.env.NODE_ENV === 'development') {
+      audioUrl = await saveAudioLocally(audioResult.audioBuffer, audioResult.fileName)
+      audioUrl = `${process.env.NEXTAUTH_URL}${audioUrl}`
+    } else {
+      audioUrl = await uploadAudioToStorage(audioResult.audioBuffer, audioResult.fileName)
+    }
+
+    // Step 5: Update database
+    await prisma.processedLink.update({
+      where: { id: processedLink.id },
+      data: {
+        title: extractedContent.title,
+        extractedText: extractedContent.excerpt,
+        audioFileUrl: audioUrl,
+        audioFileKey: audioResult.fileName,
+        processingStatus: 'COMPLETED',
+        updatedAt: new Date()
+      }
+    })
+
+    // Step 6: Upload audio to Slack and post reply
+    await uploadAudioToSlack({
+      slackClient,
+      channelId,
+      messageTs,
+      audioBuffer: audioResult.audioBuffer,
+      fileName: audioResult.fileName,
+      title: extractedContent.title,
+      excerpt: extractedContent.excerpt,
+      url
+    })
+
+    // Step 7: Update subscription usage
+    if (team.subscription) {
+      await prisma.subscription.update({
+        where: { teamId: team.id },
+        data: {
+          linksProcessed: {
+            increment: 1
+          }
+        }
+      })
+    }
+
+    console.log('Successfully processed link:', url)
+
+  } catch (error) {
+    console.error('Link processing failed:', error)
+    
+    // Update database with error
+    if (processedLink) {
+      await prisma.processedLink.update({
+        where: { id: processedLink.id },
+        data: {
+          processingStatus: 'FAILED',
+          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+          updatedAt: new Date()
+        }
+      })
+    }
+
+    // Optionally notify in Slack about the failure
+    try {
+      const team = await prisma.team.findUnique({
+        where: { id: teamId }
+      })
+      
+      if (team) {
+        const slackClient = new WebClient(team.accessToken)
+        await slackClient.chat.postMessage({
+          channel: channelId,
+          thread_ts: messageTs,
+          text: `⚠️ Sorry, I couldn't process the link: ${url}. ${error instanceof Error ? error.message : 'Unknown error occurred.'}`
+        })
+      }
+    } catch (notifyError) {
+      console.error('Failed to notify about processing error:', notifyError)
+    }
+  }
+}
+
+interface UploadAudioToSlackParams {
+  slackClient: WebClient
+  channelId: string
+  messageTs: string
+  audioBuffer: Buffer
+  fileName: string
+  title: string
+  excerpt: string
+  url: string
+}
+
+async function uploadAudioToSlack({
+  slackClient,
+  channelId,
+  messageTs,
+  audioBuffer,
+  fileName,
+  title,
+  excerpt,
+  url
+}: UploadAudioToSlackParams): Promise<void> {
+  try {
+    // Upload audio file to Slack
+    const uploadResult = await slackClient.files.upload({
+      channels: channelId,
+      file: audioBuffer,
+      filename: fileName,
+      filetype: 'mp3',
+      title: `Audio Summary: ${title}`,
+      initial_comment: `🎧 Audio summary for: *${title}*\n\n${excerpt}\n\n_Original link: ${url}_`,
+      thread_ts: messageTs
+    })
+
+    if (!uploadResult.ok) {
+      throw new Error(`Slack file upload failed: ${uploadResult.error}`)
+    }
+
+    console.log('Audio uploaded to Slack successfully')
+  } catch (error) {
+    console.error('Slack audio upload failed:', error)
+    
+    // Fallback: Post text message with audio URL if available
+    try {
+      await slackClient.chat.postMessage({
+        channel: channelId,
+        thread_ts: messageTs,
+        text: `🎧 Audio summary for: *${title}*\n\n${excerpt}\n\n_Original link: ${url}_\n\n⚠️ Audio file upload failed, but processing completed successfully.`
+      })
+    } catch (fallbackError) {
+      console.error('Fallback message failed:', fallbackError)
+      throw error // Re-throw original error
+    }
+  }
+}

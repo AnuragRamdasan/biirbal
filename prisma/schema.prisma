@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Team {
+  id          String   @id @default(cuid())
+  slackTeamId String   @unique
+  teamName    String?
+  accessToken String
+  botUserId   String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  channels     Channel[]
+  processedLinks ProcessedLink[]
+  subscription Subscription?
+
+  @@map("teams")
+}
+
+model Channel {
+  id            String   @id @default(cuid())
+  slackChannelId String  @unique
+  channelName   String?
+  teamId        String
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  processedLinks ProcessedLink[]
+
+  @@map("channels")
+}
+
+model ProcessedLink {
+  id              String   @id @default(cuid())
+  url             String
+  messageTs       String
+  channelId       String
+  teamId          String
+  title           String?
+  extractedText   String?
+  audioFileUrl    String?
+  audioFileKey    String?
+  processingStatus ProcessingStatus @default(PENDING)
+  errorMessage    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  team    Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([url, messageTs, channelId])
+  @@map("processed_links")
+}
+
+model Subscription {
+  id                String            @id @default(cuid())
+  teamId            String            @unique
+  stripeCustomerId  String?
+  stripeSubscriptionId String?
+  status            SubscriptionStatus @default(TRIAL)
+  currentPeriodEnd  DateTime?
+  linksProcessed    Int               @default(0)
+  monthlyLimit      Int               @default(50)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+enum ProcessingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  UNPAID
+}

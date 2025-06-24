@@ -1,36 +1,149 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 📎 Slack Link Monitor
 
-## Getting Started
+A production-ready Slack application that automatically generates 90-second audio summaries of links shared in your channels using AI-powered content extraction and text-to-speech technology.
 
-First, run the development server:
+## 🌟 Features
 
+- **🔗 Automatic Link Detection**: Monitors all channels where the bot is added and detects shared links
+- **📄 Smart Content Extraction**: Uses advanced readability algorithms to extract clean, meaningful content from web pages
+- **🎧 AI Audio Summaries**: Generates high-quality 90-second audio summaries using Google Cloud Text-to-Speech
+- **💳 Stripe Payment Integration**: Subscription-based pricing with trial periods
+- **🔒 Enterprise Security**: Production-ready security headers and validation
+- **📊 Usage Analytics**: Track link processing and subscription limits
+- **🧪 Comprehensive Testing**: Full test suite with 70%+ coverage requirements
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Node.js 18+ 
+- PostgreSQL database
+- Google Cloud Project with Text-to-Speech API enabled
+- Slack App with required permissions
+- Stripe account for payments
+
+### Environment Setup
+
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <your-repo-url>
+cd slack-link-monitor
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Copy environment variables:
+```bash
+cp .env.example .env
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Configure your `.env` file with the required credentials:
+```env
+# Slack Configuration
+SLACK_CLIENT_ID=your_slack_client_id
+SLACK_CLIENT_SECRET=your_slack_client_secret
+SLACK_SIGNING_SECRET=your_slack_signing_secret
+SLACK_BOT_TOKEN=xoxb-your-bot-token
 
-## Learn More
+# Database
+DATABASE_URL="postgresql://username:password@localhost:5432/slack_link_monitor"
 
-To learn more about Next.js, take a look at the following resources:
+# Google Cloud Text-to-Speech
+GOOGLE_CLOUD_PROJECT_ID=your_gcp_project_id
+GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account-key.json
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Stripe
+STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
+STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
+STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# App Configuration
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your_nextauth_secret
+```
 
-## Deploy on Vercel
+5. Set up the database:
+```bash
+npm run db:generate
+npm run db:push
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+6. Start the development server:
+```bash
+npm run dev
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🏗️ Architecture
+
+### Tech Stack
+
+- **Frontend**: Next.js 15 with TypeScript and Tailwind CSS
+- **Backend**: Next.js API Routes with serverless functions
+- **Database**: PostgreSQL with Prisma ORM
+- **Authentication**: Slack OAuth 2.0
+- **Payments**: Stripe Subscriptions
+- **Audio Generation**: Google Cloud Text-to-Speech
+- **Content Extraction**: Readability API + cheerio fallback
+- **Testing**: Jest with comprehensive test coverage
+- **Deployment**: Docker + Vercel/Railway ready
+
+## 🧪 Testing
+
+Run the test suite:
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
+```
+
+## 📦 Deployment
+
+### Docker Deployment
+
+```bash
+# Build and run with Docker
+docker build -t slack-link-monitor .
+docker run -p 3000:3000 --env-file .env slack-link-monitor
+
+# Or use docker-compose
+docker-compose up
+```
+
+### Vercel Deployment
+
+1. Install Vercel CLI: `npm i -g vercel`
+2. Deploy: `vercel --prod`
+3. Configure environment variables in Vercel dashboard
+4. Set up database (Neon, PlanetScale, or Supabase recommended)
+
+## 💰 Pricing Plans
+
+- **Free Trial**: 50 links/month, 7-day trial
+- **Starter**: $9.99/month, 100 links/month
+- **Pro**: $29.99/month, 500 links/month ⭐ Most Popular
+- **Enterprise**: $99.99/month, 2000 links/month + custom features
+
+## 🔒 Security Features
+
+- Request signature verification (Slack)
+- Rate limiting and usage tracking
+- SQL injection protection (Prisma)
+- XSS protection headers
+- Environment variable validation
+- Secure file upload handling
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+---
+
+**Built with ❤️ for teams who want to stay informed without the information overload.**

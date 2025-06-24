@@ -1,0 +1,31 @@
+{
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm ci",
+  "framework": "nextjs",
+  "functions": {
+    "src/app/api/**/*.ts": {
+      "maxDuration": 30
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/cleanup",
+      "schedule": "0 2 * * *"
+    }
+  ],
+  "env": {
+    "SLACK_CLIENT_ID": "@slack_client_id",
+    "SLACK_CLIENT_SECRET": "@slack_client_secret",
+    "SLACK_SIGNING_SECRET": "@slack_signing_secret",
+    "SLACK_BOT_TOKEN": "@slack_bot_token",
+    "DATABASE_URL": "@database_url",
+    "STRIPE_SECRET_KEY": "@stripe_secret_key",
+    "STRIPE_PUBLISHABLE_KEY": "@stripe_publishable_key",
+    "STRIPE_WEBHOOK_SECRET": "@stripe_webhook_secret",
+    "GOOGLE_CLOUD_PROJECT_ID": "@google_cloud_project_id",
+    "GOOGLE_APPLICATION_CREDENTIALS": "@google_application_credentials",
+    "NEXTAUTH_URL": "@nextauth_url",
+    "NEXTAUTH_SECRET": "@nextauth_secret"
+  }
+}
