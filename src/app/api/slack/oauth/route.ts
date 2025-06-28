@@ -23,6 +23,9 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       oauthLogger.warn('OAuth error received', { error })
+      console.log(process.env.NEXTAUTH_URL)
+      console.log(request.url)
+      console.log(error)
       return NextResponse.redirect(
         new URL(`/?error=${encodeURIComponent(error)}`, process.env.NEXTAUTH_URL || request.url)
       )
@@ -80,6 +83,8 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    console.log(process.env.NEXTAUTH_URL)
+    console.log(request.url)
     return NextResponse.redirect(
       new URL('/?installed=true', process.env.NEXTAUTH_URL || request.url)
     )
