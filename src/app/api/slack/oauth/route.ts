@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { handleApiError, ValidationError } from '@/lib/error-handler'
 
-const slackClient = new WebClient()
+// Create WebClient only when needed, not at module level
 
 export async function GET(request: NextRequest) {
   const oauthLogger = logger.child('slack-oauth')
@@ -31,9 +31,18 @@ export async function GET(request: NextRequest) {
     if (!code) {
       throw new ValidationError('Missing authorization code')
     }
+    
+    // Check if Slack OAuth is configured
+    if (!process.env.SLACK_CLIENT_ID || !process.env.SLACK_CLIENT_SECRET) {
+      throw new Error('Slack OAuth is not configured')
+    }
+    
+    // Create WebClient only when needed
+    const slackClient = new WebClient()
+    
     const result = await slackClient.oauth.v2.access({
-      client_id: process.env.SLACK_CLIENT_ID!,
-      client_secret: process.env.SLACK_CLIENT_SECRET!,
+      client_id: process.env.SLACK_CLIENT_ID,
+      client_secret: process.env.SLACK_CLIENT_SECRET,
       code
     })
 

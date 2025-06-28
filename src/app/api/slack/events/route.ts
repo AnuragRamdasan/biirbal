@@ -5,7 +5,10 @@ import { extractLinksFromMessage, shouldProcessUrl } from '@/lib/slack'
 import { processLinkInBackground } from '@/lib/link-processor'
 
 function verifySlackRequest(body: string, signature: string, timestamp: string): boolean {
-  const signingSecret = process.env.SLACK_SIGNING_SECRET!
+  const signingSecret = process.env.SLACK_SIGNING_SECRET
+  if (!signingSecret) {
+    throw new Error('Slack signing secret is not configured')
+  }
   const hmac = crypto.createHmac('sha256', signingSecret)
   const [version, hash] = signature.split('=')
   
