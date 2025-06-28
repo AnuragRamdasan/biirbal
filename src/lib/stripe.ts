@@ -1,8 +1,11 @@
 import Stripe from 'stripe'
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16'
-})
+// Initialize Stripe only if the secret key is available
+export const stripe = process.env.STRIPE_SECRET_KEY 
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2023-10-16'
+    })
+  : null
 
 export const PRICING_PLANS = {
   STARTER: {
@@ -29,6 +32,10 @@ export const PRICING_PLANS = {
 }
 
 export async function createStripeCustomer(teamId: string, teamName: string, email?: string) {
+  if (!stripe) {
+    throw new Error('Stripe is not configured')
+  }
+  
   const customer = await stripe.customers.create({
     metadata: {
       teamId,
@@ -48,6 +55,10 @@ export async function createCheckoutSession(
   successUrl: string,
   cancelUrl: string
 ) {
+  if (!stripe) {
+    throw new Error('Stripe is not configured')
+  }
+  
   const session = await stripe.checkout.sessions.create({
     customer: customerId,
     payment_method_types: ['card'],
@@ -74,6 +85,10 @@ export async function createCheckoutSession(
 }
 
 export async function createPortalSession(customerId: string, returnUrl: string) {
+  if (!stripe) {
+    throw new Error('Stripe is not configured')
+  }
+  
   const session = await stripe.billingPortal.sessions.create({
     customer: customerId,
     return_url: returnUrl
@@ -83,9 +98,17 @@ export async function createPortalSession(customerId: string, returnUrl: string)
 }
 
 export function constructWebhookEvent(body: string, signature: string) {
+  if (!stripe) {
+    throw new Error('Stripe is not configured')
+  }
+  
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    throw new Error('Stripe webhook secret is not configured')
+  }
+  
   return stripe.webhooks.constructEvent(
     body,
     signature,
-    process.env.STRIPE_WEBHOOK_SECRET!
+    process.env.STRIPE_WEBHOOK_SECRET
   )
 }

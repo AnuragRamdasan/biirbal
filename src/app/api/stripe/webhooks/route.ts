@@ -15,6 +15,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Check if Stripe is configured
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return NextResponse.json(
+        { error: 'Stripe is not configured' },
+        { status: 503 }
+      )
+    }
+
     const event = constructWebhookEvent(body, signature)
 
     switch (event.type) {
