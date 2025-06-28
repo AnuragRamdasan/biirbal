@@ -24,7 +24,7 @@ function HomeContent() {
       return window.location.origin + '/api/slack/oauth'
     }
     // Fallback for server-side rendering - use same logic as backend
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL
     return baseUrl + '/api/slack/oauth'
   }
 

@@ -7,6 +7,9 @@ import { handleApiError, ValidationError } from '@/lib/error-handler'
 // Create WebClient only when needed, not at module level
 
 export async function GET(request: NextRequest) {
+  console.log(process.env.NEXTAUTH_URL)
+  console.log(process.env.NEXT_PUBLIC_BASE_URL)
+  console.log(request.url)
   const oauthLogger = logger.child('slack-oauth')
   
   //try {
