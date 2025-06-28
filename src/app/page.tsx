@@ -2,6 +2,8 @@
 
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import Script from 'next/script'
+import { jsonLd } from '@/lib/seo'
 
 export default function Home() {
   const searchParams = useSearchParams()
@@ -20,7 +22,90 @@ export default function Home() {
   const slackInstallUrl = `https://slack.com/oauth/v2/authorize?client_id=${process.env.NEXT_PUBLIC_SLACK_CLIENT_ID}&scope=app_mentions:read,channels:history,channels:read,chat:write,files:write,groups:history,groups:read,im:history,im:read,mpim:history,mpim:read&user_scope=&redirect_uri=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin + '/api/slack/oauth' : '')}`
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white to-gray-50">
+    <>
+      {/* Homepage-specific structured data */}
+      <Script
+        id="homepage-product-data"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Product",
+            "name": "biirbal.ai Slack Bot",
+            "description": "AI-powered audio summaries for Slack links. Transform every shared link into a 90-second audio summary.",
+            "brand": {
+              "@type": "Brand",
+              "name": "biirbal.ai"
+            },
+            "offers": [
+              {
+                "@type": "Offer",
+                "name": "Starter Plan",
+                "price": "9.99",
+                "priceCurrency": "USD",
+                "priceValidUntil": "2025-12-31",
+                "availability": "https://schema.org/InStock",
+                "url": "https://biirbal.ai/pricing"
+              },
+              {
+                "@type": "Offer",
+                "name": "Pro Plan", 
+                "price": "29.99",
+                "priceCurrency": "USD",
+                "priceValidUntil": "2025-12-31",
+                "availability": "https://schema.org/InStock",
+                "url": "https://biirbal.ai/pricing"
+              },
+              {
+                "@type": "Offer",
+                "name": "Enterprise Plan",
+                "price": "99.99",
+                "priceCurrency": "USD",
+                "priceValidUntil": "2025-12-31",
+                "availability": "https://schema.org/InStock",
+                "url": "https://biirbal.ai/pricing"
+              }
+            ],
+            "aggregateRating": {
+              "@type": "AggregateRating",
+              "ratingValue": "4.9",
+              "ratingCount": "250",
+              "bestRating": "5",
+              "worstRating": "1"
+            },
+            "review": [
+              {
+                "@type": "Review",
+                "author": {
+                  "@type": "Person",
+                  "name": "Sarah Chen"
+                },
+                "reviewRating": {
+                  "@type": "Rating",
+                  "ratingValue": "5",
+                  "bestRating": "5"
+                },
+                "reviewBody": "Game changer! Our team used to miss 70% of shared articles. Now we consume everything through audio summaries during commutes."
+              },
+              {
+                "@type": "Review",
+                "author": {
+                  "@type": "Person",
+                  "name": "Marcus Rodriguez"
+                },
+                "reviewRating": {
+                  "@type": "Rating",
+                  "ratingValue": "5",
+                  "bestRating": "5"
+                },
+                "reviewBody": "Saved us 3+ hours weekly. Instead of bookmarking articles we never read, we listen to summaries instantly."
+              }
+            ]
+          }),
+        }}
+      />
+      
+      <div className="min-h-screen bg-gradient-to-br from-white to-gray-50">
       {/* Product Hunt Badge */}
       <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-center py-3 px-4">
         <div className="flex items-center justify-center gap-2 text-sm font-medium">
@@ -438,5 +523,6 @@ export default function Home() {
         </footer>
       </div>
     </div>
+    </>
   )
 }

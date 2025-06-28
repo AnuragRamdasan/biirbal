@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { PRICING_PLANS } from '@/lib/stripe'
+import Script from 'next/script'
 
 export default function PricingPage() {
   const [loading, setLoading] = useState<string | null>(null)
@@ -30,7 +31,63 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white to-gray-50">
+    <>
+      {/* Pricing-specific structured data */}
+      <Script
+        id="pricing-structured-data"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "ItemList",
+            "name": "biirbal.ai Pricing Plans",
+            "description": "Pricing plans for biirbal.ai AI-powered Slack content intelligence",
+            "itemListElement": [
+              {
+                "@type": "Product",
+                "position": 1,
+                "name": "Starter Plan",
+                "description": "Perfect for small teams",
+                "offers": {
+                  "@type": "Offer",
+                  "price": "9.99",
+                  "priceCurrency": "USD",
+                  "priceValidUntil": "2025-12-31",
+                  "availability": "https://schema.org/InStock"
+                }
+              },
+              {
+                "@type": "Product",
+                "position": 2,
+                "name": "Pro Plan",
+                "description": "Most popular choice for growing teams",
+                "offers": {
+                  "@type": "Offer",
+                  "price": "29.99",
+                  "priceCurrency": "USD",
+                  "priceValidUntil": "2025-12-31",
+                  "availability": "https://schema.org/InStock"
+                }
+              },
+              {
+                "@type": "Product",
+                "position": 3,
+                "name": "Enterprise Plan",
+                "description": "For large organizations",
+                "offers": {
+                  "@type": "Offer",
+                  "price": "99.99",
+                  "priceCurrency": "USD",
+                  "priceValidUntil": "2025-12-31",
+                  "availability": "https://schema.org/InStock"
+                }
+              }
+            ]
+          }),
+        }}
+      />
+      
+      <div className="min-h-screen bg-gradient-to-br from-white to-gray-50">
       <div className="container mx-auto px-6 py-20">
         <div className="text-center mb-20">
           <h1 className="text-4xl font-bold text-gray-900 mb-6">
@@ -165,5 +222,6 @@ export default function PricingPage() {
         </div>
       </div>
     </div>
+    </>
   )
 }

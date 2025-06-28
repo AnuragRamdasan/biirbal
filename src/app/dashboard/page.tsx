@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Metadata } from 'next'
+import Head from 'next/head'
 
 interface ProcessedLink {
   id: string
