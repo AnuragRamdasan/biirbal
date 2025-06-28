@@ -67,12 +67,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Create checkout session
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://biirbal.com'
     const session = await createCheckoutSession(
       customerId,
       plan.stripePriceId,
       team.id,
-      `${process.env.NEXTAUTH_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-      `${process.env.NEXTAUTH_URL}/pricing?canceled=true`
+      `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
+      `${baseUrl}/pricing?canceled=true`
     )
 
     return NextResponse.json({ sessionId: session.id, url: session.url })

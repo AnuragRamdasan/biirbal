@@ -97,7 +97,8 @@ export async function processLink({
     let audioUrl: string
     if (process.env.NODE_ENV === 'development') {
       audioUrl = await saveAudioLocally(audioResult.audioBuffer, audioResult.fileName)
-      audioUrl = `${process.env.NEXTAUTH_URL}${audioUrl}`
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://biirbal.com'
+      audioUrl = `${baseUrl}${audioUrl}`
     } else {
       audioUrl = await uploadAudioToStorage(audioResult.audioBuffer, audioResult.fileName)
     }
