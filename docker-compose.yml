@@ -7,7 +7,7 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://postgres:password@db:5432/slack_link_monitor
+      - DATABASE_URL=postgresql://postgres:password@db:5432/biirbal_ai
     depends_on:
       - db
     volumes:
@@ -18,7 +18,7 @@ services:
   db:
     image: postgres:15-alpine
     environment:
-      - POSTGRES_DB=slack_link_monitor
+      - POSTGRES_DB=biirbal_ai
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=password
     volumes:

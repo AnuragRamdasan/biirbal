@@ -1,4 +1,4 @@
-# 📎 Slack Link Monitor
+# 🧠 biirbal.ai
 
 A production-ready Slack application that automatically generates 90-second audio summaries of links shared in your channels using AI-powered content extraction and text-to-speech technology.
 
@@ -27,7 +27,7 @@ A production-ready Slack application that automatically generates 90-second audi
 1. Clone the repository:
 ```bash
 git clone <your-repo-url>
-cd slack-link-monitor
+cd biirbal-ai
 ```
 
 2. Install dependencies:
@@ -49,7 +49,7 @@ SLACK_SIGNING_SECRET=your_slack_signing_secret
 SLACK_BOT_TOKEN=xoxb-your-bot-token
 
 # Database
-DATABASE_URL="postgresql://username:password@localhost:5432/slack_link_monitor"
+DATABASE_URL="postgresql://username:password@localhost:5432/biirbal_ai"
 
 # Google Cloud Text-to-Speech
 GOOGLE_CLOUD_PROJECT_ID=your_gcp_project_id
@@ -110,8 +110,8 @@ npm run test:coverage
 
 ```bash
 # Build and run with Docker
-docker build -t slack-link-monitor .
-docker run -p 3000:3000 --env-file .env slack-link-monitor
+docker build -t biirbal-ai .
+docker run -p 3000:3000 --env-file .env biirbal-ai
 
 # Or use docker-compose
 docker-compose up

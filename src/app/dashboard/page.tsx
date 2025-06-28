@@ -91,10 +91,24 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen bg-gradient-to-br from-white to-gray-50">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+          <div className="container mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="text-xl font-bold">🧠 biirbal.ai</span>
+              </div>
+              <a href="/" className="text-white/80 hover:text-white transition-colors text-sm">
+                ← Back to Home
+              </a>
+            </div>
+          </div>
+        </div>
+        
+        <div className="container mx-auto px-6 py-12">
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
             <p className="mt-4 text-gray-600">Loading your links...</p>
           </div>
         </div>
@@ -104,10 +118,26 @@ export default function Dashboard() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen bg-gradient-to-br from-white to-gray-50">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+          <div className="container mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="text-xl font-bold">🧠 biirbal.ai</span>
+              </div>
+              <a href="/" className="text-white/80 hover:text-white transition-colors text-sm">
+                ← Back to Home
+              </a>
+            </div>
+          </div>
+        </div>
+        
+        <div className="container mx-auto px-6 py-12">
           <div className="text-center py-12">
-            <p className="text-red-600">Error: {error}</p>
+            <div className="bg-red-50 border border-red-200 text-red-800 px-6 py-4 rounded-xl max-w-md mx-auto">
+              ❌ Error: {error}
+            </div>
           </div>
         </div>
       </div>
@@ -115,114 +145,176 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Audio Dashboard</h1>
+    <div className="min-h-screen bg-gradient-to-br from-white to-gray-50">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <span className="text-xl font-bold">🧠 biirbal.ai</span>
+            </div>
+            <a href="/" className="text-white/80 hover:text-white transition-colors text-sm">
+              ← Back to Home
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-6 py-8">
+        {/* Dashboard Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Audio Dashboard</h1>
+              <p className="text-gray-600">All your processed links and audio summaries in one place</p>
+            </div>
+            <div className="text-right">
+              <div className="text-sm text-gray-500">Total Links</div>
+              <div className="text-2xl font-bold text-indigo-600">{links.length}</div>
+            </div>
+          </div>
+        </div>
         
         {links.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-600">No links processed yet. Share some links in Slack to get started!</p>
+          <div className="text-center py-16">
+            <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm max-w-md mx-auto">
+              <div className="bg-gradient-to-r from-indigo-500 to-purple-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No links yet</h3>
+              <p className="text-gray-600 text-sm">Share some links in Slack to get started with audio summaries!</p>
+            </div>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="grid gap-4">
             {links.map((link) => (
-              <div key={link.id} id={`link-${link.id}`} className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                      {link.title || 'Untitled'}
-                    </h2>
-                    <p className="text-sm text-gray-500 mb-2">
-                      {new Date(link.createdAt).toLocaleDateString()} at{' '}
-                      {new Date(link.createdAt).toLocaleTimeString()}
-                    </p>
-                    <a 
-                      href={link.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 text-sm break-all"
-                    >
-                      {link.url}
-                    </a>
-                  </div>
-                  <div className="ml-4">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+              <div key={link.id} id={`link-${link.id}`} className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 p-4">
+                <div className="flex items-start gap-4">
+                  {/* Status Indicator */}
+                  <div className="flex-shrink-0 mt-1">
+                    <div className={`w-3 h-3 rounded-full ${
                       link.processingStatus === 'COMPLETED' 
-                        ? 'bg-green-100 text-green-800' 
+                        ? 'bg-green-500' 
                         : link.processingStatus === 'PROCESSING'
-                        ? 'bg-yellow-100 text-yellow-800'
+                        ? 'bg-yellow-500 animate-pulse'
                         : link.processingStatus === 'FAILED'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {link.processingStatus}
-                    </span>
+                        ? 'bg-red-500'
+                        : 'bg-gray-400'
+                    }`}></div>
                   </div>
-                </div>
-
-                {link.extractedText && (
-                  <p className="text-gray-700 mb-4 line-clamp-3">{link.extractedText}</p>
-                )}
-
-                {link.audioFileUrl && link.processingStatus === 'COMPLETED' && (
-                  <div className="border-t pt-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-lg font-medium text-gray-900">Audio Summary</h3>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm text-gray-500">
-                          {link.listens.length} listen{link.listens.length !== 1 ? 's' : ''}
+                  
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900 truncate pr-4">
+                        {link.title || 'Untitled'}
+                      </h3>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          link.processingStatus === 'COMPLETED' 
+                            ? 'bg-green-100 text-green-800' 
+                            : link.processingStatus === 'PROCESSING'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : link.processingStatus === 'FAILED'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {link.processingStatus}
                         </span>
                         {link.listens.some(l => l.completed) && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
                             ✓ Completed
                           </span>
                         )}
                       </div>
                     </div>
                     
-                    <audio 
-                      controls 
-                      className="w-full"
-                      onPlay={() => trackListen(link.id)}
-                      onEnded={() => {
-                        const latestListen = link.listens[link.listens.length - 1]
-                        if (latestListen && !latestListen.completed) {
-                          markAsCompleted(link.id, latestListen.id)
-                        }
-                      }}
-                    >
-                      <source src={link.audioFileUrl} type="audio/mpeg" />
-                      Your browser does not support the audio element.
-                    </audio>
+                    <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
+                      <span>{new Date(link.createdAt).toLocaleDateString()}</span>
+                      <span>•</span>
+                      <span>{link.listens.length} listen{link.listens.length !== 1 ? 's' : ''}</span>
+                      <span>•</span>
+                      <a 
+                        href={link.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-indigo-600 hover:text-indigo-800 transition-colors truncate max-w-md"
+                      >
+                        {link.url}
+                      </a>
+                    </div>
 
-                    {link.listens.length > 0 && (
-                      <div className="mt-3">
-                        <details className="text-sm text-gray-600">
-                          <summary className="cursor-pointer hover:text-gray-800">
-                            Listen History ({link.listens.length})
-                          </summary>
-                          <div className="mt-2 space-y-1">
-                            {link.listens.map((listen) => (
-                              <div key={listen.id} className="flex justify-between items-center py-1">
-                                <span>
-                                  {new Date(listen.listenedAt).toLocaleDateString()} at{' '}
-                                  {new Date(listen.listenedAt).toLocaleTimeString()}
-                                </span>
-                                <span className={`px-2 py-1 rounded-full text-xs ${
-                                  listen.completed 
-                                    ? 'bg-green-100 text-green-800' 
-                                    : 'bg-gray-100 text-gray-800'
-                                }`}>
-                                  {listen.completed ? 'Completed' : 'Started'}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </details>
+                    {link.extractedText && (
+                      <p className="text-gray-700 text-sm line-clamp-2 mb-3">{link.extractedText}</p>
+                    )}
+
+                    {link.audioFileUrl && link.processingStatus === 'COMPLETED' && (
+                      <div className="border-t border-gray-100 pt-3 mt-3">
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-medium text-gray-900">Audio Summary:</span>
+                          <audio 
+                            controls 
+                            className="flex-1 h-8"
+                            style={{ maxHeight: '32px' }}
+                            onPlay={() => trackListen(link.id)}
+                            onEnded={() => {
+                              const latestListen = link.listens[link.listens.length - 1]
+                              if (latestListen && !latestListen.completed) {
+                                markAsCompleted(link.id, latestListen.id)
+                              }
+                            }}
+                          >
+                            <source src={link.audioFileUrl} type="audio/mpeg" />
+                            Your browser does not support the audio element.
+                          </audio>
+                          
+                          {link.listens.length > 0 && (
+                            <button 
+                              className="text-xs text-gray-500 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 px-2 py-1 rounded transition-colors"
+                              onClick={(e) => {
+                                const details = e.currentTarget.parentElement?.parentElement?.querySelector('details')
+                                if (details) {
+                                  details.open = !details.open
+                                }
+                              }}
+                            >
+                              History ({link.listens.length})
+                            </button>
+                          )}
+                        </div>
+
+                        {link.listens.length > 0 && (
+                          <details className="mt-2">
+                            <summary className="sr-only">Listen History</summary>
+                            <div className="bg-gray-50 rounded-lg p-3 space-y-1">
+                              {link.listens.slice(-3).map((listen) => (
+                                <div key={listen.id} className="flex justify-between items-center text-xs">
+                                  <span className="text-gray-600">
+                                    {new Date(listen.listenedAt).toLocaleDateString()} {new Date(listen.listenedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                  </span>
+                                  <span className={`px-2 py-0.5 rounded text-xs ${
+                                    listen.completed 
+                                      ? 'bg-green-100 text-green-700' 
+                                      : 'bg-gray-200 text-gray-700'
+                                  }`}>
+                                    {listen.completed ? 'Done' : 'Started'}
+                                  </span>
+                                </div>
+                              ))}
+                              {link.listens.length > 3 && (
+                                <div className="text-xs text-gray-500 text-center pt-1 border-t border-gray-200">
+                                  +{link.listens.length - 3} more
+                                </div>
+                              )}
+                            </div>
+                          </details>
+                        )}
                       </div>
                     )}
                   </div>
-                )}
+                </div>
               </div>
             ))}
           </div>

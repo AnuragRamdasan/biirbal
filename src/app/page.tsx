@@ -34,7 +34,7 @@ export default function Home() {
         <div className="text-center mb-24">
           <div className="mb-8">
             <span className="inline-block px-5 py-2 bg-indigo-50 text-indigo-600 rounded-full text-sm font-medium mb-8 border border-indigo-100">
-              🎯 Never miss important content again
+              🧠 AI-powered content intelligence
             </span>
           </div>
           
@@ -44,10 +44,12 @@ export default function Home() {
             <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
               Audio Insights
             </span>
+            <br />
+            <span className="text-2xl text-gray-600 font-normal">with biirbal.ai</span>
           </h1>
           
           <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Stop losing track of important content. Our AI automatically converts every link 
+            Stop losing track of important content. biirbal.ai automatically converts every link 
             shared in your Slack into a crisp 90-second audio summary.
           </p>
 
@@ -381,9 +383,9 @@ export default function Home() {
         <footer className="mt-24 pt-16 border-t border-gray-200">
           <div className="grid md:grid-cols-4 gap-8 mb-12">
             <div>
-              <h4 className="text-gray-900 font-bold mb-4">📎 Slack Link Monitor</h4>
+              <h4 className="text-gray-900 font-bold mb-4">🧠 biirbal.ai</h4>
               <p className="text-gray-600 text-sm leading-relaxed">
-                Turn every shared link into actionable audio insights. Never miss important content again.
+                AI-powered content intelligence for your Slack workspace. Never miss important content again.
               </p>
             </div>
             <div>
@@ -426,7 +428,7 @@ export default function Home() {
             </div>
           </div>
           <div className="border-t border-gray-200 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-600 text-sm">© 2024 Slack Link Monitor. All rights reserved.</p>
+            <p className="text-gray-600 text-sm">© 2024 biirbal.ai. All rights reserved.</p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <a href="#" className="text-gray-600 hover:text-gray-900 transition-colors text-sm">Privacy Policy</a>
               <a href="#" className="text-gray-600 hover:text-gray-900 transition-colors text-sm">Terms of Service</a>
