@@ -88,11 +88,14 @@ async function scrapeContent(url: string): Promise<ExtractedContent> {
 
   // Try multiple user agents to bypass blocking
   const userAgents = [
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
-    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Safari/605.1.15',
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+    'Mozilla/5.0 (Android 14; Mobile; rv:123.0) Gecko/123.0 Firefox/123.0',
+    'curl/8.4.0',
+    'Googlebot/2.1 (+http://www.google.com/bot.html)'
   ]
 
   // Special handling for certain domains
@@ -133,12 +136,20 @@ async function scrapeContent(url: string): Promise<ExtractedContent> {
         delete headers['DNT'] // Some financial sites block DNT requests
       }
 
+      // Add random delay between requests to appear more human
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 3000))
+      }
+
       response = await axios.get(url, {
         timeout: 30000,
         maxRedirects: 5,
         headers,
         maxContentLength: 10 * 1024 * 1024, // 10MB limit
         validateStatus: (status) => status < 400, // Accept redirects
+        proxy: false, // Disable proxy
+        withCredentials: false, // No cookies
+        decompress: true
       })
       
       // If we get here, the request was successful
@@ -152,15 +163,39 @@ async function scrapeContent(url: string): Promise<ExtractedContent> {
         throw error
       }
       
-      // Wait a bit before retrying
+      // Wait longer before retrying with exponential backoff
       if (i < userAgents.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000))
+        const delay = Math.min(1000 * Math.pow(2, i), 10000) + Math.random() * 3000
+        await new Promise(resolve => setTimeout(resolve, delay))
       }
     }
   }
 
   if (!response) {
-    throw lastError || new Error('Failed to fetch content after trying multiple user agents')
+    // Try one final attempt with a completely different approach
+    try {
+      console.log(`Final attempt for ${url} using basic fetch...`)
+      
+      const basicResponse = await axios.get(url, {
+        headers: {
+          'User-Agent': 'PostmanRuntime/7.32.3',
+          'Accept': '*/*',
+          'Accept-Encoding': 'gzip, deflate',
+          'Connection': 'keep-alive'
+        },
+        timeout: 15000,
+        maxRedirects: 3,
+        validateStatus: () => true // Accept any status code
+      })
+      
+      if (basicResponse.status === 200 && basicResponse.data) {
+        response = basicResponse
+      } else {
+        throw lastError || new Error('Failed to fetch content after trying multiple user agents')
+      }
+    } catch (finalError) {
+      throw lastError || new Error('Failed to fetch content after trying multiple user agents')
+    }
   }
 
   const html = response.data
