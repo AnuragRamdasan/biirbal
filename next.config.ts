@@ -1,12 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Disable lightningcss to prevent Vercel build issues
-  experimental: {
-    cssChunking: 'strict',
-  },
+  // Stable configuration for Vercel deployment
   compiler: {
-    // Use SWC instead of lightningcss for CSS
     removeConsole: process.env.NODE_ENV === 'production',
   },
   eslint: {
