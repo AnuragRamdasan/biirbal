@@ -97,7 +97,7 @@ export default function Dashboard() {
           <div className="container mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <span className="text-xl font-bold">🧠 biirbal.ai</span>
+                <span className="text-xl font-bold">🧠 Biirbal.ai</span>
               </div>
               <a href="/" className="text-white/80 hover:text-white transition-colors text-sm">
                 ← Back to Home
