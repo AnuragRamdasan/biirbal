@@ -1,5 +1,7 @@
 import axios from 'axios'
 import * as cheerio from 'cheerio'
+import { Readability } from '@mozilla/readability'
+import { JSDOM } from 'jsdom'
 
 export interface ExtractedContent {
   title: string
@@ -18,7 +20,7 @@ export async function extractContentFromUrl(url: string): Promise<ExtractedConte
           headers: {
             'Authorization': `Bearer ${process.env.READABILITY_API_KEY}`
           },
-          timeout: 10000
+          timeout: 30000
         })
 
         if (response.data && response.data.title) {
@@ -36,25 +38,191 @@ export async function extractContentFromUrl(url: string): Promise<ExtractedConte
 
     // Fallback to direct scraping
     return await scrapeContent(url)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Content extraction failed:', error)
-    throw new Error('Failed to extract content from URL')
+    
+    // Provide more specific error messages and throw to stop workflow
+    if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+      throw new Error('Unable to connect to the website. Please check if the URL is accessible.')
+    } else if (error.code === 'ETIMEDOUT') {
+      throw new Error('Request timed out. The website may be slow or unresponsive.')
+    } else if (error.response?.status === 403) {
+      throw new Error('Access forbidden. The website may be blocking automated requests.')
+    } else if (error.response?.status === 404) {
+      throw new Error('Article not found. The URL may be incorrect or the content may have been removed.')
+    } else if (error.response?.status >= 500) {
+      throw new Error('The website is experiencing server issues. Please try again later.')
+    } else if (error.message?.includes('paywall') || error.message?.includes('login')) {
+      throw error // Re-throw paywall errors as-is
+    } else if (error.message?.includes('Insufficient content')) {
+      throw error // Re-throw content quality errors as-is
+    } else {
+      throw new Error(`Content extraction failed: ${error.message}`)
+    }
   }
 }
 
 async function scrapeContent(url: string): Promise<ExtractedContent> {
-  const response = await axios.get(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; SlackLinkBot/1.0; +https://your-domain.com/bot)'
-    },
-    timeout: 15000,
-    maxContentLength: 10 * 1024 * 1024 // 10MB limit
-  })
+  // Validate URL
+  try {
+    new URL(url)
+  } catch {
+    throw new Error('Invalid URL format')
+  }
 
-  const $ = cheerio.load(response.data)
+  // Check for non-article URLs
+  const nonArticlePatterns = [
+    /\.(pdf|doc|docx|xls|xlsx|ppt|pptx|zip|rar|tar|gz)$/i,
+    /\.(jpg|jpeg|png|gif|bmp|svg|webp)$/i,
+    /\.(mp3|mp4|wav|avi|mkv|mov)$/i,
+    /youtube\.com\/watch/i,
+    /vimeo\.com/i,
+    /twitter\.com/i,
+    /facebook\.com/i,
+    /instagram\.com/i,
+  ]
 
-  // Remove script and style elements
-  $('script, style, nav, header, footer, .advertisement, .ads, .sidebar').remove()
+  if (nonArticlePatterns.some(pattern => pattern.test(url))) {
+    throw new Error('URL appears to be a media file or social media post, not an article')
+  }
+
+  // Try multiple user agents to bypass blocking
+  const userAgents = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+  ]
+
+  // Special handling for certain domains
+  const isMoneyControl = url.includes('moneycontrol.com')
+  const isFinancialSite = url.includes('moneycontrol.com') || url.includes('bloomberg.com') || url.includes('reuters.com')
+
+  let response: any = null
+  let lastError: any = null
+
+  for (let i = 0; i < userAgents.length; i++) {
+    try {
+      const headers: any = {
+        'User-Agent': userAgents[i],
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Upgrade-Insecure-Requests': '1',
+        'Connection': 'keep-alive',
+        'DNT': '1',
+      }
+
+      // Add site-specific headers
+      if (isMoneyControl) {
+        headers['Referer'] = 'https://www.google.com/'
+        headers['Sec-Ch-Ua'] = '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"'
+        headers['Sec-Ch-Ua-Mobile'] = '?0'
+        headers['Sec-Ch-Ua-Platform'] = '"Windows"'
+      }
+
+      if (isFinancialSite) {
+        headers['X-Requested-With'] = undefined // Remove any XHR indicators
+        delete headers['DNT'] // Some financial sites block DNT requests
+      }
+
+      response = await axios.get(url, {
+        timeout: 30000,
+        maxRedirects: 5,
+        headers,
+        maxContentLength: 10 * 1024 * 1024, // 10MB limit
+        validateStatus: (status) => status < 400, // Accept redirects
+      })
+      
+      // If we get here, the request was successful
+      break
+    } catch (error: any) {
+      lastError = error
+      console.log(`Attempt ${i + 1} failed with User-Agent: ${userAgents[i]}`)
+      
+      // If it's not a 403/blocking error, don't retry
+      if (error.response?.status !== 403 && error.response?.status !== 429 && !error.message?.includes('blocked')) {
+        throw error
+      }
+      
+      // Wait a bit before retrying
+      if (i < userAgents.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000))
+      }
+    }
+  }
+
+  if (!response) {
+    throw lastError || new Error('Failed to fetch content after trying multiple user agents')
+  }
+
+  const html = response.data
+  
+  if (!html || typeof html !== 'string') {
+    throw new Error('Invalid response content')
+  }
+
+  // Check content type
+  const contentType = response.headers['content-type'] || ''
+  if (!contentType.includes('text/html') && !contentType.includes('application/xhtml')) {
+    throw new Error(`Unsupported content type: ${contentType}`)
+  }
+
+  // Try Readability first (best for articles)
+  try {
+    const dom = new JSDOM(html, { 
+      url,
+      contentType: 'text/html',
+      includeNodeLocations: false,
+      storageQuota: 10000000
+    })
+    
+    const reader = new Readability(dom.window.document, {
+      debug: false,
+      maxElemsToParse: 0,
+      nbTopCandidates: 5,
+      charThreshold: 500,
+      classesToPreserve: ['highlight'],
+    })
+    
+    const article = reader.parse()
+
+    if (article && article.textContent && article.textContent.length > 500) {
+      const cleanText = article.textContent
+        .replace(/\s+/g, ' ')
+        .replace(/\n\s*\n/g, '\n')
+        .trim()
+      
+      const title = article.title || 'Extracted Article'
+      const excerpt = cleanText.length > 300 ? cleanText.substring(0, 300) + '...' : cleanText
+      
+      return {
+        title,
+        text: cleanText,
+        url,
+        excerpt
+      }
+    }
+  } catch (readabilityError) {
+    console.log(`Readability failed: ${readabilityError}`)
+  }
+
+  // Fallback to cheerio extraction
+  const $ = cheerio.load(html)
+
+  // Remove unwanted elements
+  $(
+    'script, style, nav, footer, header, aside, .ad, .advertisement, ' +
+    '.sidebar, .comments, .social-share, .related-posts, .newsletter, ' +
+    '.popup, .modal, .cookie-notice, .gdpr-notice, iframe, embed, object'
+  ).remove()
 
   // Extract title
   const title = $('title').text().trim() || 
@@ -62,47 +230,79 @@ async function scrapeContent(url: string): Promise<ExtractedContent> {
                 $('meta[property="og:title"]').attr('content') || 
                 'Untitled'
 
-  // Extract main content
+  // Try multiple content selectors
   const contentSelectors = [
     'article',
     '[role="main"]',
-    '.content',
+    'main',
     '.post-content',
     '.entry-content',
     '.article-content',
-    'main',
-    '.main-content'
+    '.content',
+    '.post-body',
+    '.article-body',
+    '.story-body',
+    '#content',
+    '#main',
+    '.main-content',
   ]
 
   let text = ''
+  
   for (const selector of contentSelectors) {
-    const content = $(selector).first()
-    if (content.length) {
-      text = content.text().trim()
-      break
+    const element = $(selector)
+    if (element.length > 0) {
+      text = element.text()
+      if (text.length > 500) {
+        break
+      }
     }
   }
 
-  // Fallback to body if no main content found
-  if (!text) {
-    text = $('body').text().trim()
+  // If no specific content area found, try body
+  if (!text || text.length < 500) {
+    $('nav, .navigation, .menu, .header, .footer, .sidebar').remove()
+    text = $('body').text()
   }
 
-  // Clean up text
-  text = text
+  if (!text || text.length < 100) {
+    throw new Error('Insufficient content extracted (less than 100 characters)')
+  }
+
+  // Clean and normalize text
+  const cleanText = text
     .replace(/\s+/g, ' ')
     .replace(/\n\s*\n/g, '\n')
+    .replace(/[^\S\n]+/g, ' ')
     .trim()
 
-  if (!text) {
-    throw new Error('No content found in URL')
+  // Validate content quality
+  const wordCount = cleanText.split(/\s+/).length
+  if (wordCount < 50) {
+    throw new Error(`Content too short: only ${wordCount} words`)
   }
 
-  const excerpt = text.length > 300 ? text.substring(0, 300) + '...' : text
+  // Check for paywall indicators
+  const paywallIndicators = [
+    'subscribe to continue reading',
+    'please log in',
+    'premium subscription required',
+    'this content is for subscribers',
+    'sign up to read',
+    'register to continue',
+    'paywall',
+  ]
+
+  const lowerText = cleanText.toLowerCase()
+  if (paywallIndicators.some(indicator => lowerText.includes(indicator))) {
+    throw new Error('Content appears to be behind a paywall or login requirement')
+  }
+
+  const excerpt = cleanText.length > 300 ? cleanText.substring(0, 300) + '...' : cleanText
 
   return {
     title,
-    text,
+    text: cleanText,
     url,
     excerpt
   }

@@ -1,19 +1,19 @@
-import { TextToSpeechClient } from '@google-cloud/text-to-speech'
-import { Storage } from '@google-cloud/storage'
+import OpenAI from 'openai'
 import path from 'path'
 import fs from 'fs/promises'
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 
-const ttsClient = new TextToSpeechClient({
-  projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-  keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
 })
 
-const storage = new Storage({
-  projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-  keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || 'us-east-1',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
+  }
 })
-
-const BUCKET_NAME = process.env.GCS_BUCKET_NAME || 'slack-link-audio'
 
 export interface AudioResult {
   audioBuffer: Buffer
@@ -32,31 +32,18 @@ export async function generateAudioSummary(
     const maxWords = Math.floor((maxDurationSeconds / 60) * wordsPerMinute)
     const processedText = prepareTextForTTS(text, title, maxWords)
 
-    // Configure TTS request
-    const request = {
-      input: { text: processedText },
-      voice: {
-        languageCode: 'en-US',
-        name: 'en-US-Neural2-F', // High-quality neural voice
-        ssmlGender: 'FEMALE' as const
-      },
-      audioConfig: {
-        audioEncoding: 'MP3' as const,
-        speakingRate: 1.0,
-        pitch: 0.0,
-        volumeGainDb: 0.0,
-        effectsProfileId: ['telephony-class-application']
-      }
-    }
+    // Generate audio using OpenAI TTS
+    const response = await openai.audio.speech.create({
+      model: 'tts-1', // Use tts-1-hd for higher quality
+      voice: 'nova', // Available voices: alloy, echo, fable, onyx, nova, shimmer
+      input: processedText,
+      response_format: 'mp3',
+      speed: 1.0
+    })
 
-    // Generate audio
-    const [response] = await ttsClient.synthesizeSpeech(request)
-    
-    if (!response.audioContent) {
-      throw new Error('No audio content generated')
-    }
-
-    const audioBuffer = Buffer.from(response.audioContent as Uint8Array)
+    // Convert response to buffer
+    const arrayBuffer = await response.arrayBuffer()
+    const audioBuffer = Buffer.from(arrayBuffer)
     const fileName = `audio_${Date.now()}_${Math.random().toString(36).substring(7)}.mp3`
 
     return {
@@ -64,7 +51,7 @@ export async function generateAudioSummary(
       fileName
     }
   } catch (error) {
-    console.error('TTS generation failed:', error)
+    console.error('OpenAI TTS generation failed:', error)
     throw new Error('Failed to generate audio summary')
   }
 }
@@ -74,23 +61,31 @@ export async function uploadAudioToStorage(
   fileName: string
 ): Promise<string> {
   try {
-    const bucket = storage.bucket(BUCKET_NAME)
-    const file = bucket.file(`audio-summaries/${fileName}`)
+    const bucketName = process.env.AWS_S3_BUCKET_NAME
+    if (!bucketName) {
+      console.warn('AWS_S3_BUCKET_NAME not configured, falling back to local storage')
+      return await saveAudioLocally(audioBuffer, fileName)
+    }
 
-    await file.save(audioBuffer, {
-      metadata: {
-        contentType: 'audio/mpeg',
-        cacheControl: 'public, max-age=3600'
-      }
+    const key = `audio/${fileName}`
+    
+    const command = new PutObjectCommand({
+      Bucket: bucketName,
+      Key: key,
+      Body: audioBuffer,
+      ContentType: 'audio/mpeg',
+      ACL: 'public-read'
     })
 
-    // Make file publicly accessible
-    await file.makePublic()
-
-    return `https://storage.googleapis.com/${BUCKET_NAME}/audio-summaries/${fileName}`
+    await s3Client.send(command)
+    
+    // Return the public URL
+    const region = process.env.AWS_REGION || 'us-east-1'
+    return `https://${bucketName}.s3.${region}.amazonaws.com/${key}`
+    
   } catch (error) {
-    console.error('Audio upload failed:', error)
-    throw new Error('Failed to upload audio file')
+    console.error('S3 upload failed, falling back to local storage:', error)
+    return await saveAudioLocally(audioBuffer, fileName)
   }
 }
 

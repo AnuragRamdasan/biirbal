@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     if (error) {
       oauthLogger.warn('OAuth error received', { error })
       return NextResponse.redirect(
-        new URL(`/?error=${encodeURIComponent(error)}`, request.url)
+        new URL(`/?error=${encodeURIComponent(error)}`, process.env.NEXTAUTH_URL || request.url)
       )
     }
 
@@ -72,12 +72,12 @@ export async function GET(request: NextRequest) {
     })
 
     return NextResponse.redirect(
-      new URL('/?installed=true', request.url)
+      new URL('/?installed=true', process.env.NEXTAUTH_URL || request.url)
     )
   } catch (error) {
     console.error('OAuth error:', error)
     return NextResponse.redirect(
-      new URL(`/?error=${encodeURIComponent('Installation failed')}`, request.url)
+      new URL(`/?error=${encodeURIComponent('Installation failed')}`, process.env.NEXTAUTH_URL || request.url)
     )
   }
 }

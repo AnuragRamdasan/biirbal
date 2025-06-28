@@ -56,6 +56,7 @@ model ProcessedLink {
 
   team    Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
   channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  listens AudioListen[]
 
   @@unique([url, messageTs, channelId])
   @@map("processed_links")
@@ -76,6 +77,21 @@ model Subscription {
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@map("subscriptions")
+}
+
+model AudioListen {
+  id              String   @id @default(cuid())
+  processedLinkId String
+  userId          String?
+  userAgent       String?
+  ipAddress       String?
+  listenedAt      DateTime @default(now())
+  completed       Boolean  @default(false)
+  listenDuration  Int?     // Duration in seconds
+
+  processedLink ProcessedLink @relation(fields: [processedLinkId], references: [id], onDelete: Cascade)
+
+  @@map("audio_listens")
 }
 
 enum ProcessingStatus {

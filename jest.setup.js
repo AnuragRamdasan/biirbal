@@ -9,27 +9,20 @@ process.env.SLACK_BOT_TOKEN = 'xoxb-test-token'
 process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test'
 process.env.STRIPE_SECRET_KEY = 'sk_test_123'
 process.env.NEXTAUTH_URL = 'http://localhost:3000'
-process.env.GOOGLE_CLOUD_PROJECT_ID = 'test-project'
+process.env.OPENAI_API_KEY = 'sk-test-key'
 
-// Mock Google Cloud services
-jest.mock('@google-cloud/text-to-speech', () => ({
-  TextToSpeechClient: jest.fn().mockImplementation(() => ({
-    synthesizeSpeech: jest.fn().mockResolvedValue([{
-      audioContent: Buffer.from('mock audio content')
-    }])
+// Mock OpenAI
+jest.mock('openai', () => {
+  return jest.fn().mockImplementation(() => ({
+    audio: {
+      speech: {
+        create: jest.fn().mockResolvedValue({
+          arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(1024))
+        })
+      }
+    }
   }))
-}))
-
-jest.mock('@google-cloud/storage', () => ({
-  Storage: jest.fn().mockImplementation(() => ({
-    bucket: jest.fn().mockReturnValue({
-      file: jest.fn().mockReturnValue({
-        save: jest.fn().mockResolvedValue(undefined),
-        makePublic: jest.fn().mockResolvedValue(undefined)
-      })
-    })
-  }))
-}))
+})
 
 // Mock Slack SDK
 jest.mock('@slack/web-api', () => ({

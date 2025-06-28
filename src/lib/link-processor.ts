@@ -33,13 +33,25 @@ export async function processLink({
   let processedLink
   
   try {
+    // Find or create the channel record first
+    const channel = await prisma.channel.upsert({
+      where: {
+        slackChannelId: channelId
+      },
+      update: {},
+      create: {
+        slackChannelId: channelId,
+        teamId: teamId
+      }
+    })
+
     // Create or get existing processed link record
     processedLink = await prisma.processedLink.upsert({
       where: {
         url_messageTs_channelId: {
           url,
           messageTs,
-          channelId
+          channelId: channel.id
         }
       },
       update: {
@@ -48,7 +60,7 @@ export async function processLink({
       create: {
         url,
         messageTs,
-        channelId,
+        channelId: channel.id,
         teamId,
         processingStatus: 'PROCESSING'
       }
@@ -103,13 +115,12 @@ export async function processLink({
       }
     })
 
-    // Step 6: Upload audio to Slack and post reply
-    await uploadAudioToSlack({
+    // Step 6: Reply with dashboard permalink instead of uploading to Slack
+    await replyWithDashboardLink({
       slackClient,
       channelId,
       messageTs,
-      audioBuffer: audioResult.audioBuffer,
-      fileName: audioResult.fileName,
+      processedLinkId: processedLink.id,
       title: extractedContent.title,
       excerpt: extractedContent.excerpt,
       url
@@ -164,57 +175,49 @@ export async function processLink({
   }
 }
 
-interface UploadAudioToSlackParams {
+interface ReplyWithDashboardLinkParams {
   slackClient: WebClient
   channelId: string
   messageTs: string
-  audioBuffer: Buffer
-  fileName: string
+  processedLinkId: string
   title: string
   excerpt: string
   url: string
 }
 
-async function uploadAudioToSlack({
+async function replyWithDashboardLink({
   slackClient,
   channelId,
   messageTs,
-  audioBuffer,
-  fileName,
+  processedLinkId,
   title,
   excerpt,
   url
-}: UploadAudioToSlackParams): Promise<void> {
+}: ReplyWithDashboardLinkParams): Promise<void> {
   try {
-    // Upload audio file to Slack
-    const uploadResult = await slackClient.files.upload({
-      channels: channelId,
-      file: audioBuffer,
-      filename: fileName,
-      filetype: 'mp3',
-      title: `Audio Summary: ${title}`,
-      initial_comment: `🎧 Audio summary for: *${title}*\n\n${excerpt}\n\n_Original link: ${url}_`,
-      thread_ts: messageTs
+    const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL || 'http://localhost:3000'
+    const dashboardUrl = `${baseUrl}/dashboard#${processedLinkId}`
+
+    await slackClient.chat.postMessage({
+      channel: channelId,
+      thread_ts: messageTs,
+      text: `🎧 Audio summary ready for: *${title}*\n\n${excerpt}\n\n📱 Listen on your dashboard: ${dashboardUrl}\n\n_Original link: ${url}_`
     })
 
-    if (!uploadResult.ok) {
-      throw new Error(`Slack file upload failed: ${uploadResult.error}`)
-    }
-
-    console.log('Audio uploaded to Slack successfully')
+    console.log('Dashboard link posted to Slack successfully')
   } catch (error) {
-    console.error('Slack audio upload failed:', error)
+    console.error('Failed to post dashboard link to Slack:', error)
     
-    // Fallback: Post text message with audio URL if available
+    // Fallback: Post basic completion message
     try {
       await slackClient.chat.postMessage({
         channel: channelId,
         thread_ts: messageTs,
-        text: `🎧 Audio summary for: *${title}*\n\n${excerpt}\n\n_Original link: ${url}_\n\n⚠️ Audio file upload failed, but processing completed successfully.`
+        text: `🎧 Audio summary processed for: *${title}*\n\n${excerpt}\n\n_Original link: ${url}_\n\n⚠️ Link sharing failed, but audio is ready on your dashboard.`
       })
     } catch (fallbackError) {
       console.error('Fallback message failed:', fallbackError)
-      throw error // Re-throw original error
+      throw error
     }
   }
 }
