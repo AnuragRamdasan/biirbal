@@ -51,10 +51,9 @@ export async function GET(request: NextRequest) {
     const protocol = request.headers.get('x-forwarded-proto') || 'https'
     const constructedOrigin = `${protocol}://${host}`
     
-    const redirectUri = process.env.NEXTAUTH_URL || 
-                       process.env.NEXT_PUBLIC_BASE_URL || 
-                       constructedOrigin
-    const fullRedirectUri = redirectUri.replace(/\/$/, '') + '/api/slack/oauth'
+    // Use the actual deployment URL, not the environment variables
+    const redirectUri = constructedOrigin // This will be https://biirbal.vercel.app
+    const fullRedirectUri = redirectUri + '/api/slack/oauth'
     
     console.log('Debug redirect URI info:', {
       host,
