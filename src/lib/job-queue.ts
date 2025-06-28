@@ -1,4 +1,5 @@
 import { prisma } from './prisma'
+import { queueLogger } from './logger'
 
 export interface JobPayload {
   type: 'PROCESS_LINK'
@@ -63,7 +64,7 @@ class JobQueue {
         maxRetries: queuedJob.maxRetries
       }
     }).catch(error => {
-      console.error('Failed to persist job to database:', error)
+      queueLogger.error('Failed to persist job to database', { error: error.message, jobId })
       // Continue with in-memory processing even if DB fails
     })
 
@@ -101,7 +102,7 @@ class JobQueue {
     const job = pendingJobs[0]
     
     try {
-      console.log(`Processing job ${job.id} of type ${job.type}`)
+      queueLogger.info(`🚀 Processing job ${job.type}`, { jobId: job.id, priority: job.priority })
       
       // Update status to processing
       job.status = 'PROCESSING'
@@ -119,10 +120,10 @@ class JobQueue {
       
       await this.updateJobInDatabase(job)
       
-      console.log(`Job ${job.id} completed successfully`)
+      queueLogger.info(`✅ Job completed successfully`, { jobId: job.id, type: job.type })
       
     } catch (error) {
-      console.error(`Job ${job.id} failed:`, error)
+      queueLogger.error(`❌ Job failed`, { jobId: job.id, error: error.message, attempt: job.retryCount + 1 })
       
       job.retryCount++
       
@@ -131,14 +132,14 @@ class JobQueue {
         job.status = 'PENDING'
         job.updatedAt = new Date()
         
-        console.log(`Retrying job ${job.id} (attempt ${job.retryCount + 1}/${job.maxRetries})`)
+        queueLogger.warn(`🔄 Retrying job`, { jobId: job.id, attempt: job.retryCount + 1, maxRetries: job.maxRetries })
       } else {
         // Max retries reached, mark as failed
         job.status = 'FAILED'
         job.error = error instanceof Error ? error.message : 'Unknown error'
         job.updatedAt = new Date()
         
-        console.error(`Job ${job.id} failed permanently after ${job.maxRetries} attempts`)
+        queueLogger.error(`💥 Job failed permanently`, { jobId: job.id, maxRetries: job.maxRetries, finalError: job.error })
       }
       
       await this.updateJobInDatabase(job)
@@ -244,24 +245,41 @@ class JobQueue {
   }
 
   async cleanup() {
-    // Clean up completed jobs older than 24 hours
-    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    // For frequent cleanup (every 10 minutes), use shorter retention
+    // Keep completed jobs for 2 hours, failed jobs for 6 hours
+    const completedCutoff = new Date(Date.now() - 2 * 60 * 60 * 1000) // 2 hours
+    const failedCutoff = new Date(Date.now() - 6 * 60 * 60 * 1000) // 6 hours
     
-    // Remove from memory
+    // Remove from memory with different retention for completed vs failed
     for (const [jobId, job] of this.jobs.entries()) {
+      const cutoff = job.status === 'COMPLETED' ? completedCutoff : failedCutoff
       if ((job.status === 'COMPLETED' || job.status === 'FAILED') && job.updatedAt < cutoff) {
         this.jobs.delete(jobId)
       }
     }
 
-    // Remove from database
+    // Remove from database with batch operations
     try {
-      await prisma.queuedJob.deleteMany({
-        where: {
-          status: { in: ['COMPLETED', 'FAILED'] },
-          updatedAt: { lt: cutoff }
-        }
-      })
+      const [completedCount, failedCount] = await Promise.all([
+        // Clean up completed jobs (2 hours old)
+        prisma.queuedJob.deleteMany({
+          where: {
+            status: 'COMPLETED',
+            updatedAt: { lt: completedCutoff }
+          }
+        }),
+        // Clean up failed jobs (6 hours old) 
+        prisma.queuedJob.deleteMany({
+          where: {
+            status: 'FAILED',
+            updatedAt: { lt: failedCutoff }
+          }
+        })
+      ])
+      
+      if (completedCount.count > 0 || failedCount.count > 0) {
+        console.log(`🧹 Cleanup: Removed ${completedCount.count} completed, ${failedCount.count} failed jobs`)
+      }
     } catch (error) {
       console.error('Failed to cleanup jobs from database:', error)
     }

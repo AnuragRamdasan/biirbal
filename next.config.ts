@@ -3,7 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Stable configuration for Vercel deployment
   compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
+    // Keep console.log in production for debugging, only remove console.debug
+    removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn', 'log'] } : false,
   },
   eslint: {
     // Disable ESLint during builds to prevent Vercel failures

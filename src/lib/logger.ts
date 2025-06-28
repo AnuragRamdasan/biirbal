@@ -1,72 +1,99 @@
-type LogLevel = 'info' | 'warn' | 'error' | 'debug'
+// Enhanced logging for Vercel deployment
 
 interface LogEntry {
   timestamp: string
-  level: LogLevel
+  level: 'info' | 'warn' | 'error' | 'debug'
   message: string
   data?: any
   context?: string
 }
 
 class Logger {
-  private context?: string
+  private context: string
 
-  constructor(context?: string) {
+  constructor(context: string = 'App') {
     this.context = context
   }
 
-  private log(level: LogLevel, message: string, data?: any): void {
-    const entry: LogEntry = {
+  private formatLog(level: 'info' | 'warn' | 'error' | 'debug', message: string, data?: any): LogEntry {
+    return {
       timestamp: new Date().toISOString(),
       level,
       message,
+      data,
       context: this.context
     }
+  }
 
-    if (data) {
-      entry.data = data
-    }
-
-    // In production, you might want to send logs to a service like DataDog, LogRocket, etc.
-    if (process.env.NODE_ENV === 'production') {
-      console.log(JSON.stringify(entry))
+  private output(entry: LogEntry) {
+    const prefix = `[${entry.timestamp}] [${entry.level.toUpperCase()}] [${entry.context}]`
+    
+    // Always use console.error for important logs (Vercel shows these prominently)
+    if (entry.level === 'error') {
+      console.error(`❌ ${prefix} ${entry.message}`, entry.data || '')
+    } else if (entry.level === 'warn') {
+      console.warn(`⚠️  ${prefix} ${entry.message}`, entry.data || '')
     } else {
-      // Pretty print in development
-      const prefix = `[${entry.timestamp}] ${level.toUpperCase()}`
-      const contextStr = this.context ? ` [${this.context}]` : ''
-      console.log(`${prefix}${contextStr}: ${message}`, data || '')
+      // Use console.error even for info logs to ensure they show up in Vercel
+      console.error(`ℹ️  ${prefix} ${entry.message}`, entry.data || '')
     }
+
+    // Also write to stdout for Vercel Function logs
+    process.stdout.write(JSON.stringify(entry) + '\n')
   }
 
-  info(message: string, data?: any): void {
-    this.log('info', message, data)
+  info(message: string, data?: any) {
+    this.output(this.formatLog('info', message, data))
   }
 
-  warn(message: string, data?: any): void {
-    this.log('warn', message, data)
+  warn(message: string, data?: any) {
+    this.output(this.formatLog('warn', message, data))
   }
 
-  error(message: string, error?: Error | any): void {
-    const errorData = error instanceof Error ? {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
-    } : error
-
-    this.log('error', message, errorData)
+  error(message: string, data?: any) {
+    this.output(this.formatLog('error', message, data))
   }
 
-  debug(message: string, data?: any): void {
+  debug(message: string, data?: any) {
     if (process.env.NODE_ENV === 'development') {
-      this.log('debug', message, data)
+      this.output(this.formatLog('debug', message, data))
     }
   }
 
-  child(context: string): Logger {
-    const childContext = this.context ? `${this.context}:${context}` : context
-    return new Logger(childContext)
+  // Performance logging
+  time(label: string) {
+    this.info(`⏱️  Timer started: ${label}`)
+    console.time(label)
+  }
+
+  timeEnd(label: string) {
+    console.timeEnd(label)
+    this.info(`⏱️  Timer ended: ${label}`)
+  }
+
+  // Vercel-specific logging
+  vercelLog(message: string, data?: any) {
+    // Use stderr which Vercel captures more reliably
+    process.stderr.write(`VERCEL_LOG: ${message} ${JSON.stringify(data || {})}\n`)
+    this.info(message, data)
+  }
+
+  child(context: string) {
+    return new Logger(`${this.context}:${context}`)
   }
 }
 
-export const logger = new Logger()
-export { Logger }
+// Export pre-configured loggers
+export const logger = new Logger('BiirbalAI')
+export const slackLogger = logger.child('Slack')
+export const queueLogger = logger.child('Queue')
+export const ttsLogger = logger.child('TTS')
+export const extractorLogger = logger.child('Extractor')
+
+// Legacy console replacement (for existing code)
+export const log = {
+  info: (msg: string, data?: any) => logger.info(msg, data),
+  warn: (msg: string, data?: any) => logger.warn(msg, data),
+  error: (msg: string, data?: any) => logger.error(msg, data),
+  debug: (msg: string, data?: any) => logger.debug(msg, data),
+}
