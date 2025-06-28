@@ -9,7 +9,7 @@ import { handleApiError, ValidationError } from '@/lib/error-handler'
 export async function GET(request: NextRequest) {
   const oauthLogger = logger.child('slack-oauth')
   
-  try {
+  //try {
     const searchParams = request.nextUrl.searchParams
     const code = searchParams.get('code')
     const state = searchParams.get('state')
@@ -83,10 +83,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(
       new URL('/?installed=true', process.env.NEXTAUTH_URL || request.url)
     )
-  } catch (error) {
-    console.error('OAuth error:', error)
-    return NextResponse.redirect(
-      new URL(`/?error=${encodeURIComponent('Installation failed')}`, process.env.NEXTAUTH_URL || request.url)
-    )
-  }
+  // } catch (error) {
+  //   console.error('OAuth error:', error)
+  //   return NextResponse.redirect(
+  //     new URL(`/?error=${encodeURIComponent('Installation failed')}`, process.env.NEXTAUTH_URL || request.url)
+  //   )
+  // }
 }
