@@ -17,8 +17,8 @@
   --color-card: var(--card);
   --color-accent: var(--accent);
   --color-muted: var(--muted);
-  --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
-  --font-mono: 'Monaco', 'Menlo', monospace;
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  --font-mono: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', monospace;
 }
 
 @media (prefers-color-scheme: dark) {

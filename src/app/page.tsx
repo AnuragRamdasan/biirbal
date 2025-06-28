@@ -1,11 +1,10 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import Script from 'next/script'
-import { jsonLd } from '@/lib/seo'
 
-export default function Home() {
+function HomeContent() {
   const searchParams = useSearchParams()
   const [installed, setInstalled] = useState(false)
   const [error, setError] = useState('')
@@ -524,5 +523,20 @@ export default function Home() {
       </div>
     </div>
     </>
+  )
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-white to-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   )
 }
