@@ -29,8 +29,9 @@ export async function GET(request: NextRequest) {
       console.log(process.env.NEXTAUTH_URL)
       console.log(request.url)
       console.log(error)
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://biirbal.com'
       return NextResponse.redirect(
-        new URL(`/?error=${encodeURIComponent(error)}`, 'https://biirbal.com')
+        new URL(`/?error=${encodeURIComponent(error)}`, baseUrl)
       )
     }
 
@@ -50,8 +51,9 @@ export async function GET(request: NextRequest) {
     const host = request.headers.get('host')
     const protocol = request.headers.get('x-forwarded-proto') || 'https'
     
-    // Always use custom domain for OAuth redirect
-    const fullRedirectUri = 'https://biirbal.com/api/slack/oauth'
+    // Use base URL from environment or fall back to custom domain
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://biirbal.com'
+    const fullRedirectUri = `${baseUrl}/api/slack/oauth`
     
     console.log('Debug redirect URI info:', {
       host,
@@ -127,7 +129,7 @@ export async function GET(request: NextRequest) {
     console.log(process.env.NEXTAUTH_URL)
     console.log(request.url)
     return NextResponse.redirect(
-      new URL('/?installed=true', 'https://biirbal.com')
+      new URL('/?installed=true', baseUrl)
     )
   // } catch (error) {
   //   console.error('OAuth error:', error)
