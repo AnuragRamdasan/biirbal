@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       console.log(request.url)
       console.log(error)
       return NextResponse.redirect(
-        new URL(`/?error=${encodeURIComponent(error)}`, process.env.NEXTAUTH_URL || request.url)
+        new URL(`/?error=${encodeURIComponent(error)}`, 'https://biirbal.com')
       )
     }
 
@@ -49,16 +49,13 @@ export async function GET(request: NextRequest) {
     // Calculate the redirect URI - this MUST match what was used in the authorization request
     const host = request.headers.get('host')
     const protocol = request.headers.get('x-forwarded-proto') || 'https'
-    const constructedOrigin = `${protocol}://${host}`
     
-    // Use the actual deployment URL, not the environment variables
-    const redirectUri = constructedOrigin // This will be https://biirbal.vercel.app
-    const fullRedirectUri = redirectUri + '/api/slack/oauth'
+    // Always use custom domain for OAuth redirect
+    const fullRedirectUri = 'https://biirbal.com/api/slack/oauth'
     
     console.log('Debug redirect URI info:', {
       host,
       protocol,
-      constructedOrigin,
       NEXTAUTH_URL: process.env.NEXTAUTH_URL,
       NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL,
       finalRedirectUri: fullRedirectUri
@@ -130,7 +127,7 @@ export async function GET(request: NextRequest) {
     console.log(process.env.NEXTAUTH_URL)
     console.log(request.url)
     return NextResponse.redirect(
-      new URL('/?installed=true', process.env.NEXTAUTH_URL || request.url)
+      new URL('/?installed=true', 'https://biirbal.com')
     )
   // } catch (error) {
   //   console.error('OAuth error:', error)

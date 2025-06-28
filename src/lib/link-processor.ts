@@ -195,7 +195,7 @@ async function replyWithDashboardLink({
   url
 }: ReplyWithDashboardLinkParams): Promise<void> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
+    const baseUrl = 'https://biirbal.com'
     const dashboardUrl = `${baseUrl}/dashboard#${processedLinkId}`
 
     await slackClient.chat.postMessage({
