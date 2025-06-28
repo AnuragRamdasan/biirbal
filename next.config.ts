@@ -1,17 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  experimental: {
-    // Enable turbopack for faster builds in development
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
-      },
-    },
-  },
   env: {
     NEXT_PUBLIC_SLACK_CLIENT_ID: process.env.SLACK_CLIENT_ID,
     NEXT_PUBLIC_APP_URL: process.env.NEXTAUTH_URL,
