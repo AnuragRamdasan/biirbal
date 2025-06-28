@@ -98,6 +98,15 @@ export async function GET(request: NextRequest) {
     const teamName = result.team.name
     const accessToken = result.access_token
     const botUserId = result.bot_user_id
+    
+    console.log('OAuth result details:', {
+      teamId,
+      teamName,
+      botUserId,
+      hasAccessToken: !!accessToken,
+      tokenType: typeof accessToken,
+      scopes: result.scope || 'No scopes returned'
+    })
 
     await prisma.team.upsert({
       where: { slackTeamId: teamId },

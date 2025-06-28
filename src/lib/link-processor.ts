@@ -206,8 +206,14 @@ async function replyWithDashboardLink({
     })
 
     console.log('Dashboard link posted to Slack successfully')
-  } catch (error) {
-    console.error('Failed to post dashboard link to Slack:', error)
+  } catch (error: any) {
+    console.error('Failed to post dashboard link to Slack:', {
+      error: error.data || error.message || error,
+      channel: channelId,
+      messageTs,
+      processedLinkId,
+      slackApiError: error.data
+    })
     
     // Fallback: Post basic completion message
     try {
@@ -216,8 +222,13 @@ async function replyWithDashboardLink({
         thread_ts: messageTs,
         text: `🎧 Audio summary processed for: *${title}*\n\n${excerpt}\n\n_Original link: ${url}_\n\n⚠️ Link sharing failed, but audio is ready on your dashboard.`
       })
-    } catch (fallbackError) {
-      console.error('Fallback message failed:', fallbackError)
+      console.log('Fallback message posted successfully')
+    } catch (fallbackError: any) {
+      console.error('Fallback message failed:', {
+        error: fallbackError.data || fallbackError.message || fallbackError,
+        channel: channelId,
+        slackApiError: fallbackError.data
+      })
       throw error
     }
   }
