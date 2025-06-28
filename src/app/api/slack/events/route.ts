@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { extractLinksFromMessage, shouldProcessUrl } from '@/lib/slack'
-import { processLinkInBackground } from '@/lib/link-processor'
+import { queueLinkProcessing } from '@/lib/job-queue'
 
 function verifySlackRequest(body: string, signature: string, timestamp: string): boolean {
   const signingSecret = process.env.SLACK_SIGNING_SECRET
@@ -118,18 +118,23 @@ async function handleMessage(event: any, teamId: string) {
     }
   })
 
-  // Process each link
-  for (const url of links) {
-    if (shouldProcessUrl(url)) {
-      await processLinkInBackground({
-        url,
-        messageTs: event.ts,
-        channelId: event.channel,
-        teamId: team.id,
-        slackTeamId: teamId
-      })
-    }
-  }
+  // Queue each link for background processing (non-blocking)
+  const queuePromises = links
+    .filter(url => shouldProcessUrl(url))
+    .map(url => queueLinkProcessing({
+      url,
+      messageTs: event.ts,
+      channelId: event.channel,
+      teamId: team.id,
+      slackTeamId: teamId
+    }))
+
+  // Fire and forget - don't await the queueing
+  Promise.all(queuePromises).catch(error => {
+    console.error('Failed to queue some link processing jobs:', error)
+  })
+
+  console.log(`Queued ${queuePromises.length} links for processing`)
 }
 
 async function handleAppMention(event: any, teamId: string) {

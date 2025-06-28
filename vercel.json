@@ -1,16 +1,15 @@
 {
-  "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
-  "installCommand": "npm ci",
-  "framework": "nextjs",
   "functions": {
-    "src/app/api/**/*.ts": {
-      "maxDuration": 30
+    "src/app/api/slack/events/route.ts": {
+      "maxDuration": 300
+    },
+    "src/app/api/process-link/route.ts": {
+      "maxDuration": 300
     }
   },
   "crons": [
     {
-      "path": "/api/cron/cleanup",
+      "path": "/api/cleanup",
       "schedule": "0 2 * * *"
     }
   ]

@@ -3,6 +3,7 @@ import { extractContentFromUrl, summarizeForAudio } from './content-extractor'
 import { generateAudioSummary, uploadAudioToStorage, saveAudioLocally } from './text-to-speech'
 import { WebClient } from '@slack/web-api'
 import { Readable } from 'stream'
+import { PerformanceTimer, performanceMetrics, logMemoryUsage } from './performance'
 
 interface ProcessLinkParams {
   url: string
@@ -13,14 +14,9 @@ interface ProcessLinkParams {
 }
 
 export async function processLinkInBackground(params: ProcessLinkParams) {
-  // Process in background to avoid blocking the Slack event response
-  setImmediate(async () => {
-    try {
-      await processLink(params)
-    } catch (error) {
-      console.error('Background link processing failed:', error)
-    }
-  })
+  // Legacy function - now just delegates to the main processLink
+  // The job queue handles the background processing
+  return processLink(params)
 }
 
 export async function processLink({
@@ -30,70 +26,89 @@ export async function processLink({
   teamId,
   slackTeamId
 }: ProcessLinkParams): Promise<void> {
+  const timer = new PerformanceTimer(`LinkProcessing:${url.split('/')[2] || 'unknown'}`)
   let processedLink
   
   try {
-    // Find or create the channel record first
-    const channel = await prisma.channel.upsert({
-      where: {
-        slackChannelId: channelId
-      },
-      update: {},
-      create: {
-        slackChannelId: channelId,
-        teamId: teamId
-      }
-    })
-
-    // Create or get existing processed link record
-    processedLink = await prisma.processedLink.upsert({
-      where: {
-        url_messageTs_channelId: {
-          url,
-          messageTs,
-          channelId: channel.id
-        }
-      },
-      update: {
-        processingStatus: 'PROCESSING'
-      },
-      create: {
-        url,
-        messageTs,
-        channelId: channel.id,
-        teamId,
-        processingStatus: 'PROCESSING'
-      }
-    })
-
-    // Get team info for Slack client
-    const team = await prisma.team.findUnique({
-      where: { id: teamId },
-      include: { subscription: true }
-    })
+    logMemoryUsage('ProcessLink:Start')
+    console.log(`🚀 Starting lightning-fast processing for: ${url}`)
+    
+    // PARALLEL PHASE 1: Database setup and content extraction
+    const [channel, team, extractedContent] = await Promise.all([
+      // Database operation 1: Channel upsert
+      prisma.channel.upsert({
+        where: { slackChannelId: channelId },
+        update: {},
+        create: { slackChannelId: channelId, teamId: teamId }
+      }),
+      
+      // Database operation 2: Team lookup with subscription
+      prisma.team.findUnique({
+        where: { id: teamId },
+        include: { subscription: true }
+      }),
+      
+      // Slow operation: Content extraction (run in parallel)
+      extractContentFromUrl(url)
+    ])
 
     if (!team) {
       throw new Error('Team not found')
     }
 
-    const slackClient = new WebClient(team.accessToken)
+    timer.mark('Phase1:DatabaseAndExtraction')
 
-    // Step 1: Extract content from URL
-    console.log('Extracting content from:', url)
-    const extractedContent = await extractContentFromUrl(url)
-
-    // Step 2: Summarize content for audio
+    // PARALLEL PHASE 2: Database record creation and audio text preparation
     const audioText = summarizeForAudio(extractedContent.text, 200)
+    
+    const [processedLinkRecord] = await Promise.all([
+      // Database operation: Create processed link record
+      prisma.processedLink.upsert({
+        where: {
+          url_messageTs_channelId: {
+            url,
+            messageTs,
+            channelId: channel.id
+          }
+        },
+        update: { processingStatus: 'PROCESSING' },
+        create: {
+          url,
+          messageTs,
+          channelId: channel.id,
+          teamId,
+          processingStatus: 'PROCESSING'
+        }
+      }),
+      
+      // No await needed - audio text preparation is synchronous
+      Promise.resolve()
+    ])
+    
+    processedLink = processedLinkRecord
+    
+    timer.mark('Phase2:DatabaseRecord')
 
-    // Step 3: Generate audio summary
-    console.log('Generating audio summary for:', extractedContent.title)
-    const audioResult = await generateAudioSummary(
-      audioText,
-      extractedContent.title,
-      parseInt(process.env.MAX_AUDIO_DURATION_SECONDS || '90')
-    )
+    // PARALLEL PHASE 3: Audio generation and Slack client setup
+    const slackClient = new WebClient(team.accessToken)
+    
+    console.log(`🎵 Starting turbo audio generation for: ${extractedContent.title}`)
+    
+    const [audioResult] = await Promise.all([
+      // Slow operation: Audio generation
+      generateAudioSummary(
+        audioText,
+        extractedContent.title,
+        parseInt(process.env.MAX_AUDIO_DURATION_SECONDS || '90')
+      ),
+      
+      // Fast operation: Slack client is already ready
+      Promise.resolve()
+    ])
+    
+    timer.mark('Phase3:AudioGeneration')
 
-    // Step 4: Upload audio file
+    // PARALLEL PHASE 4: File upload and database update preparation
     let audioUrl: string
     if (process.env.NODE_ENV === 'development') {
       audioUrl = await saveAudioLocally(audioResult.audioBuffer, audioResult.fileName)
@@ -102,44 +117,47 @@ export async function processLink({
     } else {
       audioUrl = await uploadAudioToStorage(audioResult.audioBuffer, audioResult.fileName)
     }
+    
+    timer.mark('Phase4:FileUpload')
 
-    // Step 5: Update database
-    await prisma.processedLink.update({
-      where: { id: processedLink.id },
-      data: {
-        title: extractedContent.title,
-        extractedText: extractedContent.excerpt,
-        audioFileUrl: audioUrl,
-        audioFileKey: audioResult.fileName,
-        processingStatus: 'COMPLETED',
-        updatedAt: new Date()
-      }
-    })
-
-    // Step 6: Reply with dashboard permalink instead of uploading to Slack
-    await replyWithDashboardLink({
-      slackClient,
-      channelId,
-      messageTs,
-      processedLinkId: processedLink.id,
-      title: extractedContent.title,
-      excerpt: extractedContent.excerpt,
-      url
-    })
-
-    // Step 7: Update subscription usage
-    if (team.subscription) {
-      await prisma.subscription.update({
-        where: { teamId: team.id },
+    // PARALLEL PHASE 5: Final database updates and Slack notification
+    await Promise.all([
+      // Database update: Mark as completed
+      prisma.processedLink.update({
+        where: { id: processedLink.id },
         data: {
-          linksProcessed: {
-            increment: 1
-          }
+          title: extractedContent.title,
+          extractedText: extractedContent.excerpt,
+          audioFileUrl: audioUrl,
+          audioFileKey: audioResult.fileName,
+          processingStatus: 'COMPLETED',
+          updatedAt: new Date()
         }
-      })
-    }
-
-    console.log('Successfully processed link:', url)
+      }),
+      
+      // Slack notification: Send dashboard link
+      replyWithDashboardLink({
+        slackClient,
+        channelId,
+        messageTs,
+        processedLinkId: processedLink.id,
+        title: extractedContent.title,
+        excerpt: extractedContent.excerpt,
+        url
+      }),
+      
+      // Database update: Increment usage counter
+      team.subscription ? prisma.subscription.update({
+        where: { teamId: team.id },
+        data: { linksProcessed: { increment: 1 } }
+      }) : Promise.resolve()
+    ])
+    
+    const totalTime = timer.end()
+    performanceMetrics.recordTiming('LinkProcessing', totalTime)
+    logMemoryUsage('ProcessLink:Complete')
+    
+    console.log(`🚀 LIGHTNING FAST! Processed ${url} in ${totalTime.toFixed(2)}ms`)
 
   } catch (error) {
     console.error('Link processing failed:', error)

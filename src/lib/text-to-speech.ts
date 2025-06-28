@@ -26,34 +26,84 @@ export async function generateAudioSummary(
   title: string,
   maxDurationSeconds: number = 90
 ): Promise<AudioResult> {
-  try {
-    // Prepare text for TTS (limit length based on speaking rate)
-    const wordsPerMinute = 150 // Average speaking rate
-    const maxWords = Math.floor((maxDurationSeconds / 60) * wordsPerMinute)
-    const processedText = prepareTextForTTS(text, title, maxWords)
+  const startTime = Date.now()
+  const maxRetries = 3
+  let lastError: Error | undefined
 
-    // Generate audio using OpenAI TTS
-    const response = await openai.audio.speech.create({
-      model: 'tts-1', // Use tts-1-hd for higher quality
-      voice: 'nova', // Available voices: alloy, echo, fable, onyx, nova, shimmer
-      input: processedText,
-      response_format: 'mp3',
-      speed: 1.0
-    })
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`🎤 TTS attempt ${attempt}/${maxRetries} for: ${title.substring(0, 50)}...`)
+      
+      // Prepare text for TTS (limit length based on speaking rate)
+      const wordsPerMinute = 150 // Average speaking rate  
+      const maxWords = Math.floor((maxDurationSeconds / 60) * wordsPerMinute)
+      const processedText = prepareTextForTTS(text, title, maxWords)
 
-    // Convert response to buffer
-    const arrayBuffer = await response.arrayBuffer()
-    const audioBuffer = Buffer.from(arrayBuffer)
-    const fileName = `audio_${Date.now()}_${Math.random().toString(36).substring(7)}.mp3`
+      console.log(`📝 Processing ${processedText.length} characters (${processedText.split(' ').length} words)`)
 
-    return {
-      audioBuffer,
-      fileName
+      // Generate audio using OpenAI TTS with timeout
+      const ttsStartTime = Date.now()
+      
+      const response = await Promise.race([
+        openai.audio.speech.create({
+          model: 'tts-1', // Fast model for speed
+          voice: 'nova', // Consistent voice
+          input: processedText,
+          response_format: 'mp3',
+          speed: 1.1 // Slightly faster for efficiency
+        }),
+        new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('TTS timeout after 30 seconds')), 30000)
+        )
+      ])
+
+      console.log(`🎵 TTS API call completed in ${Date.now() - ttsStartTime}ms`)
+
+      // Convert response to buffer
+      const bufferStartTime = Date.now()
+      const arrayBuffer = await response.arrayBuffer()
+      const audioBuffer = Buffer.from(arrayBuffer)
+      
+      console.log(`💾 Buffer conversion completed in ${Date.now() - bufferStartTime}ms`)
+      console.log(`📊 Audio buffer size: ${(audioBuffer.length / 1024).toFixed(1)} KB`)
+
+      const fileName = `audio_${Date.now()}_${Math.random().toString(36).substring(7)}.mp3`
+
+      console.log(`✅ Audio generation successful in ${Date.now() - startTime}ms`)
+
+      return {
+        audioBuffer,
+        fileName
+      }
+      
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(`Unknown error: ${error}`)
+      
+      console.error(`❌ TTS attempt ${attempt} failed:`, {
+        error: lastError.message,
+        title: title.substring(0, 50),
+        attempt,
+        elapsed: Date.now() - startTime
+      })
+
+      // Don't retry for certain errors
+      if (lastError.message.includes('invalid') || 
+          lastError.message.includes('quota') ||
+          lastError.message.includes('authentication')) {
+        break
+      }
+
+      // Exponential backoff for retries
+      if (attempt < maxRetries) {
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000)
+        console.log(`⏳ Retrying TTS in ${delay}ms...`)
+        await new Promise(resolve => setTimeout(resolve, delay))
+      }
     }
-  } catch (error) {
-    console.error('OpenAI TTS generation failed:', error)
-    throw new Error('Failed to generate audio summary')
   }
+
+  console.error(`💥 All TTS attempts failed for: ${title}`)
+  throw new Error(`Audio generation failed after ${maxRetries} attempts: ${lastError?.message || 'Unknown error'}`)
 }
 
 export async function uploadAudioToStorage(

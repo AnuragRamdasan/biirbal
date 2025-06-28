@@ -110,3 +110,21 @@ enum SubscriptionStatus {
   INCOMPLETE_EXPIRED
   UNPAID
 }
+
+model QueuedJob {
+  id          String   @id
+  type        String
+  payload     Json
+  status      String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  priority    Int      @default(1)
+  retryCount  Int      @default(0)
+  maxRetries  Int      @default(3)
+  error       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  processedAt DateTime?
+
+  @@index([status, priority])
+  @@index([createdAt])
+  @@map("queued_jobs")
+}
