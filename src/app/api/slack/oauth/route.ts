@@ -15,6 +15,12 @@ export async function GET(request: NextRequest) {
     const state = searchParams.get('state')
     const error = searchParams.get('error')
 
+    console.log('OAuth callback received', { 
+      code: code, 
+      error: error,
+      state: state 
+    })
+
     oauthLogger.info('OAuth callback received', { 
       hasCode: !!code, 
       hasError: !!error,
