@@ -99,9 +99,14 @@ export default function Dashboard() {
               <div className="flex items-center space-x-2">
                 <span className="text-xl font-bold">🧠 Biirbal.ai</span>
               </div>
-              <a href="/" className="text-white/80 hover:text-white transition-colors text-sm">
-                ← Back to Home
-              </a>
+              <div className="flex items-center space-x-4">
+                <a href="/profile" className="text-white/80 hover:text-white transition-colors text-sm">
+                  Profile
+                </a>
+                <a href="/" className="text-white/80 hover:text-white transition-colors text-sm">
+                  ← Home
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -126,9 +131,14 @@ export default function Dashboard() {
               <div className="flex items-center space-x-2">
                 <span className="text-xl font-bold">🧠 biirbal.ai</span>
               </div>
-              <a href="/" className="text-white/80 hover:text-white transition-colors text-sm">
-                ← Back to Home
-              </a>
+              <div className="flex items-center space-x-4">
+                <a href="/profile" className="text-white/80 hover:text-white transition-colors text-sm">
+                  Profile
+                </a>
+                <a href="/" className="text-white/80 hover:text-white transition-colors text-sm">
+                  ← Home
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -153,9 +163,14 @@ export default function Dashboard() {
             <div className="flex items-center space-x-2">
               <span className="text-xl font-bold">🧠 biirbal.ai</span>
             </div>
-            <a href="/" className="text-white/80 hover:text-white transition-colors text-sm">
-              ← Back to Home
-            </a>
+            <div className="flex items-center space-x-4">
+              <a href="/profile" className="text-white/80 hover:text-white transition-colors text-sm">
+                Profile
+              </a>
+              <a href="/" className="text-white/80 hover:text-white transition-colors text-sm">
+                ← Home
+              </a>
+            </div>
           </div>
         </div>
       </div>

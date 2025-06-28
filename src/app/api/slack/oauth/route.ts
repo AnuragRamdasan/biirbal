@@ -135,8 +135,10 @@ export async function GET(request: NextRequest) {
 
     console.log(process.env.NEXTAUTH_URL)
     console.log(request.url)
+    
+    // Store team ID in URL for client-side storage
     return NextResponse.redirect(
-      new URL('/?installed=true', 'https://biirbal.com')
+      new URL(`/?installed=true&teamId=${encodeURIComponent(teamId)}`, 'https://biirbal.com')
     )
   // } catch (error) {
   //   console.error('OAuth error:', error)

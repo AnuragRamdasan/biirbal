@@ -14,6 +14,12 @@ function HomeContent() {
     if (searchParams.get('installed') === 'true') {
       setInstalled(true)
       setShowDashboard(true)
+      
+      // Store team ID from OAuth response
+      const teamId = searchParams.get('teamId')
+      if (teamId) {
+        localStorage.setItem('biirbal_team_id', teamId)
+      }
     }
     if (searchParams.get('error')) {
       setError(searchParams.get('error') || 'Installation failed')
@@ -21,7 +27,8 @@ function HomeContent() {
     
     // Check if user has been here before (simple check)
     const hasVisitedDashboard = localStorage.getItem('biirbal_visited_dashboard')
-    if (hasVisitedDashboard && !searchParams.get('error')) {
+    const hasTeamId = localStorage.getItem('biirbal_team_id')
+    if (hasVisitedDashboard && hasTeamId && !searchParams.get('error')) {
       setShowDashboard(true)
     }
   }, [searchParams])
