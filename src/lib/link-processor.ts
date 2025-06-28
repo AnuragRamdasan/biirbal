@@ -195,7 +195,7 @@ async function replyWithDashboardLink({
   url
 }: ReplyWithDashboardLinkParams): Promise<void> {
   try {
-    const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL || 'http://localhost:3000'
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
     const dashboardUrl = `${baseUrl}/dashboard#${processedLinkId}`
 
     await slackClient.chat.postMessage({

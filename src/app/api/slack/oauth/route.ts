@@ -47,20 +47,52 @@ export async function GET(request: NextRequest) {
     const slackClient = new WebClient()
     
     // Calculate the redirect URI - this MUST match what was used in the authorization request
-    // TODO: Replace with your actual Vercel domain
+    const host = request.headers.get('host')
+    const protocol = request.headers.get('x-forwarded-proto') || 'https'
+    const constructedOrigin = `${protocol}://${host}`
+    
     const redirectUri = process.env.NEXTAUTH_URL || 
                        process.env.NEXT_PUBLIC_BASE_URL || 
-                       request.nextUrl.origin
+                       constructedOrigin
     const fullRedirectUri = redirectUri.replace(/\/$/, '') + '/api/slack/oauth'
     
-    console.log('Using redirect URI:', fullRedirectUri)
-    
-    const result = await slackClient.oauth.v2.access({
-      client_id: process.env.SLACK_CLIENT_ID,
-      client_secret: process.env.SLACK_CLIENT_SECRET,
-      code,
-      redirect_uri: fullRedirectUri
+    console.log('Debug redirect URI info:', {
+      host,
+      protocol,
+      constructedOrigin,
+      NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+      NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL,
+      finalRedirectUri: fullRedirectUri
     })
+    
+    // Try without redirect_uri first to see what Slack expects
+    let result: any
+    try {
+      result = await slackClient.oauth.v2.access({
+        client_id: process.env.SLACK_CLIENT_ID,
+        client_secret: process.env.SLACK_CLIENT_SECRET,
+        code,
+        redirect_uri: fullRedirectUri
+      })
+      
+      console.log('OAuth success with redirect_uri:', fullRedirectUri)
+    } catch (error: any) {
+      console.log('OAuth failed with redirect_uri:', fullRedirectUri)
+      console.log('Error details:', error.data)
+      
+      // Try again without redirect_uri to see if Slack gives us more info
+      try {
+        result = await slackClient.oauth.v2.access({
+          client_id: process.env.SLACK_CLIENT_ID,
+          client_secret: process.env.SLACK_CLIENT_SECRET,
+          code
+        })
+        console.log('OAuth success WITHOUT redirect_uri')
+      } catch (error2: any) {
+        console.log('OAuth failed without redirect_uri:', error2.data)
+        throw error // Throw original error
+      }
+    }
 
     if (!result.ok || !result.team || !result.access_token) {
       throw new Error('OAuth exchange failed')
