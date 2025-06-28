@@ -18,7 +18,9 @@ export async function GET(request: NextRequest) {
     console.log('OAuth callback received', { 
       code: code, 
       error: error,
-      state: state 
+      state: state,
+      origin: request.nextUrl.origin,
+      baseUrl: process.env.NEXT_PUBLIC_BASE_URL 
     })
 
     oauthLogger.info('OAuth callback received', { 
@@ -49,10 +51,17 @@ export async function GET(request: NextRequest) {
     // Create WebClient only when needed
     const slackClient = new WebClient()
     
+    // Include redirect_uri in the OAuth exchange
+    const redirectUri = process.env.NEXT_PUBLIC_BASE_URL + '/api/slack/oauth' || 
+                       request.nextUrl.origin + '/api/slack/oauth'
+    
+    console.log('Using redirect URI:', redirectUri)
+    
     const result = await slackClient.oauth.v2.access({
       client_id: process.env.SLACK_CLIENT_ID,
       client_secret: process.env.SLACK_CLIENT_SECRET,
-      code
+      code,
+      redirect_uri: redirectUri
     })
 
     if (!result.ok || !result.team || !result.access_token) {

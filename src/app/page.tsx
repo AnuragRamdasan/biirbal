@@ -18,7 +18,16 @@ function HomeContent() {
     }
   }, [searchParams])
 
-  const slackInstallUrl = `https://slack.com/oauth/v2/authorize?client_id=${process.env.NEXT_PUBLIC_SLACK_CLIENT_ID}&scope=app_mentions:read,channels:history,channels:read,chat:write,files:write,groups:history,groups:read,im:history,im:read,mpim:history,mpim:read&user_scope=&redirect_uri=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin + '/api/slack/oauth' : '')}`
+  // Use consistent redirect URI based on environment
+  const getRedirectUri = () => {
+    if (typeof window !== 'undefined') {
+      return window.location.origin + '/api/slack/oauth'
+    }
+    // Fallback for server-side rendering
+    return process.env.NEXT_PUBLIC_BASE_URL + '/api/slack/oauth' || 'http://localhost:3000/api/slack/oauth'
+  }
+
+  const slackInstallUrl = `https://slack.com/oauth/v2/authorize?client_id=${process.env.NEXT_PUBLIC_SLACK_CLIENT_ID}&scope=app_mentions:read,channels:history,channels:read,chat:write,files:write,groups:history,groups:read,im:history,im:read,mpim:history,mpim:read&user_scope=&redirect_uri=${encodeURIComponent(getRedirectUri())}`
 
   return (
     <>
