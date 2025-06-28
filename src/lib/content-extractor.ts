@@ -101,6 +101,16 @@ async function scrapeContent(url: string): Promise<ExtractedContent> {
   // Special handling for certain domains
   const isMoneyControl = url.includes('moneycontrol.com')
   const isFinancialSite = url.includes('moneycontrol.com') || url.includes('bloomberg.com') || url.includes('reuters.com')
+  
+  // For MoneyControl, try a completely different approach first
+  if (isMoneyControl) {
+    try {
+      console.log('Using special MoneyControl extraction method...')
+      return await extractMoneyControlContent(url)
+    } catch (mcError) {
+      console.log('MoneyControl special method failed, trying general approach...', mcError)
+    }
+  }
 
   let response: any = null
   let lastError: any = null
@@ -141,15 +151,20 @@ async function scrapeContent(url: string): Promise<ExtractedContent> {
         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 3000))
       }
 
+      // Adjust timeout based on site and attempt
+      const timeout = isMoneyControl ? 45000 : (isFinancialSite ? 35000 : 25000)
+      
       response = await axios.get(url, {
-        timeout: 30000,
+        timeout: timeout,
         maxRedirects: 5,
         headers,
         maxContentLength: 10 * 1024 * 1024, // 10MB limit
         validateStatus: (status) => status < 400, // Accept redirects
         proxy: false, // Disable proxy
         withCredentials: false, // No cookies
-        decompress: true
+        decompress: true,
+        httpsAgent: false, // Disable agent pooling
+        httpAgent: false
       })
       
       // If we get here, the request was successful
@@ -341,6 +356,100 @@ async function scrapeContent(url: string): Promise<ExtractedContent> {
     url,
     excerpt
   }
+}
+
+// Special extraction method for MoneyControl
+async function extractMoneyControlContent(url: string): Promise<ExtractedContent> {
+  const moneyControlAgents = [
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+    'Mozilla/5.0 (Linux; Android 13; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36',
+    'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+    'Twitterbot/1.0'
+  ]
+  
+  for (const userAgent of moneyControlAgents) {
+    try {
+      console.log(`Trying MoneyControl with agent: ${userAgent.substring(0, 30)}...`)
+      
+      // Wait before each attempt
+      await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000))
+      
+      const response = await axios.get(url, {
+        timeout: 20000, // Shorter timeout for quicker fallback
+        headers: {
+          'User-Agent': userAgent,
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.5',
+          'Accept-Encoding': 'gzip, deflate',
+          'Referer': 'https://www.google.com/',
+          'Origin': 'https://www.google.com',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        maxRedirects: 3,
+        validateStatus: (status) => status === 200,
+        decompress: true
+      })
+      
+      const html = response.data
+      if (!html || html.length < 1000) {
+        throw new Error('Response too short for MoneyControl')
+      }
+      
+      // Try to extract content using basic HTML parsing
+      const $ = cheerio.load(html)
+      
+      // MoneyControl specific selectors
+      let title = $('h1').first().text().trim() || 
+                  $('.story_title').first().text().trim() || 
+                  $('title').text().replace(' - Moneycontrol.com', '').trim()
+      
+      let content = ''
+      
+      // Try different content selectors for MoneyControl
+      const contentSelectors = [
+        '.arti-flow',
+        '.content_wrapper',
+        '.story_content',
+        '#story_content',
+        '.article-content',
+        '.news_content'
+      ]
+      
+      for (const selector of contentSelectors) {
+        const element = $(selector)
+        if (element.length > 0) {
+          content = element.text().trim()
+          if (content.length > 200) break
+        }
+      }
+      
+      // Fallback to paragraph extraction
+      if (content.length < 200) {
+        content = $('p').map((i, el) => $(el).text().trim()).get().join(' ')
+      }
+      
+      if (title && content && content.length > 200) {
+        const cleanContent = content
+          .replace(/\s+/g, ' ')
+          .replace(/\n\s*\n/g, '\n')
+          .trim()
+        
+        return {
+          title: title,
+          text: cleanContent,
+          url,
+          excerpt: cleanContent.substring(0, 300) + (cleanContent.length > 300 ? '...' : '')
+        }
+      }
+      
+    } catch (error) {
+      console.log(`MoneyControl attempt failed with ${userAgent.substring(0, 20)}: ${error}`)
+      continue
+    }
+  }
+  
+  throw new Error('All MoneyControl extraction methods failed')
 }
 
 export function summarizeForAudio(text: string, maxWords: number = 200): string {
