@@ -43,10 +43,20 @@ export async function GET(request: NextRequest) {
     // Create WebClient only when needed
     const slackClient = new WebClient()
     
+    // Calculate the redirect URI - this MUST match what was used in the authorization request
+    // TODO: Replace with your actual Vercel domain
+    const redirectUri = process.env.NEXTAUTH_URL || 
+                       process.env.NEXT_PUBLIC_BASE_URL || 
+                       request.nextUrl.origin
+    const fullRedirectUri = redirectUri.replace(/\/$/, '') + '/api/slack/oauth'
+    
+    console.log('Using redirect URI:', fullRedirectUri)
+    
     const result = await slackClient.oauth.v2.access({
       client_id: process.env.SLACK_CLIENT_ID,
       client_secret: process.env.SLACK_CLIENT_SECRET,
-      code
+      code,
+      redirect_uri: fullRedirectUri
     })
 
     if (!result.ok || !result.team || !result.access_token) {
