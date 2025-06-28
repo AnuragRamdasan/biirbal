@@ -8,15 +8,31 @@ function HomeContent() {
   const searchParams = useSearchParams()
   const [installed, setInstalled] = useState(false)
   const [error, setError] = useState('')
+  const [showDashboard, setShowDashboard] = useState(false)
 
   useEffect(() => {
     if (searchParams.get('installed') === 'true') {
       setInstalled(true)
+      setShowDashboard(true)
     }
     if (searchParams.get('error')) {
       setError(searchParams.get('error') || 'Installation failed')
     }
+    
+    // Check if user has been here before (simple check)
+    const hasVisitedDashboard = localStorage.getItem('biirbal_visited_dashboard')
+    if (hasVisitedDashboard && !searchParams.get('error')) {
+      setShowDashboard(true)
+    }
   }, [searchParams])
+
+  // If user should see dashboard, redirect them
+  useEffect(() => {
+    if (showDashboard && !error) {
+      localStorage.setItem('biirbal_visited_dashboard', 'true')
+      window.location.href = '/dashboard'
+    }
+  }, [showDashboard, error])
 
   // Force custom domain for OAuth redirect - never use Vercel preview URLs
   const getRedirectUri = () => {
