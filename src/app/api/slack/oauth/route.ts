@@ -9,19 +9,11 @@ import { handleApiError, ValidationError } from '@/lib/error-handler'
 export async function GET(request: NextRequest) {
   const oauthLogger = logger.child('slack-oauth')
   
-//  try {
+  try {
     const searchParams = request.nextUrl.searchParams
     const code = searchParams.get('code')
     const state = searchParams.get('state')
     const error = searchParams.get('error')
-
-    console.log('OAuth callback received', { 
-      code: code, 
-      error: error,
-      state: state,
-      origin: request.nextUrl.origin,
-      baseUrl: process.env.NEXT_PUBLIC_BASE_URL 
-    })
 
     oauthLogger.info('OAuth callback received', { 
       hasCode: !!code, 
@@ -31,41 +23,30 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       oauthLogger.warn('OAuth error received', { error })
-      console.error('OAuth error:', error)
       return NextResponse.redirect(
         new URL(`/?error=${encodeURIComponent(error)}`, process.env.NEXTAUTH_URL || request.url)
       )
     }
 
     if (!code) {
-      console.error('Missing authorization code')
       throw new ValidationError('Missing authorization code')
     }
     
     // Check if Slack OAuth is configured
     if (!process.env.SLACK_CLIENT_ID || !process.env.SLACK_CLIENT_SECRET) {
-      console.error('Slack OAuth is not configured')
       throw new Error('Slack OAuth is not configured')
     }
     
     // Create WebClient only when needed
     const slackClient = new WebClient()
     
-    // Include redirect_uri in the OAuth exchange
-    const redirectUri = process.env.NEXT_PUBLIC_BASE_URL + '/api/slack/oauth' || 
-                       request.nextUrl.origin + '/api/slack/oauth'
-    
-    console.log('Using redirect URI:', redirectUri)
-    
     const result = await slackClient.oauth.v2.access({
       client_id: process.env.SLACK_CLIENT_ID,
       client_secret: process.env.SLACK_CLIENT_SECRET,
-      code,
-      redirect_uri: redirectUri
+      code
     })
 
     if (!result.ok || !result.team || !result.access_token) {
-      console.error('OAuth exchange failed')
       throw new Error('OAuth exchange failed')
     }
 
@@ -102,10 +83,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(
       new URL('/?installed=true', process.env.NEXTAUTH_URL || request.url)
     )
-  // } catch (error) {
-  //   console.error('OAuth error:', error)
-  //   return NextResponse.redirect(
-  //     new URL(`/?error=${encodeURIComponent('Installation failed')}`, process.env.NEXTAUTH_URL || request.url)
-  //   )
-  // }
+  } catch (error) {
+    console.error('OAuth error:', error)
+    return NextResponse.redirect(
+      new URL(`/?error=${encodeURIComponent('Installation failed')}`, process.env.NEXTAUTH_URL || request.url)
+    )
+  }
 }
