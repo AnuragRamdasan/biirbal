@@ -15,17 +15,17 @@
     }
   ],
   "env": {
-    "SLACK_CLIENT_ID": "@slack_client_id",
-    "SLACK_CLIENT_SECRET": "@slack_client_secret",
-    "SLACK_SIGNING_SECRET": "@slack_signing_secret",
-    "SLACK_BOT_TOKEN": "@slack_bot_token",
-    "DATABASE_URL": "@database_url",
-    "STRIPE_SECRET_KEY": "@stripe_secret_key",
-    "STRIPE_PUBLISHABLE_KEY": "@stripe_publishable_key",
-    "STRIPE_WEBHOOK_SECRET": "@stripe_webhook_secret",
-    "GOOGLE_CLOUD_PROJECT_ID": "@google_cloud_project_id",
-    "GOOGLE_APPLICATION_CREDENTIALS": "@google_application_credentials",
-    "NEXTAUTH_URL": "@nextauth_url",
-    "NEXTAUTH_SECRET": "@nextauth_secret"
+    "SLACK_CLIENT_ID": "@SLACK_CLIENT_ID",
+    "SLACK_CLIENT_SECRET": "@SLACK_CLIENT_SECRET",
+    "SLACK_SIGNING_SECRET": "@SLACK_SIGNING_SECRET",
+    "SLACK_BOT_TOKEN": "@SLACK_BOT_TOKEN",
+    "DATABASE_URL": "@DATABASE_URL",
+    "STRIPE_SECRET_KEY": "@STRIPE_SECRET_KEY",
+    "STRIPE_PUBLISHABLE_KEY": "@STRIPE_PUBLISHABLE_KEY",
+    "STRIPE_WEBHOOK_SECRET": "@STRIPE_WEBHOOK_SECRET",
+    "GOOGLE_CLOUD_PROJECT_ID": "@GOOGLE_CLOUD_PROJECT_ID",
+    "GOOGLE_APPLICATION_CREDENTIALS": "@GOOGLE_APPLICATION_CREDENTIALS",
+    "NEXTAUTH_URL": "@NEXTAUTH_URL",
+    "NEXTAUTH_SECRET": "@NEXTAUTH_SECRET"
   }
 }
