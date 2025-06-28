@@ -23,17 +23,20 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       oauthLogger.warn('OAuth error received', { error })
+      console.error('OAuth error:', error)
       return NextResponse.redirect(
         new URL(`/?error=${encodeURIComponent(error)}`, process.env.NEXTAUTH_URL || request.url)
       )
     }
 
     if (!code) {
+      console.error('Missing authorization code')
       throw new ValidationError('Missing authorization code')
     }
     
     // Check if Slack OAuth is configured
     if (!process.env.SLACK_CLIENT_ID || !process.env.SLACK_CLIENT_SECRET) {
+      console.error('Slack OAuth is not configured')
       throw new Error('Slack OAuth is not configured')
     }
     
@@ -47,6 +50,7 @@ export async function GET(request: NextRequest) {
     })
 
     if (!result.ok || !result.team || !result.access_token) {
+      console.error('OAuth exchange failed')
       throw new Error('OAuth exchange failed')
     }
 
