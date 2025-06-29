@@ -22,9 +22,9 @@
  * ```
  */
 
-import { kv } from '@vercel/kv'
 import { JobPayload, JobStatus, QueueStats, QueueConfig } from './types'
 import { processFallback, shouldUseFallback } from './fallback'
+import { redis, isRedisConfigured } from './redis'
 
 class QueueClient {
   private config: QueueConfig
@@ -32,7 +32,7 @@ class QueueClient {
   constructor() {
     this.config = {
       redis: {
-        url: process.env.KV_REST_API_URL || process.env.KV_URL,
+        url: process.env.KV_REST_API_URL || process.env.REDIS_URL,
         token: process.env.KV_REST_API_TOKEN
       },
       defaults: {
@@ -52,8 +52,7 @@ class QueueClient {
    * Check if Redis/KV is properly configured
    */
   private isKVConfigured(): boolean {
-    // URL is required, token is optional (some Redis instances don't need auth)
-    return !!this.config.redis.url
+    return isRedisConfigured()
   }
 
   /**
@@ -63,7 +62,7 @@ class QueueClient {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     
     if (!this.isKVConfigured()) {
-      console.warn(`⚠️  Queue ${operation} skipped: Redis not configured. Set KV_REST_API_URL or KV_URL environment variable.`)
+      console.warn(`⚠️  Queue ${operation} skipped: Redis not configured. Set KV_REST_API_URL or REDIS_URL environment variable.`)
     } else {
       console.error(`🚨 Queue ${operation} failed:`, errorMessage)
     }
@@ -117,13 +116,13 @@ class QueueClient {
       }
 
       // Store job data
-      await kv.hset(`job:${jobId}`, job)
+      await redis.hset(`job:${jobId}`, job)
 
       // Add to pending queue (sorted by priority)
-      await kv.zadd('queue:pending', { score: job.priority, member: jobId })
+      await redis.zadd('queue:pending', { score: job.priority, member: jobId })
 
       // Update stats
-      await kv.incr('stats:jobs:added')
+      await redis.incr('stats:jobs:added')
 
       console.log(`✅ Job ${jobId} added to queue`, { type, priority: job.priority })
       
@@ -141,7 +140,7 @@ class QueueClient {
    * @returns Job status or null if not found
    */
   async getStatus(jobId: string): Promise<JobStatus | null> {
-    const job = await kv.hgetall(`job:${jobId}`) as JobPayload | null
+    const job = await redis.hgetall(`job:${jobId}`) as JobPayload | null
     if (!job) return null
 
     // Determine current status
@@ -183,11 +182,11 @@ class QueueClient {
 
     try {
       // Get highest priority job from pending queue
-      const result = await kv.zpopmax('queue:pending', 1)
+      const result = await redis.zpopmax('queue:pending', 1)
       if (!result || result.length === 0) return null
 
       const jobId = result[0].member as string
-      const job = await kv.hgetall(`job:${jobId}`) as JobPayload | null
+      const job = await redis.hgetall(`job:${jobId}`) as JobPayload | null
       
       if (!job) return null
 
@@ -196,19 +195,19 @@ class QueueClient {
       job.startedAt = now
       job.updatedAt = now
 
-      await kv.hset(`job:${jobId}`, {
+      await redis.hset(`job:${jobId}`, {
         startedAt: now,
         updatedAt: now
       })
 
       // Add to processing queue with timeout
-      await kv.zadd('queue:processing', {
+      await redis.zadd('queue:processing', {
         score: now + this.config.defaults.timeout,
         member: jobId
       })
 
       // Track worker
-      await kv.hset(`worker:${workerId}`, {
+      await redis.hset(`worker:${workerId}`, {
         lastSeen: now,
         currentJob: jobId
       })
@@ -231,16 +230,16 @@ class QueueClient {
   async complete(jobId: string): Promise<void> {
     const now = Date.now()
 
-    await kv.hset(`job:${jobId}`, {
+    await redis.hset(`job:${jobId}`, {
       completedAt: now,
       updatedAt: now
     })
 
     // Remove from processing queue
-    await kv.zrem('queue:processing', jobId)
+    await redis.zrem('queue:processing', jobId)
 
     // Update stats
-    await kv.incr('stats:jobs:completed')
+    await redis.incr('stats:jobs:completed')
 
     console.log(`✅ Job ${jobId} completed successfully`)
   }
@@ -253,7 +252,7 @@ class QueueClient {
    * @param retryable - Whether job should be retried
    */
   async fail(jobId: string, error: string, retryable: boolean = true): Promise<void> {
-    const job = await kv.hgetall(`job:${jobId}`) as JobPayload | null
+    const job = await redis.hgetall(`job:${jobId}`) as JobPayload | null
     if (!job) return
 
     const now = Date.now()
@@ -262,13 +261,13 @@ class QueueClient {
     job.error = error
 
     // Remove from processing queue
-    await kv.zrem('queue:processing', jobId)
+    await redis.zrem('queue:processing', jobId)
 
     if (retryable && job.retryCount < job.maxRetries) {
       // Retry with exponential backoff
       const delay = Math.min(1000 * Math.pow(2, job.retryCount - 1), 60000)
   
-      await kv.hset(`job:${jobId}`, {
+      await redis.hset(`job:${jobId}`, {
         retryCount: job.retryCount,
         updatedAt: now,
         error
@@ -276,20 +275,20 @@ class QueueClient {
 
       // Add back to pending queue with delay
       setTimeout(async () => {
-        await kv.zadd('queue:pending', { score: job.priority, member: jobId })
+        await redis.zadd('queue:pending', { score: job.priority, member: jobId })
       }, delay)
 
       console.log(`🔄 Job ${jobId} scheduled for retry ${job.retryCount}/${job.maxRetries} in ${delay}ms`)
     } else {
       // Max retries reached or not retryable
-      await kv.hset(`job:${jobId}`, {
+      await redis.hset(`job:${jobId}`, {
         completedAt: now,
         retryCount: job.retryCount,
         updatedAt: now,
         error
       })
 
-      await kv.incr('stats:jobs:failed')
+      await redis.incr('stats:jobs:failed')
       console.log(`❌ Job ${jobId} failed permanently: ${error}`)
     }
   }
@@ -301,10 +300,10 @@ class QueueClient {
    */
   async getStats(): Promise<QueueStats> {
     const [pending, processing, completed, failed] = await Promise.all([
-      kv.zcard('queue:pending'),
-      kv.zcard('queue:processing'),
-      kv.get('stats:jobs:completed') || 0,
-      kv.get('stats:jobs:failed') || 0
+      redis.zcard('queue:pending'),
+      redis.zcard('queue:processing'),
+      redis.get('stats:jobs:completed') || 0,
+      redis.get('stats:jobs:failed') || 0
     ])
 
     return {
@@ -327,15 +326,15 @@ class QueueClient {
     const stuckCutoff = now - this.config.maintenance.stuckJobTimeout
 
     // Reset stuck jobs (processing too long)
-    const stuckJobs = await kv.zrangebyscore('queue:processing', 0, stuckCutoff)
+    const stuckJobs = await redis.zrangebyscore('queue:processing', 0, stuckCutoff)
     let resetCount = 0
 
     for (const jobId of stuckJobs) {
-      const job = await kv.hgetall(`job:${jobId}`) as JobPayload | null
+      const job = await redis.hgetall(`job:${jobId}`) as JobPayload | null
       if (job && job.retryCount < job.maxRetries) {
-        await kv.zrem('queue:processing', jobId)
-        await kv.zadd('queue:pending', { score: job.priority, member: jobId })
-        await kv.hset(`job:${jobId}`, {
+        await redis.zrem('queue:processing', jobId)
+        await redis.zadd('queue:pending', { score: job.priority, member: jobId })
+        await redis.hset(`job:${jobId}`, {
           updatedAt: now,
           startedAt: undefined // Clear start time
         })

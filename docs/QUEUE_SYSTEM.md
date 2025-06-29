@@ -262,8 +262,9 @@ Tests cover:
    ```
    Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
    ```
-   - **Solution**: Set `KV_URL` or `KV_REST_API_URL` environment variable
-   - **Token**: Only required if your Redis needs authentication
+   - **Solution**: Set `KV_URL` environment variable with your Redis URL
+   - **Example**: `KV_URL=redis://user:pass@host:port`
+   - **Automatic Detection**: System detects Vercel KV vs standard Redis automatically
    - **Fallback**: System will process jobs directly if Redis unavailable
 
 2. **Jobs Stuck in Processing**

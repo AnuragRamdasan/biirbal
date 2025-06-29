@@ -44,7 +44,7 @@ export async function processFallback(data: JobPayload['data']): Promise<void> {
  */
 export function shouldUseFallback(): boolean {
   // Only URL is required, token is optional for some Redis instances
-  const redisConfigured = !!(process.env.KV_REST_API_URL || process.env.KV_URL)
+  const redisConfigured = !!(process.env.KV_REST_API_URL || process.env.REDIS_URL)
   
   return !redisConfigured
 }
