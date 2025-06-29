@@ -111,8 +111,13 @@ class JobQueue {
       
       await this.updateJobInDatabase(job)
 
-      // Process the job based on type
-      await this.executeJob(job)
+      // Process the job based on type with timeout
+      await Promise.race([
+        this.executeJob(job),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Job timeout after 5 minutes')), 5 * 60 * 1000)
+        )
+      ])
       
       // Mark as completed
       job.status = 'COMPLETED'
@@ -212,6 +217,41 @@ class JobQueue {
     }
   }
 
+  // Manual method to reset all stuck jobs immediately
+  async resetAllStuckJobs(): Promise<{ memory: number, database: number }> {
+    const cutoff = new Date(Date.now() - 5 * 60 * 1000) // 5 minutes
+    
+    // Reset in memory
+    let memoryCount = 0
+    for (const [jobId, job] of this.jobs.entries()) {
+      if (job.status === 'PROCESSING' && job.updatedAt < cutoff) {
+        job.status = 'PENDING'
+        job.retryCount++
+        job.updatedAt = new Date()
+        memoryCount++
+      }
+    }
+    
+    // Reset in database
+    const dbResult = await prisma.queuedJob.updateMany({
+      where: {
+        status: 'PROCESSING',
+        updatedAt: { lt: cutoff }
+      },
+      data: {
+        status: 'PENDING',
+        updatedAt: new Date()
+      }
+    })
+    
+    queueLogger.warn(`🔄 Manual reset of stuck jobs`, { 
+      memoryReset: memoryCount, 
+      dbReset: dbResult.count 
+    })
+    
+    return { memory: memoryCount, database: dbResult.count }
+  }
+
   async getJobStatus(jobId: string): Promise<QueuedJob | null> {
     const job = this.jobs.get(jobId)
     if (job) return job
@@ -250,6 +290,10 @@ class JobQueue {
     const completedCutoff = new Date(Date.now() - 2 * 60 * 60 * 1000) // 2 hours
     const failedCutoff = new Date(Date.now() - 6 * 60 * 60 * 1000) // 6 hours
     
+    // CRITICAL: Reset stuck PROCESSING jobs (older than 10 minutes)
+    const stuckJobsCutoff = new Date(Date.now() - 10 * 60 * 1000) // 10 minutes
+    await this.resetStuckJobs(stuckJobsCutoff)
+    
     // Remove from memory with different retention for completed vs failed
     for (const [jobId, job] of this.jobs.entries()) {
       const cutoff = job.status === 'COMPLETED' ? completedCutoff : failedCutoff
@@ -282,6 +326,48 @@ class JobQueue {
       }
     } catch (error) {
       console.error('Failed to cleanup jobs from database:', error)
+    }
+  }
+
+  private async resetStuckJobs(cutoff: Date) {
+    try {
+      // Reset stuck PROCESSING jobs in memory
+      let memoryResetCount = 0
+      for (const [jobId, job] of this.jobs.entries()) {
+        if (job.status === 'PROCESSING' && job.updatedAt < cutoff) {
+          queueLogger.warn(`🔄 Resetting stuck job in memory`, { 
+            jobId: job.id, 
+            stuckFor: Date.now() - job.updatedAt.getTime() 
+          })
+          
+          job.status = 'PENDING'
+          job.retryCount++
+          job.updatedAt = new Date()
+          memoryResetCount++
+        }
+      }
+
+      // Reset stuck PROCESSING jobs in database
+      const dbResetResult = await prisma.queuedJob.updateMany({
+        where: {
+          status: 'PROCESSING',
+          updatedAt: { lt: cutoff }
+        },
+        data: {
+          status: 'PENDING',
+          updatedAt: new Date()
+        }
+      })
+
+      if (memoryResetCount > 0 || dbResetResult.count > 0) {
+        queueLogger.warn(`🚨 Reset stuck jobs`, { 
+          memoryReset: memoryResetCount, 
+          dbReset: dbResetResult.count,
+          cutoff: cutoff.toISOString()
+        })
+      }
+    } catch (error) {
+      queueLogger.error('Failed to reset stuck jobs', { error: error.message })
     }
   }
 }
