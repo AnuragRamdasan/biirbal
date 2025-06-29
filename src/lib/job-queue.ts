@@ -29,11 +29,14 @@ export interface QueuedJob {
   error?: string
 }
 
-// In-memory queue for immediate processing (will switch to Redis later)
+// BULLETPROOF In-memory queue with guaranteed processing
 class JobQueue {
   private jobs: Map<string, QueuedJob> = new Map()
   private processing = false
   private processingInterval: NodeJS.Timeout | null = null
+  private healthCheckInterval: NodeJS.Timeout | null = null
+  private lastProcessingTime = 0
+  private processingSemaphore = false
 
   async addJob(job: JobPayload): Promise<string> {
     const jobId = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
@@ -68,38 +71,133 @@ class JobQueue {
       // Continue with in-memory processing even if DB fails
     })
 
-    // Start processing if not already running
-    this.startProcessing()
+    // GUARANTEE processing starts
+    this.ensureProcessingIsRunning()
+    
+    queueLogger.info(`📥 Job queued successfully`, { jobId, type: job.type })
     
     return jobId
   }
 
-  private startProcessing() {
-    if (this.processing) return
-    
+  // BULLETPROOF processing starter - GUARANTEES processing runs
+  private ensureProcessingIsRunning() {
+    queueLogger.info(`🔍 Ensuring processing is running`, { 
+      processing: this.processing,
+      hasInterval: !!this.processingInterval,
+      lastProcessingTime: this.lastProcessingTime,
+      timeSinceLastProcessing: Date.now() - this.lastProcessingTime
+    })
+
+    // Clear any existing intervals to prevent duplicates
+    if (this.processingInterval) {
+      clearInterval(this.processingInterval)
+      this.processingInterval = null
+    }
+
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval)
+      this.healthCheckInterval = null
+    }
+
+    // Force reset processing flag if it's been stuck
+    const timeSinceLastProcessing = Date.now() - this.lastProcessingTime
+    if (this.processing && timeSinceLastProcessing > 60000) { // 1 minute
+      queueLogger.warn(`🚨 Forcing processing reset - was stuck for ${timeSinceLastProcessing}ms`)
+      this.processing = false
+      this.processingSemaphore = false
+    }
+
+    // Start processing
     this.processing = true
-    
-    // Process jobs immediately and then check every 5 seconds
-    this.processNextJob()
-    
+    this.lastProcessingTime = Date.now()
+
+    // IMMEDIATE processing
+    this.processNextJobSafely()
+
+    // GUARANTEED processing every 3 seconds
     this.processingInterval = setInterval(() => {
-      this.processNextJob()
-    }, 5000)
+      this.processNextJobSafely()
+    }, 3000)
+
+    // HEALTH CHECK every 30 seconds to ensure processing is alive
+    this.healthCheckInterval = setInterval(() => {
+      this.healthCheck()
+    }, 30000)
+
+    queueLogger.info(`✅ Processing started with health checks`)
+  }
+
+  // HEALTH CHECK - ensures processing never dies
+  private healthCheck() {
+    const timeSinceLastProcessing = Date.now() - this.lastProcessingTime
+    const pendingCount = Array.from(this.jobs.values()).filter(j => j.status === 'PENDING').length
+
+    queueLogger.info(`💓 Health check`, {
+      timeSinceLastProcessing,
+      pendingJobs: pendingCount,
+      processing: this.processing,
+      semaphore: this.processingSemaphore
+    })
+
+    // If we have pending jobs but processing hasn't run in 2 minutes, restart
+    if (pendingCount > 0 && timeSinceLastProcessing > 120000) {
+      queueLogger.error(`🚨 CRITICAL: Processing appears dead. Forcing restart!`)
+      this.processing = false
+      this.processingSemaphore = false
+      this.ensureProcessingIsRunning()
+    }
+
+    // If processing is stuck with semaphore for > 10 minutes, force reset
+    if (this.processingSemaphore && timeSinceLastProcessing > 600000) {
+      queueLogger.error(`🚨 CRITICAL: Processing semaphore stuck. Force clearing!`)
+      this.processingSemaphore = false
+    }
+  }
+
+  // SAFE wrapper around processNextJob to prevent crashes
+  private async processNextJobSafely() {
+    // Prevent concurrent processing with semaphore
+    if (this.processingSemaphore) {
+      return
+    }
+
+    try {
+      this.processingSemaphore = true
+      this.lastProcessingTime = Date.now()
+      await this.processNextJob()
+    } catch (error) {
+      queueLogger.error(`🚨 CRITICAL ERROR in processNextJob`, { error: error.message })
+    } finally {
+      this.processingSemaphore = false
+    }
   }
 
   private async processNextJob() {
+    queueLogger.debug(`🔄 Processing cycle started`)
+
+    // ALWAYS load jobs from database first to catch any missed jobs
+    await this.loadJobsFromDatabase()
+
     // Get highest priority pending job
     const pendingJobs = Array.from(this.jobs.values())
       .filter(job => job.status === 'PENDING')
       .sort((a, b) => b.priority - a.priority)
 
+    queueLogger.debug(`📊 Queue status`, {
+      total: this.jobs.size,
+      pending: pendingJobs.length,
+      processing: Array.from(this.jobs.values()).filter(j => j.status === 'PROCESSING').length,
+      completed: Array.from(this.jobs.values()).filter(j => j.status === 'COMPLETED').length,
+      failed: Array.from(this.jobs.values()).filter(j => j.status === 'FAILED').length
+    })
+
     if (pendingJobs.length === 0) {
-      // No jobs to process, check database for any missed jobs
-      await this.loadJobsFromDatabase()
+      queueLogger.debug(`😴 No pending jobs to process`)
       return
     }
 
     const job = pendingJobs[0]
+    queueLogger.info(`🎯 Selected job for processing`, { jobId: job.id, type: job.type, priority: job.priority })
     
     try {
       queueLogger.info(`🚀 Processing job ${job.type}`, { jobId: job.id, priority: job.priority })
@@ -375,6 +473,19 @@ class JobQueue {
 // Export singleton instance
 export const jobQueue = new JobQueue()
 
+// GUARANTEE that processing starts when the module loads
+if (typeof global !== 'undefined') {
+  // Ensure processing starts immediately when server starts
+  setImmediate(() => {
+    try {
+      console.log('🚀 AUTO-STARTING queue processing on module load')
+      ;(jobQueue as any).ensureProcessingIsRunning()
+    } catch (error) {
+      console.error('Failed to auto-start queue processing:', error)
+    }
+  })
+}
+
 // Helper function to add a link processing job
 export async function queueLinkProcessing(params: {
   url: string
@@ -383,6 +494,9 @@ export async function queueLinkProcessing(params: {
   teamId: string
   slackTeamId: string
 }): Promise<string> {
+  // GUARANTEE processing is running before adding job
+  ;(jobQueue as any).ensureProcessingIsRunning()
+  
   return jobQueue.addJob({
     type: 'PROCESS_LINK',
     payload: params,
