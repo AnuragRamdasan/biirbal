@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { extractLinksFromMessage, shouldProcessUrl } from '@/lib/slack'
-import { queueLinkProcessing } from '@/lib/job-queue'
+import { queueClient } from '@/lib/queue/client'
 
 function verifySlackRequest(body: string, signature: string, timestamp: string): boolean {
   const signingSecret = process.env.SLACK_SIGNING_SECRET
@@ -121,7 +121,7 @@ async function handleMessage(event: any, teamId: string) {
   // Queue each link for background processing (non-blocking)
   const queuePromises = links
     .filter(url => shouldProcessUrl(url))
-    .map(url => queueLinkProcessing({
+    .map(url => queueClient.add('PROCESS_LINK', {
       url,
       messageTs: event.ts,
       channelId: event.channel,

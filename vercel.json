@@ -3,14 +3,21 @@
     "src/app/api/slack/events/route.ts": {
       "maxDuration": 300
     },
-    "src/app/api/process-link/route.ts": {
+    "src/app/api/queue/worker/route.ts": {
       "maxDuration": 300
+    },
+    "src/app/api/queue/cleanup/route.ts": {
+      "maxDuration": 60
     }
   },
   "crons": [
     {
-      "path": "/api/cleanup",
+      "path": "/api/queue/cleanup",
       "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/queue/worker",
+      "schedule": "*/2 * * * *"
     }
   ]
 }
