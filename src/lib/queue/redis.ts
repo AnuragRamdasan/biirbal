@@ -1,14 +1,13 @@
 /**
- * Redis Adapter
+ * Simple Redis Queue
  * 
- * Universal Redis adapter that works with both Vercel KV and standard Redis instances.
- * Automatically detects which type to use based on environment variables.
+ * Basic Redis-only queue implementation with no Vercel KV complexity.
+ * Just needs REDIS_URL environment variable.
  */
 
 import Redis from 'ioredis'
 
 let redisClient: Redis | null = null
-let useVercelKV = false
 
 /**
  * Initialize Redis connection
@@ -16,47 +15,34 @@ let useVercelKV = false
 async function initializeRedis() {
   if (redisClient) return redisClient
 
-  // Check if Vercel KV is available
-  const vercelKVUrl = process.env.KV_REST_API_URL
-  const vercelKVToken = process.env.KV_REST_API_TOKEN
-  
-  // Check if standard Redis URL is available  
   const redisUrl = process.env.REDIS_URL
   
-  if (vercelKVUrl || vercelKVToken) {
-    // Use Vercel KV
-    useVercelKV = true
-    const { kv } = await import('@vercel/kv')
-    console.log('🔌 Using Vercel KV for queue storage')
-    return kv as any // Cast to Redis-like interface
-  } else if (redisUrl) {
-    // Use standard Redis
-    useVercelKV = false
-    redisClient = new Redis(redisUrl, {
-      retryDelayOnFailover: 100,
-      maxRetriesPerRequest: 3,
-      lazyConnect: true
-    })
-    
-    console.log('🔌 Using Redis for queue storage:', redisUrl.replace(/:([^:]+)@/, ':***@'))
-    
-    // Test connection
-    try {
-      await redisClient.ping()
-      console.log('✅ Redis connection successful')
-    } catch (error) {
-      console.error('❌ Redis connection failed:', error)
-      throw error
-    }
-    
-    return redisClient
-  } else {
-    throw new Error('No Redis configuration found. Set REDIS_URL or KV_REST_API_URL/KV_REST_API_TOKEN')
+  if (!redisUrl) {
+    throw new Error('REDIS_URL environment variable is required')
   }
+
+  redisClient = new Redis(redisUrl, {
+    retryDelayOnFailover: 100,
+    maxRetriesPerRequest: 3,
+    lazyConnect: true
+  })
+  
+  console.log('🔌 Connecting to Redis:', redisUrl.replace(/:([^:/@]+)@/, ':***@'))
+  
+  // Test connection
+  try {
+    await redisClient.ping()
+    console.log('✅ Redis connection successful')
+  } catch (error) {
+    console.error('❌ Redis connection failed:', error)
+    throw error
+  }
+  
+  return redisClient
 }
 
 /**
- * Redis interface that works with both Vercel KV and standard Redis
+ * Simple Redis interface
  */
 export const redis = {
   async hset(key: string, field: string | object, value?: any) {
@@ -89,7 +75,7 @@ export const redis = {
     const client = await initializeRedis()
     const result = await client.zpopmax(key, count)
     
-    // Convert to Vercel KV format: [{ member, score }]
+    // Convert to standard format: [{ member, score }]
     if (Array.isArray(result) && result.length > 0) {
       const formatted = []
       for (let i = 0; i < result.length; i += 2) {
@@ -121,33 +107,21 @@ export const redis = {
   async get(key: string) {
     const client = await initializeRedis()
     return client.get(key)
-  },
-
-  async del(key: string) {
-    const client = await initializeRedis()
-    return client.del(key)
-  },
-
-  async ping() {
-    const client = await initializeRedis()
-    return client.ping()
   }
 }
 
 /**
- * Check if Redis is properly configured
+ * Check if Redis is configured
  */
 export function isRedisConfigured(): boolean {
-  const vercelKV = !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN)
-  const standardRedis = !!process.env.REDIS_URL
-  return vercelKV || standardRedis
+  return !!process.env.REDIS_URL
 }
 
 /**
- * Close Redis connection (for cleanup)
+ * Close Redis connection
  */
 export async function closeRedis() {
-  if (redisClient && !useVercelKV) {
+  if (redisClient) {
     await redisClient.quit()
     redisClient = null
   }

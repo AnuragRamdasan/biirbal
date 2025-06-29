@@ -1,80 +1,17 @@
 /**
- * Queue Client for Vercel KV
+ * Simple Redis Queue Client
  * 
- * Production-ready job queue implementation using Vercel KV as the backing store.
- * Supports distributed workers, automatic retries, and comprehensive monitoring.
- * 
- * @example
- * ```typescript
- * import { queueClient } from '@/lib/queue/client'
- * 
- * // Add a job
- * const jobId = await queueClient.add('PROCESS_LINK', {
- *   url: 'https://example.com',
- *   messageTs: '123',
- *   channelId: 'C123',
- *   teamId: 'T123',
- *   slackTeamId: 'ST123'
- * })
- * 
- * // Check job status
- * const status = await queueClient.getStatus(jobId)
- * ```
+ * Basic Redis queue implementation with no Vercel KV complexity.
+ * Just needs REDIS_URL environment variable.
  */
 
-import { JobPayload, JobStatus, QueueStats, QueueConfig } from './types'
+import { JobPayload, JobStatus, QueueStats } from './types'
 import { processFallback, shouldUseFallback } from './fallback'
 import { redis, isRedisConfigured } from './redis'
 
 class QueueClient {
-  private config: QueueConfig
-
-  constructor() {
-    this.config = {
-      redis: {
-        url: process.env.KV_REST_API_URL || process.env.REDIS_URL,
-        token: process.env.KV_REST_API_TOKEN
-      },
-      defaults: {
-        priority: 1,
-        maxRetries: 3,
-        timeout: 300000 // 5 minutes
-      },
-      maintenance: {
-        cleanupInterval: 600000, // 10 minutes
-        retentionPeriod: 86400000, // 24 hours
-        stuckJobTimeout: 600000 // 10 minutes
-      }
-    }
-  }
-
-  /**
-   * Check if Redis/KV is properly configured
-   */
-  private isKVConfigured(): boolean {
-    return isRedisConfigured()
-  }
-
-  /**
-   * Handle KV configuration errors gracefully
-   */
-  private handleKVError(operation: string, error: unknown): void {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    
-    if (!this.isKVConfigured()) {
-      console.warn(`⚠️  Queue ${operation} skipped: Redis not configured. Set KV_REST_API_URL or REDIS_URL environment variable.`)
-    } else {
-      console.error(`🚨 Queue ${operation} failed:`, errorMessage)
-    }
-  }
-
   /**
    * Add a new job to the queue
-   * 
-   * @param type - Job type
-   * @param data - Job data payload
-   * @param options - Job options (priority, retries, etc.)
-   * @returns Job ID
    */
   async add(
     type: 'PROCESS_LINK',
@@ -85,20 +22,14 @@ class QueueClient {
     
     // Check if we should use fallback mode
     if (shouldUseFallback()) {
-      console.log(`⚠️  Queue not available, processing directly`)
+      console.log(`⚠️  Redis not configured, processing directly`)
       
-      // Process the job directly in the background (fire and forget)
+      // Process the job directly in the background
       processFallback(data).catch(error => {
         console.error('Fallback processing failed:', error)
       })
       
       return jobId
-    }
-    
-    // Check if KV is configured
-    if (!this.isKVConfigured()) {
-      this.handleKVError('add', new Error('Vercel KV not configured'))
-      return jobId // Return job ID even if queuing fails to prevent blocking
     }
 
     try {
@@ -108,8 +39,8 @@ class QueueClient {
         id: jobId,
         type,
         data,
-        priority: options.priority ?? this.config.defaults.priority,
-        maxRetries: options.maxRetries ?? this.config.defaults.maxRetries,
+        priority: options.priority ?? 1,
+        maxRetries: options.maxRetries ?? 3,
         retryCount: 0,
         createdAt: now,
         updatedAt: now
@@ -128,57 +59,61 @@ class QueueClient {
       
       return jobId
     } catch (error) {
-      this.handleKVError('add', error)
-      return jobId // Return job ID even if queuing fails to prevent blocking
+      console.error(`🚨 Queue add failed:`, error)
+      
+      // Fallback to direct processing if Redis fails
+      processFallback(data).catch(fallbackError => {
+        console.error('Fallback processing failed:', fallbackError)
+      })
+      
+      return jobId
     }
   }
 
   /**
    * Get job status and details
-   * 
-   * @param jobId - Job identifier
-   * @returns Job status or null if not found
    */
   async getStatus(jobId: string): Promise<JobStatus | null> {
-    const job = await redis.hgetall(`job:${jobId}`) as JobPayload | null
-    if (!job) return null
+    if (!isRedisConfigured()) return null
 
-    // Determine current status
-    let status: JobStatus['status'] = 'pending'
-    
-    if (job.completedAt) {
-      status = job.error ? 'failed' : 'completed'
-    } else if (job.startedAt) {
-      status = 'processing'
-    }
+    try {
+      const job = await redis.hgetall(`job:${jobId}`) as JobPayload | null
+      if (!job) return null
 
-    return {
-      id: job.id,
-      status,
-      result: status === 'completed' ? { message: 'Job completed successfully' } : undefined,
-      error: job.error ? {
-        message: job.error,
-        retryable: job.retryCount < job.maxRetries
-      } : undefined,
-      timestamps: {
-        created: job.createdAt,
-        started: job.startedAt,
-        completed: job.completedAt
+      // Determine current status
+      let status: JobStatus['status'] = 'pending'
+      
+      if (job.completedAt) {
+        status = job.error ? 'failed' : 'completed'
+      } else if (job.startedAt) {
+        status = 'processing'
       }
+
+      return {
+        id: job.id,
+        status,
+        result: status === 'completed' ? { message: 'Job completed successfully' } : undefined,
+        error: job.error ? {
+          message: job.error,
+          retryable: job.retryCount < job.maxRetries
+        } : undefined,
+        timestamps: {
+          created: job.createdAt,
+          started: job.startedAt,
+          completed: job.completedAt
+        }
+      }
+    } catch (error) {
+      console.error(`🚨 Get status failed:`, error)
+      return null
     }
   }
 
   /**
    * Get the next job from the queue for processing
-   * 
-   * @param workerId - Worker identifier
-   * @returns Job payload or null if no jobs available
    */
   async getNext(workerId: string): Promise<JobPayload | null> {
-    if (!this.isKVConfigured()) {
-      this.handleKVError('getNext', new Error('Vercel KV not configured'))
-      return null
-    }
+    if (!isRedisConfigured()) return null
 
     try {
       // Get highest priority job from pending queue
@@ -200,160 +135,189 @@ class QueueClient {
         updatedAt: now
       })
 
-      // Add to processing queue with timeout
+      // Add to processing queue with 5 minute timeout
       await redis.zadd('queue:processing', {
-        score: now + this.config.defaults.timeout,
+        score: now + 300000,
         member: jobId
-      })
-
-      // Track worker
-      await redis.hset(`worker:${workerId}`, {
-        lastSeen: now,
-        currentJob: jobId
       })
 
       console.log(`🎯 Job ${jobId} assigned to worker ${workerId}`)
       
       return job
     } catch (error) {
-      this.handleKVError('getNext', error)
+      console.error(`🚨 Get next failed:`, error)
       return null
     }
   }
 
   /**
    * Mark job as completed
-   * 
-   * @param jobId - Job identifier
-   * @param result - Job result data
    */
   async complete(jobId: string): Promise<void> {
-    const now = Date.now()
+    if (!isRedisConfigured()) return
 
-    await redis.hset(`job:${jobId}`, {
-      completedAt: now,
-      updatedAt: now
-    })
+    try {
+      const now = Date.now()
 
-    // Remove from processing queue
-    await redis.zrem('queue:processing', jobId)
+      await redis.hset(`job:${jobId}`, {
+        completedAt: now,
+        updatedAt: now
+      })
 
-    // Update stats
-    await redis.incr('stats:jobs:completed')
+      // Remove from processing queue
+      await redis.zrem('queue:processing', jobId)
 
-    console.log(`✅ Job ${jobId} completed successfully`)
+      // Update stats
+      await redis.incr('stats:jobs:completed')
+
+      console.log(`✅ Job ${jobId} completed successfully`)
+    } catch (error) {
+      console.error(`🚨 Complete failed:`, error)
+    }
   }
 
   /**
    * Mark job as failed
-   * 
-   * @param jobId - Job identifier
-   * @param error - Error message
-   * @param retryable - Whether job should be retried
    */
   async fail(jobId: string, error: string, retryable: boolean = true): Promise<void> {
-    const job = await redis.hgetall(`job:${jobId}`) as JobPayload | null
-    if (!job) return
+    if (!isRedisConfigured()) return
 
-    const now = Date.now()
-    job.retryCount++
-    job.updatedAt = now
-    job.error = error
+    try {
+      const job = await redis.hgetall(`job:${jobId}`) as JobPayload | null
+      if (!job) return
 
-    // Remove from processing queue
-    await redis.zrem('queue:processing', jobId)
+      const now = Date.now()
+      job.retryCount++
+      job.updatedAt = now
+      job.error = error
 
-    if (retryable && job.retryCount < job.maxRetries) {
-      // Retry with exponential backoff
-      const delay = Math.min(1000 * Math.pow(2, job.retryCount - 1), 60000)
-  
-      await redis.hset(`job:${jobId}`, {
-        retryCount: job.retryCount,
-        updatedAt: now,
-        error
-      })
+      // Remove from processing queue
+      await redis.zrem('queue:processing', jobId)
 
-      // Add back to pending queue with delay
-      setTimeout(async () => {
-        await redis.zadd('queue:pending', { score: job.priority, member: jobId })
-      }, delay)
+      if (retryable && job.retryCount < job.maxRetries) {
+        // Retry with exponential backoff
+        const delay = Math.min(1000 * Math.pow(2, job.retryCount - 1), 60000)
 
-      console.log(`🔄 Job ${jobId} scheduled for retry ${job.retryCount}/${job.maxRetries} in ${delay}ms`)
-    } else {
-      // Max retries reached or not retryable
-      await redis.hset(`job:${jobId}`, {
-        completedAt: now,
-        retryCount: job.retryCount,
-        updatedAt: now,
-        error
-      })
+        await redis.hset(`job:${jobId}`, {
+          retryCount: job.retryCount,
+          updatedAt: now,
+          error
+        })
 
-      await redis.incr('stats:jobs:failed')
-      console.log(`❌ Job ${jobId} failed permanently: ${error}`)
+        // Add back to pending queue with delay
+        setTimeout(async () => {
+          try {
+            await redis.zadd('queue:pending', { score: job.priority, member: jobId })
+          } catch (retryError) {
+            console.error(`🚨 Retry scheduling failed:`, retryError)
+          }
+        }, delay)
+
+        console.log(`🔄 Job ${jobId} scheduled for retry ${job.retryCount}/${job.maxRetries} in ${delay}ms`)
+      } else {
+        // Max retries reached or not retryable
+        await redis.hset(`job:${jobId}`, {
+          completedAt: now,
+          retryCount: job.retryCount,
+          updatedAt: now,
+          error
+        })
+
+        await redis.incr('stats:jobs:failed')
+        console.log(`❌ Job ${jobId} failed permanently: ${error}`)
+      }
+    } catch (failError) {
+      console.error(`🚨 Fail operation failed:`, failError)
     }
   }
 
   /**
    * Get queue statistics
-   * 
-   * @returns Queue statistics
    */
   async getStats(): Promise<QueueStats> {
-    const [pending, processing, completed, failed] = await Promise.all([
-      redis.zcard('queue:pending'),
-      redis.zcard('queue:processing'),
-      redis.get('stats:jobs:completed') || 0,
-      redis.get('stats:jobs:failed') || 0
-    ])
+    if (!isRedisConfigured()) {
+      return {
+        pending: 0,
+        processing: 0,
+        completed: 0,
+        failed: 0,
+        avgProcessingTime: 0,
+        healthy: true
+      }
+    }
 
-    return {
-      pending: pending || 0,
-      processing: processing || 0,
-      completed: Number(completed),
-      failed: Number(failed),
-      avgProcessingTime: 0, // TODO: Implement timing tracking
-      healthy: (processing || 0) < 100 // Healthy if not too many stuck jobs
+    try {
+      const [pending, processing, completed, failed] = await Promise.all([
+        redis.zcard('queue:pending'),
+        redis.zcard('queue:processing'),
+        redis.get('stats:jobs:completed') || 0,
+        redis.get('stats:jobs:failed') || 0
+      ])
+
+      return {
+        pending: pending || 0,
+        processing: processing || 0,
+        completed: Number(completed),
+        failed: Number(failed),
+        avgProcessingTime: 0,
+        healthy: (processing || 0) < 100
+      }
+    } catch (error) {
+      console.error(`🚨 Get stats failed:`, error)
+      return {
+        pending: 0,
+        processing: 0,
+        completed: 0,
+        failed: 0,
+        avgProcessingTime: 0,
+        healthy: false
+      }
     }
   }
 
   /**
    * Clean up old jobs and reset stuck jobs
-   * 
-   * Called by cron job for maintenance
    */
   async cleanup(): Promise<{ cleaned: number, reset: number }> {
-    const now = Date.now()
-    const stuckCutoff = now - this.config.maintenance.stuckJobTimeout
-
-    // Reset stuck jobs (processing too long)
-    const stuckJobs = await redis.zrangebyscore('queue:processing', 0, stuckCutoff)
-    let resetCount = 0
-
-    for (const jobId of stuckJobs) {
-      const job = await redis.hgetall(`job:${jobId}`) as JobPayload | null
-      if (job && job.retryCount < job.maxRetries) {
-        await redis.zrem('queue:processing', jobId)
-        await redis.zadd('queue:pending', { score: job.priority, member: jobId })
-        await redis.hset(`job:${jobId}`, {
-          updatedAt: now,
-          startedAt: undefined // Clear start time
-        })
-        resetCount++
-      }
+    if (!isRedisConfigured()) {
+      return { cleaned: 0, reset: 0 }
     }
 
-    // TODO: Implement old job cleanup
-    const cleanedCount = 0
+    try {
+      const now = Date.now()
+      const stuckCutoff = now - 600000 // 10 minutes
 
-    console.log(`🧹 Cleanup complete: ${cleanedCount} cleaned, ${resetCount} reset`)
-    
-    return { cleaned: cleanedCount, reset: resetCount }
+      // Reset stuck jobs
+      const stuckJobs = await redis.zrangebyscore('queue:processing', 0, stuckCutoff)
+      let resetCount = 0
+
+      for (const jobId of stuckJobs) {
+        try {
+          const job = await redis.hgetall(`job:${jobId}`) as JobPayload | null
+          if (job && job.retryCount < job.maxRetries) {
+            await redis.zrem('queue:processing', jobId)
+            await redis.zadd('queue:pending', { score: job.priority, member: jobId })
+            await redis.hset(`job:${jobId}`, {
+              updatedAt: now
+            })
+            resetCount++
+          }
+        } catch (jobError) {
+          console.error(`🚨 Reset job ${jobId} failed:`, jobError)
+        }
+      }
+
+      console.log(`🧹 Cleanup complete: 0 cleaned, ${resetCount} reset`)
+      
+      return { cleaned: 0, reset: resetCount }
+    } catch (error) {
+      console.error(`🚨 Cleanup failed:`, error)
+      return { cleaned: 0, reset: 0 }
+    }
   }
 
   /**
-   * Health check - ensures queue is operating correctly
-   * 
-   * @returns Health status and metrics
+   * Health check
    */
   async healthCheck(): Promise<{
     healthy: boolean
@@ -363,12 +327,14 @@ class QueueClient {
     const stats = await this.getStats()
     const issues: string[] = []
 
-    // Check for too many stuck jobs
+    if (!isRedisConfigured()) {
+      issues.push('Redis not configured')
+    }
+
     if (stats.processing > 50) {
       issues.push(`Too many processing jobs: ${stats.processing}`)
     }
 
-    // Check for too many failed jobs
     if (stats.failed > stats.completed * 0.1) {
       issues.push(`High failure rate: ${stats.failed} failed vs ${stats.completed} completed`)
     }

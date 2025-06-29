@@ -13,7 +13,6 @@ const customJestConfig = {
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-    '^@vercel/kv$': '<rootDir>/__mocks__/@vercel/kv.js',
   },
   collectCoverageFrom: [
     'src/**/*.{js,jsx,ts,tsx}',

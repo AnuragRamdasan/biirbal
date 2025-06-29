@@ -1,8 +1,8 @@
 /**
- * Queue Types for Vercel KV-based job processing
+ * Queue Types for Redis-based job processing
  * 
- * This module defines the core types and interfaces for the distributed
- * job queue system using Vercel KV as the backing store.
+ * This module defines the core types and interfaces for the simple
+ * Redis job queue system.
  */
 
 export interface JobPayload {
@@ -78,39 +78,3 @@ export interface QueueStats {
   healthy: boolean
 }
 
-export interface WorkerConfig {
-  /** Worker identifier */
-  workerId: string
-  /** Job types this worker can handle */
-  jobTypes: string[]
-  /** Maximum concurrent jobs */
-  concurrency: number
-  /** Worker timeout (ms) */
-  timeout: number
-  /** Retry configuration */
-  retry: {
-    maxAttempts: number
-    backoffMs: number
-    exponential: boolean
-  }
-}
-
-export interface QueueConfig {
-  /** Redis/KV connection config */
-  redis: {
-    url?: string
-    token?: string
-  }
-  /** Default job settings */
-  defaults: {
-    priority: number
-    maxRetries: number
-    timeout: number
-  }
-  /** Queue maintenance settings */
-  maintenance: {
-    cleanupInterval: number
-    retentionPeriod: number
-    stuckJobTimeout: number
-  }
-}

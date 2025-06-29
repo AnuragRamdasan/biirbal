@@ -1,8 +1,8 @@
 /**
- * Queue System Exports
+ * Simple Redis Queue System
  * 
- * Main entry point for the Vercel KV-based queue system.
- * Provides clean imports for the entire queue functionality.
+ * Basic Redis-only queue with fallback to direct processing.
+ * Just needs REDIS_URL environment variable.
  */
 
 // Core queue functionality
@@ -13,9 +13,7 @@ export { processJobs, workerHealthCheck } from './worker'
 export type {
   JobPayload,
   JobStatus,
-  QueueStats,
-  WorkerConfig,
-  QueueConfig
+  QueueStats
 } from './types'
 
 // Convenience function for link processing
@@ -29,6 +27,6 @@ export async function queueLinkProcessing(params: {
   const { queueClient } = await import('./client')
   
   return queueClient.add('PROCESS_LINK', params, {
-    priority: 1 // Default priority for link processing
+    priority: 1
   })
 }
