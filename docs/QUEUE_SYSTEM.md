@@ -92,15 +92,53 @@ const results = await processJobs({
 ### Environment Variables
 
 ```bash
-# Required for Vercel KV
-KV_URL=redis://...
-KV_REST_API_TOKEN=...
+# Required Redis URL (choose one)
+KV_REST_API_URL=https://...     # For Vercel KV or REST-based Redis
+KV_URL=redis://...              # For standard Redis connections
+
+# Optional Redis Token (only if your Redis requires authentication)
+KV_REST_API_TOKEN=...           # For authenticated Redis instances
 
 # Optional queue configuration
 QUEUE_DEFAULT_PRIORITY=1
 QUEUE_MAX_RETRIES=3
 QUEUE_TIMEOUT=300000
 ```
+
+### Configuration Examples
+
+#### **Vercel KV (automatically configured)**
+```bash
+KV_REST_API_URL=https://abc-xyz.kv.vercel-storage.com
+KV_REST_API_TOKEN=your-token-here
+```
+
+#### **Your Redis Instance (no authentication)**
+```bash
+KV_URL=redis://your-redis-host:6379
+# No token needed
+```
+
+#### **Authenticated Redis**
+```bash
+KV_URL=redis://your-redis-host:6379
+KV_REST_API_TOKEN=your-redis-password
+```
+
+#### **Redis with username/password in URL**
+```bash
+KV_URL=redis://username:password@your-redis-host:6379
+# No separate token needed
+```
+
+### Fallback Mode
+
+When Vercel KV is not configured, the system automatically falls back to direct processing:
+
+- **Queue Mode**: Jobs are queued in Vercel KV and processed by background workers
+- **Fallback Mode**: Jobs are processed immediately without queuing
+- **Automatic Detection**: The system detects KV availability and switches modes automatically
+- **No Blocking**: The application continues to work even without queue configuration
 
 ### Vercel Configuration (`vercel.json`)
 
@@ -220,20 +258,33 @@ Tests cover:
 
 ### Common Issues
 
-1. **Jobs Stuck in Processing**
+1. **Redis Configuration Errors**
+   ```
+   Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+   ```
+   - **Solution**: Set `KV_URL` or `KV_REST_API_URL` environment variable
+   - **Token**: Only required if your Redis needs authentication
+   - **Fallback**: System will process jobs directly if Redis unavailable
+
+2. **Jobs Stuck in Processing**
    - Check `/api/queue/stats` for processing count
    - Run manual cleanup: `GET /api/queue/cleanup`
    - Verify worker cron is running
 
-2. **High Failure Rate**
+3. **High Failure Rate**
    - Check logs for error patterns
    - Verify external service availability
    - Check Vercel KV connectivity
 
-3. **Performance Issues**
+4. **Performance Issues**
    - Monitor queue depth via stats
    - Adjust worker frequency in `vercel.json`
    - Check job processing times
+
+5. **Fallback Mode Active**
+   - Check if `KV_REST_API_URL` or `KV_URL` is set
+   - Jobs will process immediately but without retry logic
+   - Configure Redis for production queue functionality
 
 ### Manual Operations
 

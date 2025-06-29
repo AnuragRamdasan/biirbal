@@ -24,6 +24,7 @@
 
 import { kv } from '@vercel/kv'
 import { JobPayload, JobStatus, QueueStats, QueueConfig } from './types'
+import { processFallback, shouldUseFallback } from './fallback'
 
 class QueueClient {
   private config: QueueConfig
@@ -31,7 +32,7 @@ class QueueClient {
   constructor() {
     this.config = {
       redis: {
-        url: process.env.KV_URL,
+        url: process.env.KV_REST_API_URL || process.env.KV_URL,
         token: process.env.KV_REST_API_TOKEN
       },
       defaults: {
@@ -44,6 +45,27 @@ class QueueClient {
         retentionPeriod: 86400000, // 24 hours
         stuckJobTimeout: 600000 // 10 minutes
       }
+    }
+  }
+
+  /**
+   * Check if Redis/KV is properly configured
+   */
+  private isKVConfigured(): boolean {
+    // URL is required, token is optional (some Redis instances don't need auth)
+    return !!this.config.redis.url
+  }
+
+  /**
+   * Handle KV configuration errors gracefully
+   */
+  private handleKVError(operation: string, error: unknown): void {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    
+    if (!this.isKVConfigured()) {
+      console.warn(`⚠️  Queue ${operation} skipped: Redis not configured. Set KV_REST_API_URL or KV_URL environment variable.`)
+    } else {
+      console.error(`🚨 Queue ${operation} failed:`, errorMessage)
     }
   }
 
@@ -61,31 +83,55 @@ class QueueClient {
     options: Partial<Pick<JobPayload, 'priority' | 'maxRetries'>> = {}
   ): Promise<string> {
     const jobId = `job:${Date.now()}:${Math.random().toString(36).substr(2, 9)}`
-    const now = Date.now()
-
-    const job: JobPayload = {
-      id: jobId,
-      type,
-      data,
-      priority: options.priority ?? this.config.defaults.priority,
-      maxRetries: options.maxRetries ?? this.config.defaults.maxRetries,
-      retryCount: 0,
-      createdAt: now,
-      updatedAt: now
+    
+    // Check if we should use fallback mode
+    if (shouldUseFallback()) {
+      console.log(`⚠️  Queue not available, processing directly`)
+      
+      // Process the job directly in the background (fire and forget)
+      processFallback(data).catch(error => {
+        console.error('Fallback processing failed:', error)
+      })
+      
+      return jobId
+    }
+    
+    // Check if KV is configured
+    if (!this.isKVConfigured()) {
+      this.handleKVError('add', new Error('Vercel KV not configured'))
+      return jobId // Return job ID even if queuing fails to prevent blocking
     }
 
-    // Store job data
-    await kv.hset(`job:${jobId}`, job)
+    try {
+      const now = Date.now()
 
-    // Add to pending queue (sorted by priority)
-    await kv.zadd('queue:pending', { score: job.priority, member: jobId })
+      const job: JobPayload = {
+        id: jobId,
+        type,
+        data,
+        priority: options.priority ?? this.config.defaults.priority,
+        maxRetries: options.maxRetries ?? this.config.defaults.maxRetries,
+        retryCount: 0,
+        createdAt: now,
+        updatedAt: now
+      }
 
-    // Update stats
-    await kv.incr('stats:jobs:added')
+      // Store job data
+      await kv.hset(`job:${jobId}`, job)
 
-    console.log(`✅ Job ${jobId} added to queue`, { type, priority: job.priority })
-    
-    return jobId
+      // Add to pending queue (sorted by priority)
+      await kv.zadd('queue:pending', { score: job.priority, member: jobId })
+
+      // Update stats
+      await kv.incr('stats:jobs:added')
+
+      console.log(`✅ Job ${jobId} added to queue`, { type, priority: job.priority })
+      
+      return jobId
+    } catch (error) {
+      this.handleKVError('add', error)
+      return jobId // Return job ID even if queuing fails to prevent blocking
+    }
   }
 
   /**
@@ -130,40 +176,50 @@ class QueueClient {
    * @returns Job payload or null if no jobs available
    */
   async getNext(workerId: string): Promise<JobPayload | null> {
-    // Get highest priority job from pending queue
-    const result = await kv.zpopmax('queue:pending', 1)
-    if (!result || result.length === 0) return null
+    if (!this.isKVConfigured()) {
+      this.handleKVError('getNext', new Error('Vercel KV not configured'))
+      return null
+    }
 
-    const jobId = result[0].member as string
-    const job = await kv.hgetall(`job:${jobId}`) as JobPayload | null
-    
-    if (!job) return null
+    try {
+      // Get highest priority job from pending queue
+      const result = await kv.zpopmax('queue:pending', 1)
+      if (!result || result.length === 0) return null
 
-    // Mark job as processing
-    const now = Date.now()
-    job.startedAt = now
-    job.updatedAt = now
+      const jobId = result[0].member as string
+      const job = await kv.hgetall(`job:${jobId}`) as JobPayload | null
+      
+      if (!job) return null
 
-    await kv.hset(`job:${jobId}`, {
-      startedAt: now,
-      updatedAt: now
-    })
+      // Mark job as processing
+      const now = Date.now()
+      job.startedAt = now
+      job.updatedAt = now
 
-    // Add to processing queue with timeout
-    await kv.zadd('queue:processing', {
-      score: now + this.config.defaults.timeout,
-      member: jobId
-    })
+      await kv.hset(`job:${jobId}`, {
+        startedAt: now,
+        updatedAt: now
+      })
 
-    // Track worker
-    await kv.hset(`worker:${workerId}`, {
-      lastSeen: now,
-      currentJob: jobId
-    })
+      // Add to processing queue with timeout
+      await kv.zadd('queue:processing', {
+        score: now + this.config.defaults.timeout,
+        member: jobId
+      })
 
-    console.log(`🎯 Job ${jobId} assigned to worker ${workerId}`)
-    
-    return job
+      // Track worker
+      await kv.hset(`worker:${workerId}`, {
+        lastSeen: now,
+        currentJob: jobId
+      })
+
+      console.log(`🎯 Job ${jobId} assigned to worker ${workerId}`)
+      
+      return job
+    } catch (error) {
+      this.handleKVError('getNext', error)
+      return null
+    }
   }
 
   /**
