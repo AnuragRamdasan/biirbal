@@ -123,12 +123,27 @@ class QueueClient {
       const jobId = result[0].member as string
       const job = await redis.hgetall(`job:${jobId}`) as JobPayload | null
       
-      if (!job) return null
+      if (!job || !job.id) {
+        console.error(`🚨 Job ${jobId} not found or invalid`)
+        return null
+      }
+
+      // Ensure proper data types
+      const processedJob: JobPayload = {
+        id: String(job.id),
+        type: job.type as 'PROCESS_LINK',
+        data: typeof job.data === 'object' ? job.data : JSON.parse(job.data || '{}'),
+        priority: Number(job.priority || 1),
+        maxRetries: Number(job.maxRetries || 3),
+        retryCount: Number(job.retryCount || 0),
+        createdAt: Number(job.createdAt),
+        updatedAt: Number(job.updatedAt)
+      }
 
       // Mark job as processing
       const now = Date.now()
-      job.startedAt = now
-      job.updatedAt = now
+      processedJob.startedAt = now
+      processedJob.updatedAt = now
 
       await redis.hset(`job:${jobId}`, {
         startedAt: now,
@@ -143,7 +158,7 @@ class QueueClient {
 
       console.log(`🎯 Job ${jobId} assigned to worker ${workerId}`)
       
-      return job
+      return processedJob
     } catch (error) {
       console.error(`🚨 Get next failed:`, error)
       return null
@@ -184,22 +199,25 @@ class QueueClient {
 
     try {
       const job = await redis.hgetall(`job:${jobId}`) as JobPayload | null
-      if (!job) return
+      if (!job || !job.id) {
+        console.error(`🚨 Job ${jobId} not found or invalid`)
+        return
+      }
 
       const now = Date.now()
-      job.retryCount++
-      job.updatedAt = now
-      job.error = error
+      const currentRetryCount = Number(job.retryCount || 0)
+      const maxRetries = Number(job.maxRetries || 3)
+      const newRetryCount = currentRetryCount + 1
 
       // Remove from processing queue
       await redis.zrem('queue:processing', jobId)
 
-      if (retryable && job.retryCount < job.maxRetries) {
+      if (retryable && newRetryCount < maxRetries) {
         // Retry with exponential backoff
-        const delay = Math.min(1000 * Math.pow(2, job.retryCount - 1), 60000)
+        const delay = Math.min(1000 * Math.pow(2, newRetryCount - 1), 60000)
 
         await redis.hset(`job:${jobId}`, {
-          retryCount: job.retryCount,
+          retryCount: newRetryCount,
           updatedAt: now,
           error
         })
@@ -207,18 +225,18 @@ class QueueClient {
         // Add back to pending queue with delay
         setTimeout(async () => {
           try {
-            await redis.zadd('queue:pending', { score: job.priority, member: jobId })
+            await redis.zadd('queue:pending', { score: Number(job.priority || 1), member: jobId })
           } catch (retryError) {
             console.error(`🚨 Retry scheduling failed:`, retryError)
           }
         }, delay)
 
-        console.log(`🔄 Job ${jobId} scheduled for retry ${job.retryCount}/${job.maxRetries} in ${delay}ms`)
+        console.log(`🔄 Job ${jobId} scheduled for retry ${newRetryCount}/${maxRetries} in ${delay}ms`)
       } else {
         // Max retries reached or not retryable
         await redis.hset(`job:${jobId}`, {
           completedAt: now,
-          retryCount: job.retryCount,
+          retryCount: newRetryCount,
           updatedAt: now,
           error
         })

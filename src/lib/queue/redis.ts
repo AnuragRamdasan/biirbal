@@ -48,14 +48,42 @@ export const redis = {
   async hset(key: string, field: string | object, value?: any) {
     const client = await initializeRedis()
     if (typeof field === 'object') {
-      return client.hset(key, field)
+      // Convert object to flat key-value pairs, stringifying complex values
+      const flattened: Record<string, string> = {}
+      for (const [k, v] of Object.entries(field)) {
+        flattened[k] = typeof v === 'object' ? JSON.stringify(v) : String(v)
+      }
+      return client.hset(key, flattened)
     }
-    return client.hset(key, field, value)
+    return client.hset(key, field, typeof value === 'object' ? JSON.stringify(value) : String(value))
   },
 
   async hgetall(key: string) {
     const client = await initializeRedis()
-    return client.hgetall(key)
+    const result = await client.hgetall(key)
+    
+    // Convert Redis hash back to proper object with type conversion
+    if (!result || Object.keys(result).length === 0) return null
+    
+    const converted: any = {}
+    for (const [k, v] of Object.entries(result)) {
+      // Try to parse JSON values, fall back to original value
+      try {
+        if (v.startsWith('{') || v.startsWith('[')) {
+          converted[k] = JSON.parse(v)
+        } else if (v === 'true' || v === 'false') {
+          converted[k] = v === 'true'
+        } else if (!isNaN(Number(v)) && v !== '') {
+          converted[k] = Number(v)
+        } else {
+          converted[k] = v
+        }
+      } catch {
+        converted[k] = v
+      }
+    }
+    
+    return converted
   },
 
   async zadd(key: string, score: number | { score: number; member: string }, member?: string) {
