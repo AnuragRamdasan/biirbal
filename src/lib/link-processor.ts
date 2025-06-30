@@ -220,7 +220,7 @@ async function replyWithDashboardLink({
     await slackClient.chat.postMessage({
       channel: channelId,
       thread_ts: messageTs,
-      text: `🎧 Audio summary ready for: *${title}*\n\n${excerpt}\n\n📱 Listen on your dashboard: ${dashboardUrl}\n\n_Original link: ${url}_`
+      text: `🎧 Audio summary ready. Listen on your dashboard: ${dashboardUrl}.`
     })
 
     console.log('Dashboard link posted to Slack successfully')
@@ -238,7 +238,7 @@ async function replyWithDashboardLink({
       await slackClient.chat.postMessage({
         channel: channelId,
         thread_ts: messageTs,
-        text: `🎧 Audio summary processed for: *${title}*\n\n${excerpt}\n\n_Original link: ${url}_\n\n⚠️ Link sharing failed, but audio is ready on your dashboard.`
+        text: `🎧 Audio summary ready. Link sharing failed but you can still listen on your dashboard.`
       })
       console.log('Fallback message posted successfully')
     } catch (fallbackError: any) {
