@@ -86,25 +86,42 @@ async function scrapeContent(url: string): Promise<ExtractedContent> {
     throw new Error('URL appears to be a media file or social media post, not an article')
   }
 
-  // Try multiple user agents to bypass blocking - prioritize crawlers that WAFs often whitelist
+  // Advanced user agents for WAF bypass - prioritize legitimate crawlers and services
   const userAgents = [
-    // Social media crawlers (often whitelisted by WAFs)
-    'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+    // Incapsula often whitelists these legitimate crawlers
+    'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+    'Mozilla/5.0 (compatible; Bingbot/2.0; +http://www.bing.com/bingbot.htm)',
+    'Mozilla/5.0 (compatible; facebookexternalhit/1.1; +http://www.facebook.com/externalhit_uatext.php)',
     'Twitterbot/1.0',
-    'LinkedInBot/1.0 (compatible; Mozilla/5.0; Apache-HttpClient +http://www.linkedin.com/)',
-    
-    // Search engine bots (usually allowed)
-    'Googlebot/2.1 (+http://www.google.com/bot.html)',
-    'Bingbot/2.0 (+http://www.bing.com/bingbot.htm)',
+    'LinkedInBot/1.0 (compatible; Mozilla/5.0; +http://www.linkedin.com/)',
     'Mozilla/5.0 (compatible; Yahoo! Slurp; http://help.yahoo.com/help/us/ysearch/slurp)',
     
-    // Standard browsers
+    // News aggregators and content indexers
+    'Mozilla/5.0 (compatible; archive.org_bot +http://www.archive.org/details/archive.org_bot)',
+    'Mozilla/5.0 (compatible; DuckDuckBot-Https/1.1; +https://duckduckgo.com/duckduckbot)',
+    'Mozilla/5.0 (compatible; MJ12bot/v1.4.8; http://mj12bot.com/)',
+    
+    // RSS readers and content aggregators
+    'Feedly/1.0 (+http://www.feedly.com/fetcher.html; like FeedFetcher-Google)',
+    'NewsBlur/1.0 (http://www.newsblur.com; samuel@newsblur.com)',
+    'Flipboard/2.0 (+http://flipboard.com/browserproxy)',
+    
+    // Legitimate service crawlers
+    'Mozilla/5.0 (compatible; SemrushBot/7~bl; +http://www.semrush.com/bot.html)',
+    'Mozilla/5.0 (compatible; AhrefsBot/7.0; +http://ahrefs.com/robot/)',
+    'Mozilla/5.0 (compatible; MegaIndex.ru/2.0; +http://megaindex.com/crawler)',
+    
+    // Academic and research crawlers
+    'Mozilla/5.0 (compatible; ia_archiver +http://www.alexa.com/site/help/webmasters; crawler@alexa.com)',
+    'CCBot/2.0 (https://commoncrawl.org/faq/)',
+    
+    // Standard browsers with realistic headers
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0',
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Safari/605.1.15',
     
-    // Mobile browsers (sometimes less restricted)
+    // Mobile browsers
     'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
     'Mozilla/5.0 (Android 14; Mobile; rv:123.0) Gecko/123.0 Firefox/123.0'
   ]
@@ -129,20 +146,47 @@ async function scrapeContent(url: string): Promise<ExtractedContent> {
 
   for (let i = 0; i < userAgents.length; i++) {
     try {
+      const currentAgent = userAgents[i]
+      const isCrawler = currentAgent.includes('bot') || currentAgent.includes('crawler') || currentAgent.includes('spider')
+      
+      // Build realistic headers based on user agent type
       const headers: any = {
-        'User-Agent': userAgents[i],
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+        'User-Agent': currentAgent,
+        'Accept': isCrawler 
+          ? 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+          : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
         'Accept-Language': 'en-US,en;q=0.9',
         'Accept-Encoding': 'gzip, deflate, br',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1',
-        'Upgrade-Insecure-Requests': '1',
         'Connection': 'keep-alive',
-        'DNT': '1',
+        'Upgrade-Insecure-Requests': '1',
+      }
+
+      // Add browser-specific headers for non-crawlers
+      if (!isCrawler) {
+        headers['Cache-Control'] = 'max-age=0'
+        headers['Sec-Fetch-Dest'] = 'document'
+        headers['Sec-Fetch-Mode'] = 'navigate'
+        headers['Sec-Fetch-Site'] = 'none'
+        headers['Sec-Fetch-User'] = '?1'
+        
+        // Add Chrome-specific headers
+        if (currentAgent.includes('Chrome')) {
+          headers['Sec-Ch-Ua'] = '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"'
+          headers['Sec-Ch-Ua-Mobile'] = '?0'
+          headers['Sec-Ch-Ua-Platform'] = '"Windows"'
+        }
+      }
+
+      // Add legitimate referrer for WAF-protected sites
+      if (isWAFProtected) {
+        const referrers = [
+          'https://www.google.com/',
+          'https://www.bing.com/', 
+          'https://www.linkedin.com/',
+          'https://twitter.com/',
+          'https://www.facebook.com/'
+        ]
+        headers['Referer'] = referrers[Math.floor(Math.random() * referrers.length)]
       }
 
       // Add site-specific headers
@@ -160,26 +204,44 @@ async function scrapeContent(url: string): Promise<ExtractedContent> {
 
       // Add random delay between requests to appear more human - longer for WAF-protected sites
       if (i > 0) {
-        const baseDelay = isWAFProtected ? 5000 : 1000
-        const randomDelay = isWAFProtected ? Math.random() * 10000 : Math.random() * 3000
+        const baseDelay = isWAFProtected ? 8000 : 1000
+        const randomDelay = isWAFProtected ? Math.random() * 15000 : Math.random() * 3000
+        console.log(`⏳ WAF bypass attempt ${i + 1}: waiting ${Math.round((baseDelay + randomDelay) / 1000)}s before retry...`)
         await new Promise(resolve => setTimeout(resolve, baseDelay + randomDelay))
       }
 
       // Adjust timeout based on site and attempt
       const timeout = isWAFProtected ? 60000 : (isMoneyControl ? 45000 : (isFinancialSite ? 35000 : 25000))
       
-      response = await axios.get(url, {
+      // Enhanced request configuration for WAF bypass
+      const requestConfig: any = {
         timeout: timeout,
         maxRedirects: 5,
         headers,
         maxContentLength: 10 * 1024 * 1024, // 10MB limit
         validateStatus: (status) => status < 400, // Accept redirects
-        proxy: false, // Disable proxy
-        withCredentials: false, // No cookies
         decompress: true,
-        httpsAgent: false, // Disable agent pooling
-        httpAgent: false
-      })
+        withCredentials: true, // Allow cookies for session simulation
+      }
+
+      // For WAF-protected sites, add additional bypass techniques
+      if (isWAFProtected) {
+        // Simulate human browsing with cookies
+        headers['Cookie'] = generateRealisticCookies()
+        
+        // Add more realistic timing
+        if (i === 0) {
+          // First request - simulate landing on site from search
+          headers['Sec-Fetch-Site'] = 'cross-site'
+          headers['Sec-Fetch-Mode'] = 'navigate'
+        } else {
+          // Subsequent requests - simulate same-site navigation  
+          headers['Sec-Fetch-Site'] = 'same-origin'
+          headers['Sec-Fetch-Mode'] = 'navigate'
+        }
+      }
+
+      response = await axios.get(url, requestConfig)
       
       // If we get here, the request was successful
       break
@@ -201,29 +263,41 @@ async function scrapeContent(url: string): Promise<ExtractedContent> {
   }
 
   if (!response) {
-    // Try one final attempt with a completely different approach
-    try {
-      console.log(`Final attempt for ${url} using basic fetch...`)
-      
-      const basicResponse = await axios.get(url, {
-        headers: {
-          'User-Agent': 'PostmanRuntime/7.32.3',
-          'Accept': '*/*',
-          'Accept-Encoding': 'gzip, deflate',
-          'Connection': 'keep-alive'
-        },
-        timeout: 15000,
-        maxRedirects: 3,
-        validateStatus: () => true // Accept any status code
-      })
-      
-      if (basicResponse.status === 200 && basicResponse.data) {
-        response = basicResponse
-      } else {
+    // For WAF-protected sites, try specialized bypass techniques
+    if (isWAFProtected) {
+      try {
+        console.log(`🔧 Attempting specialized WAF bypass for ${url}...`)
+        response = await attemptWAFBypass(url)
+      } catch (wafError) {
+        console.log(`❌ WAF bypass failed: ${wafError}`)
+      }
+    }
+    
+    // Final attempt with basic headers if still no response
+    if (!response) {
+      try {
+        console.log(`Final attempt for ${url} using basic fetch...`)
+        
+        const basicResponse = await axios.get(url, {
+          headers: {
+            'User-Agent': 'PostmanRuntime/7.32.3',
+            'Accept': '*/*',
+            'Accept-Encoding': 'gzip, deflate',
+            'Connection': 'keep-alive'
+          },
+          timeout: 15000,
+          maxRedirects: 3,
+          validateStatus: () => true // Accept any status code
+        })
+        
+        if (basicResponse.status === 200 && basicResponse.data) {
+          response = basicResponse
+        } else {
+          throw lastError || new Error('Failed to fetch content after trying multiple user agents')
+        }
+      } catch (finalError) {
         throw lastError || new Error('Failed to fetch content after trying multiple user agents')
       }
-    } catch (finalError) {
-      throw lastError || new Error('Failed to fetch content after trying multiple user agents')
     }
   }
 
@@ -784,6 +858,116 @@ async function extractMoneyControlContent(url: string): Promise<ExtractedContent
   throw new Error('All MoneyControl extraction methods failed')
 }
 
+// Advanced WAF bypass techniques
+async function attemptWAFBypass(url: string): Promise<any> {
+  console.log(`🚀 Attempting advanced WAF bypass techniques for ${url}`)
+  
+  // Technique 1: Multi-step session simulation
+  try {
+    console.log(`🔄 Trying session simulation bypass...`)
+    
+    // Step 1: Visit homepage first to establish session
+    const domain = new URL(url).origin
+    const homepageResponse = await axios.get(domain, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Referer': 'https://www.google.com/'
+      },
+      timeout: 30000,
+      maxRedirects: 5,
+      withCredentials: true
+    })
+    
+    // Extract cookies from homepage response
+    const cookies = homepageResponse.headers['set-cookie']
+    let cookieString = generateRealisticCookies()
+    if (cookies) {
+      cookieString += '; ' + cookies.map(c => c.split(';')[0]).join('; ')
+    }
+    
+    // Wait to simulate human reading time
+    await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000))
+    
+    // Step 2: Request the actual URL with established session
+    const targetResponse = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Cookie': cookieString,
+        'Referer': domain,
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'same-origin'
+      },
+      timeout: 30000,
+      maxRedirects: 5,
+      withCredentials: true
+    })
+    
+    if (targetResponse.data && targetResponse.data.length > 1000) {
+      console.log(`✅ Session simulation bypass successful!`)
+      return targetResponse
+    }
+  } catch (sessionError) {
+    console.log(`❌ Session simulation failed: ${sessionError}`)
+  }
+  
+  // Technique 2: Archive.org bypass (sometimes works for public content)
+  try {
+    console.log(`🔄 Trying archive.org bypass...`)
+    const archiveUrl = `https://web.archive.org/web/newest/${url}`
+    
+    const archiveResponse = await axios.get(archiveUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; archive.org_bot +http://www.archive.org/details/archive.org_bot)',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+      },
+      timeout: 30000,
+      maxRedirects: 5
+    })
+    
+    if (archiveResponse.data && archiveResponse.data.length > 1000) {
+      console.log(`✅ Archive.org bypass successful!`)
+      return archiveResponse
+    }
+  } catch (archiveError) {
+    console.log(`❌ Archive.org bypass failed: ${archiveError}`)
+  }
+  
+  throw new Error('All advanced WAF bypass techniques failed')
+}
+
+// Generate realistic cookies to simulate human browsing
+function generateRealisticCookies(): string {
+  const sessionId = Math.random().toString(36).substring(2, 15)
+  const timestamp = Date.now()
+  const visitId = Math.random().toString(36).substring(2, 10)
+  
+  const cookies = [
+    `_ga=GA1.2.${Math.floor(Math.random() * 1000000000)}.${Math.floor(timestamp / 1000)}`,
+    `_gid=GA1.2.${Math.floor(Math.random() * 1000000000)}.${Math.floor(timestamp / 1000)}`,
+    `sessionid=${sessionId}`,
+    `visitid=${visitId}`,
+    `_fbp=fb.1.${timestamp}.${Math.floor(Math.random() * 1000000000)}`,
+    `_hjSessionUser_12345=${Math.random().toString(36).substring(2, 15)}`,
+    `_hjSession_12345=${Math.random().toString(36).substring(2, 15)}`,
+    `PHPSESSID=${Math.random().toString(36).substring(2, 26)}`,
+  ]
+  
+  return cookies.join('; ')
+}
+
 // Detect WAF and bot blocking systems
 function detectWAFBlocking(html: string, response: any): string | null {
   const lowerHtml = html.toLowerCase()
@@ -826,7 +1010,7 @@ function detectWAFBlocking(html: string, response: any): string | null {
   
   // StepStone Group specific detection
   if (url.includes('stepstonegroup.com') && textContent.length < 500) {
-    return 'StepStone Group website uses advanced bot protection (likely Incapsula) that blocks automated access. Please try accessing the content manually.'
+    return 'StepStone Group website uses advanced bot protection (likely Incapsula) that blocks automated access. Advanced bypass techniques have been attempted but failed. This content may need to be accessed manually or through alternative sources.'
   }
   
   return null
