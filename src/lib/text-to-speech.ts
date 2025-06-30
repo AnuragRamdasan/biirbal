@@ -152,9 +152,34 @@ function prepareTextForTTS(text: string, title: string, maxWords: number): strin
   // Create introduction
   const intro = `Here's a summary of the article: ${title}.`
   
-  // Clean and limit the main text
+  // Advanced cleaning for TTS - remove all HTML artifacts and technical content
   let mainText = text
-    .replace(/[^\w\s.,!?;:-]/g, '') // Remove special characters that might break TTS
+    // Remove iframe and embed artifacts first
+    .replace(/iframe\s+src[^>]*>/gi, '')
+    .replace(/embed\s+[^>]*>/gi, '')
+    .replace(/\bsrc\s*=\s*['""][^'"]*['"]/gi, '')
+    .replace(/\bwidth\s*=\s*['""]?[^'">\s]*['""]?/gi, '')
+    .replace(/\bheight\s*=\s*['""]?[^'">\s]*['""]?/gi, '')
+    .replace(/\bframeborder\s*=\s*['""]?[^'">\s]*['""]?/gi, '')
+    .replace(/\bscrolling\s*=\s*['""]?[^'">\s]*['""]?/gi, '')
+    .replace(/\btitle\s*=\s*['""][^'"]*['"]/gi, '')
+    // Remove HTML-like patterns
+    .replace(/<[^>]*>/g, '')
+    .replace(/&[a-zA-Z0-9#]+;/g, ' ')
+    // Remove transcript/embed indicators
+    .replace(/\bTranscript\b/gi, '')
+    .replace(/\bEmbed\b/gi, '')
+    .replace(/\bhide caption\b/gi, '')
+    .replace(/\btoggle caption\b/gi, '')
+    .replace(/\bembedded audio player\b/gi, '')
+    .replace(/\bnpr embedded\b/gi, '')
+    // Remove URL fragments
+    .replace(/https?:\/\/[^\s]+/g, '')
+    .replace(/www\.[^\s]+/g, '')
+    // Remove technical attributes
+    .replace(/\b(src|width|height|frameborder|scrolling|title)\s*[:=]\s*[^\s]*/gi, '')
+    // Remove special characters that might break TTS
+    .replace(/[^\w\s.,!?;:-]/g, '')
     .replace(/\s+/g, ' ')
     .trim()
 

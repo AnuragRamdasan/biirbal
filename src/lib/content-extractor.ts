@@ -402,10 +402,17 @@ async function extractWithCheerio(html: string, url: string): Promise<ExtractedC
       'advertisement', 'sponsored', 'promoted content', 'affiliate link',
       'click here', 'subscribe now', 'sign up', 'follow us', 'share this',
       'related stories', 'you might also like', 'trending now', 'popular posts',
-      'newsletter signup', 'get updates', 'download app', 'install app'
+      'newsletter signup', 'get updates', 'download app', 'install app',
+      'transcript', 'embed', 'iframe', 'embedded audio player', 'hide caption',
+      'toggle caption', 'embedded video', 'audio player'
     ]
     
     if (noiseTexts.some(noise => text.includes(noise))) {
+      $el.remove()
+    }
+    
+    // Remove elements that look like HTML attributes in text
+    if (/\b(src|width|height|frameborder|scrolling|title)\s*[:=]/i.test(text)) {
       $el.remove()
     }
   })
@@ -654,11 +661,36 @@ function cleanTitle(title: string): string {
 
 function cleanExtractedText(text: string): string {
   return text
-    .replace(/\s+/g, ' ') // Normalize whitespace
-    .replace(/\n\s*\n/g, '\n') // Remove empty lines
-    .replace(/[^\S\n]+/g, ' ') // Normalize spaces but keep newlines
-    .replace(/\.{3,}/g, '...') // Normalize ellipsis
-    .replace(/\s+([,.!?;:])/g, '$1') // Fix punctuation spacing
+    // Remove iframe and embed artifacts
+    .replace(/iframe\s+src[^>]*>/gi, '')
+    .replace(/embed\s+[^>]*>/gi, '')
+    .replace(/\bsrc\s*=\s*['""][^'"]*['"]/gi, '')
+    .replace(/\bwidth\s*=\s*['""]?[^'">\s]*['""]?/gi, '')
+    .replace(/\bheight\s*=\s*['""]?[^'">\s]*['""]?/gi, '')
+    .replace(/\bframeborder\s*=\s*['""]?[^'">\s]*['""]?/gi, '')
+    .replace(/\bscrolling\s*=\s*['""]?[^'">\s]*['""]?/gi, '')
+    .replace(/\btitle\s*=\s*['""][^'"]*['"]/gi, '')
+    // Remove HTML-like patterns
+    .replace(/<[^>]*>/g, '')
+    .replace(/&[a-zA-Z0-9#]+;/g, ' ')
+    // Remove transcript/embed indicators
+    .replace(/\bTranscript\b/gi, '')
+    .replace(/\bEmbed\b/gi, '')
+    .replace(/\bhide caption\b/gi, '')
+    .replace(/\btoggle caption\b/gi, '')
+    .replace(/\bembedded audio player\b/gi, '')
+    .replace(/\bnpr embedded\b/gi, '')
+    // Remove URL fragments
+    .replace(/https?:\/\/[^\s]+/g, '')
+    .replace(/www\.[^\s]+/g, '')
+    // Remove technical attributes
+    .replace(/\b(src|width|height|frameborder|scrolling|title)\s*[:=]\s*[^\s]*/gi, '')
+    // Normalize whitespace
+    .replace(/\s+/g, ' ')
+    .replace(/\n\s*\n/g, '\n')
+    .replace(/[^\S\n]+/g, ' ')
+    .replace(/\.{3,}/g, '...')
+    .replace(/\s+([,.!?;:])/g, '$1')
     .trim()
 }
 
