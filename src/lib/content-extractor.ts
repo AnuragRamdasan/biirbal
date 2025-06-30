@@ -225,7 +225,12 @@ async function scrapeContent(url: string): Promise<ExtractedContent> {
     throw new Error(`Unsupported content type: ${contentType}`)
   }
 
-  // Try Readability first (best for articles)
+  // Smart content extraction with editorial focus
+  return await extractEditorialContent(html, url)
+}
+
+async function extractEditorialContent(html: string, url: string): Promise<ExtractedContent> {
+  // Try Readability first (best for articles) with enhanced configuration
   try {
     const dom = new JSDOM(html, { 
       url,
@@ -234,128 +239,427 @@ async function scrapeContent(url: string): Promise<ExtractedContent> {
       storageQuota: 10000000
     })
     
-    const reader = new Readability(dom.window.document, {
+    // Pre-clean the DOM before Readability to remove obvious noise
+    const document = dom.window.document
+    
+    // Remove elements that are never editorial content
+    const noisySelectors = [
+      'script', 'style', 'noscript',
+      // Ads and monetization
+      '.ad', '.ads', '.advertisement', '.sponsor', '.promoted', '.native-ad',
+      '[class*="ad-"]', '[id*="ad-"]', '[class*="ads-"]', '[id*="ads-"]',
+      '.adsystem', '.adnxs', '.doubleclick', '.googleadservices',
+      // Social and sharing
+      '.social', '.share', '.sharing', '.follow', '.subscribe',
+      '.social-media', '.social-share', '.share-buttons',
+      // Navigation and UI
+      'nav', 'header', 'footer', 'aside', '.sidebar', '.navigation',
+      '.menu', '.nav', '.navbar', '.breadcrumb', '.pagination',
+      // Comments and interaction
+      '.comments', '.comment', '.discussion', '.replies', '.feedback',
+      // Related and recommendations
+      '.related', '.recommended', '.more-stories', '.trending',
+      '.popular', '.most-read', '.you-might-like', '.suggestions',
+      // Newsletters and forms
+      '.newsletter', '.signup', '.subscription', '.email-signup',
+      '.form', '.contact-form', '.search-form',
+      // Overlays and popups
+      '.modal', '.popup', '.overlay', '.lightbox', '.dialog',
+      '.cookie-notice', '.gdpr-notice', '.privacy-notice',
+      // Media embeds that aren't editorial
+      'iframe[src*="youtube"]', 'iframe[src*="twitter"]', 'iframe[src*="facebook"]',
+      'iframe[src*="instagram"]', 'iframe[src*="tiktok"]', 'iframe[src*="ads"]',
+      'embed', 'object',
+      // Tags and metadata that clutter
+      '.tags', '.tag', '.categories', '.byline', '.author-bio',
+      '.publication-date', '.read-time', '.word-count'
+    ]
+    
+    noisySelectors.forEach(selector => {
+      try {
+        const elements = document.querySelectorAll(selector)
+        elements.forEach(el => el.remove())
+      } catch (e) {
+        // Continue if selector fails
+      }
+    })
+    
+    // Remove elements with noise-indicating attributes
+    const noiseAttributes = [
+      '[class*="ad"]', '[id*="ad"]', '[class*="promo"]', '[id*="promo"]',
+      '[class*="banner"]', '[id*="banner"]', '[class*="widget"]', '[id*="widget"]',
+      '[data-ad]', '[data-advertisement]', '[data-tracking]'
+    ]
+    
+    noiseAttributes.forEach(selector => {
+      try {
+        const elements = document.querySelectorAll(selector)
+        elements.forEach(el => {
+          if (!isLikelyEditorialContent(el)) {
+            el.remove()
+          }
+        })
+      } catch (e) {
+        // Continue if selector fails
+      }
+    })
+    
+    const reader = new Readability(document, {
       debug: false,
       maxElemsToParse: 0,
       nbTopCandidates: 5,
       charThreshold: 500,
-      classesToPreserve: ['highlight'],
+      classesToPreserve: ['highlight', 'quote', 'caption'],
+      keepClasses: false
     })
     
     const article = reader.parse()
 
     if (article && article.textContent && article.textContent.length > 500) {
-      const cleanText = article.textContent
-        .replace(/\s+/g, ' ')
-        .replace(/\n\s*\n/g, '\n')
-        .trim()
+      const cleanText = cleanExtractedText(article.textContent)
       
-      const title = article.title || 'Extracted Article'
-      const excerpt = cleanText.length > 300 ? cleanText.substring(0, 300) + '...' : cleanText
-      
-      return {
-        title,
-        text: cleanText,
-        url,
-        excerpt
+      // Validate this is actual editorial content
+      if (isQualityEditorialContent(cleanText, article.title || '')) {
+        const title = article.title || extractTitleFromHtml(html) || 'Extracted Article'
+        const excerpt = cleanText.length > 300 ? cleanText.substring(0, 300) + '...' : cleanText
+        
+        return {
+          title: cleanTitle(title),
+          text: cleanText,
+          url,
+          excerpt
+        }
       }
     }
   } catch (readabilityError) {
     console.log(`Readability failed: ${readabilityError}`)
   }
 
-  // Fallback to cheerio extraction
+  // Fallback to smart cheerio extraction
+  return await extractWithCheerio(html, url)
+}
+
+async function extractWithCheerio(html: string, url: string): Promise<ExtractedContent> {
   const $ = cheerio.load(html)
 
-  // Remove unwanted elements
-  $(
-    'script, style, nav, footer, header, aside, .ad, .advertisement, ' +
-    '.sidebar, .comments, .social-share, .related-posts, .newsletter, ' +
-    '.popup, .modal, .cookie-notice, .gdpr-notice, iframe, embed, object'
-  ).remove()
-
-  // Extract title
-  const title = $('title').text().trim() || 
-                $('h1').first().text().trim() || 
-                $('meta[property="og:title"]').attr('content') || 
-                'Untitled'
-
-  // Try multiple content selectors
-  const contentSelectors = [
-    'article',
-    '[role="main"]',
-    'main',
-    '.post-content',
-    '.entry-content',
-    '.article-content',
-    '.content',
-    '.post-body',
-    '.article-body',
-    '.story-body',
-    '#content',
-    '#main',
-    '.main-content',
+  // Aggressive removal of non-editorial content
+  const removalSelectors = [
+    // Scripts and styles
+    'script', 'style', 'noscript', 'link[rel="stylesheet"]',
+    // Ads and monetization (comprehensive)
+    '.ad', '.ads', '.advertisement', '.sponsor', '.promoted', '.native-ad',
+    '.adsystem', '.adnxs', '.doubleclick', '.googleadservices', '.outbrain',
+    '[class*="ad-"]', '[id*="ad-"]', '[class*="ads-"]', '[id*="ads-"]',
+    '[class*="sponsor"]', '[id*="sponsor"]', '[class*="promo"]', '[id*="promo"]',
+    '[data-ad]', '[data-advertisement]', '[data-sponsor]', '[data-tracking]',
+    // Social and sharing
+    '.social', '.share', '.sharing', '.follow', '.subscribe', '.social-media',
+    '.social-share', '.share-buttons', '.social-links', '.follow-us',
+    // Navigation and structural
+    'nav', 'header', 'footer', 'aside', '.sidebar', '.navigation', '.menu',
+    '.nav', '.navbar', '.breadcrumb', '.pagination', '.skip-nav',
+    // Comments and user content
+    '.comments', '.comment', '.discussion', '.replies', '.feedback',
+    '.user-content', '.ugc', '.reviews', '.ratings',
+    // Related content that's not editorial
+    '.related', '.recommended', '.more-stories', '.trending', '.popular',
+    '.most-read', '.you-might-like', '.suggestions', '.similar', '.next-up',
+    // Forms and signups
+    '.newsletter', '.signup', '.subscription', '.email-signup', '.form',
+    '.contact-form', '.search-form', '.login-form', '.register-form',
+    // Overlays and interruptions
+    '.modal', '.popup', '.overlay', '.lightbox', '.dialog', '.tooltip',
+    '.cookie-notice', '.gdpr-notice', '.privacy-notice', '.banner',
+    // Media embeds (non-editorial)
+    'iframe[src*="youtube"]', 'iframe[src*="twitter"]', 'iframe[src*="facebook"]',
+    'iframe[src*="instagram"]', 'iframe[src*="tiktok"]', 'iframe[src*="ads"]',
+    'iframe[src*="doubleclick"]', 'iframe[src*="googlesyndication"]',
+    'embed[src*="twitter"]', 'embed[src*="facebook"]', 'object',
+    // Metadata and clutter
+    '.tags', '.tag', '.categories', '.byline', '.author-bio', '.bio',
+    '.publication-date', '.read-time', '.word-count', '.print-only',
+    '.hidden', '.sr-only', '.screen-reader', '.accessibility',
+    // Widgets and tools
+    '.widget', '.tool', '.calculator', '.quiz', '.poll', '.survey',
+    '.weather', '.stock', '.ticker', '.chart'
   ]
 
-  let text = ''
+  removalSelectors.forEach(selector => {
+    try {
+      $(selector).remove()
+    } catch (e) {
+      // Continue if selector fails
+    }
+  })
+
+  // Remove elements with noise-indicating text content
+  $('*').each((i, el) => {
+    const $el = $(el)
+    const text = $el.text().toLowerCase().trim()
+    
+    // Remove elements with obvious ad/promo text
+    const noiseTexts = [
+      'advertisement', 'sponsored', 'promoted content', 'affiliate link',
+      'click here', 'subscribe now', 'sign up', 'follow us', 'share this',
+      'related stories', 'you might also like', 'trending now', 'popular posts',
+      'newsletter signup', 'get updates', 'download app', 'install app'
+    ]
+    
+    if (noiseTexts.some(noise => text.includes(noise))) {
+      $el.remove()
+    }
+  })
+
+  // Extract title with multiple fallbacks
+  const title = extractTitleFromHtml(html, $) || 'Untitled'
+
+  // Try multiple content selectors with priority for editorial content
+  const contentSelectors = [
+    // Semantic article selectors (highest priority)
+    'article', '[role="article"]', 'main article', '.article-content article',
+    // Main content areas
+    '[role="main"]', 'main', '.main-content', '.primary-content',
+    // Article-specific selectors
+    '.post-content', '.entry-content', '.article-content', '.article-body',
+    '.story-content', '.story-body', '.news-content', '.news-body',
+    '.content-body', '.text-content', '.editorial-content',
+    // Generic content selectors
+    '.content', '.post-body', '#content', '#main', '.main',
+    // Publication-specific patterns
+    '.arti-flow', '.story_content', '.content_wrapper'
+  ]
+
+  let bestContent = ''
+  let bestScore = 0
   
   for (const selector of contentSelectors) {
-    const element = $(selector)
-    if (element.length > 0) {
-      text = element.text()
-      if (text.length > 500) {
-        break
+    try {
+      const element = $(selector).first()
+      if (element.length > 0) {
+        const text = element.text().trim()
+        const score = scoreContentQuality(text, title)
+        
+        if (score > bestScore && text.length > 300) {
+          bestContent = text
+          bestScore = score
+        }
+        
+        // If we found high-quality content, use it
+        if (score > 0.8 && text.length > 500) {
+          break
+        }
       }
+    } catch (e) {
+      continue
     }
   }
 
-  // If no specific content area found, try body
-  if (!text || text.length < 500) {
+  // If no specific content area found, try paragraph extraction
+  if (bestScore < 0.5) {
+    // Remove remaining navigation and UI elements
+    $('.navigation, .menu, .header, .footer, .sidebar, .widget').remove()
+    
+    // Extract all paragraphs and filter for editorial content
+    const paragraphs = $('p').map((i, el) => $(el).text().trim()).get()
+    const editorialParagraphs = paragraphs.filter(p => 
+      p.length > 50 && 
+      !isNoiseText(p) &&
+      isLikelyEditorialText(p)
+    )
+    
+    if (editorialParagraphs.length > 0) {
+      bestContent = editorialParagraphs.join(' ')
+    }
+  }
+
+  // Last resort: clean body text
+  if (!bestContent || bestContent.length < 300) {
     $('nav, .navigation, .menu, .header, .footer, .sidebar').remove()
-    text = $('body').text()
+    bestContent = $('body').text()
   }
 
-  if (!text || text.length < 100) {
-    throw new Error('Insufficient content extracted (less than 100 characters)')
+  if (!bestContent || bestContent.length < 100) {
+    throw new Error('Insufficient editorial content extracted (less than 100 characters)')
   }
 
-  // Clean and normalize text
-  const cleanText = text
-    .replace(/\s+/g, ' ')
-    .replace(/\n\s*\n/g, '\n')
-    .replace(/[^\S\n]+/g, ' ')
-    .trim()
-
-  // Validate content quality
-  const wordCount = cleanText.split(/\s+/).length
-  if (wordCount < 50) {
-    throw new Error(`Content too short: only ${wordCount} words`)
-  }
-
-  // Check for paywall indicators
-  const paywallIndicators = [
-    'subscribe to continue reading',
-    'please log in',
-    'premium subscription required',
-    'this content is for subscribers',
-    'sign up to read',
-    'register to continue',
-    'paywall',
-  ]
-
-  const lowerText = cleanText.toLowerCase()
-  if (paywallIndicators.some(indicator => lowerText.includes(indicator))) {
-    throw new Error('Content appears to be behind a paywall or login requirement')
+  // Clean and validate the extracted text
+  const cleanText = cleanExtractedText(bestContent)
+  
+  // Final quality check
+  if (!isQualityEditorialContent(cleanText, title)) {
+    throw new Error('Extracted content does not appear to be quality editorial content')
   }
 
   const excerpt = cleanText.length > 300 ? cleanText.substring(0, 300) + '...' : cleanText
 
   return {
-    title,
+    title: cleanTitle(title),
     text: cleanText,
     url,
     excerpt
   }
+}
+
+// Helper functions for content quality assessment
+
+function isLikelyEditorialContent(element: Element): boolean {
+  const className = element.className || ''
+  const id = element.id || ''
+  const tagName = element.tagName?.toLowerCase() || ''
+  
+  // Check for editorial indicators
+  const editorialIndicators = [
+    'article', 'story', 'content', 'post', 'entry', 'text', 'body',
+    'editorial', 'news', 'blog', 'main'
+  ]
+  
+  const hasEditorialClass = editorialIndicators.some(indicator => 
+    className.toLowerCase().includes(indicator) || 
+    id.toLowerCase().includes(indicator)
+  )
+  
+  const isEditorialTag = ['article', 'main', 'section', 'div', 'p'].includes(tagName)
+  
+  return hasEditorialClass || isEditorialTag
+}
+
+function isQualityEditorialContent(text: string, title: string): boolean {
+  const wordCount = text.split(/\s+/).length
+  
+  // Must have sufficient length
+  if (wordCount < 50) return false
+  
+  // Check for editorial indicators
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10)
+  if (sentences.length < 3) return false
+  
+  // Check against noise patterns
+  const lowerText = text.toLowerCase()
+  const noisePatterns = [
+    'click here', 'subscribe now', 'sign up', 'download app',
+    'advertisement', 'sponsored content', 'affiliate link',
+    'terms of service', 'privacy policy', 'cookie policy'
+  ]
+  
+  const noiseCount = noisePatterns.filter(pattern => lowerText.includes(pattern)).length
+  if (noiseCount > 2) return false
+  
+  // Check for paywall indicators
+  const paywallIndicators = [
+    'subscribe to continue', 'login to read', 'premium content',
+    'paywall', 'subscription required'
+  ]
+  
+  if (paywallIndicators.some(indicator => lowerText.includes(indicator))) {
+    return false
+  }
+  
+  return true
+}
+
+function isLikelyEditorialText(text: string): boolean {
+  if (text.length < 30) return false
+  
+  const lowerText = text.toLowerCase()
+  
+  // Check for noise indicators
+  const noiseIndicators = [
+    'click here', 'read more', 'subscribe', 'follow us', 'share this',
+    'advertisement', 'sponsored', 'affiliate', 'cookie', 'privacy policy'
+  ]
+  
+  return !noiseIndicators.some(indicator => lowerText.includes(indicator))
+}
+
+function isNoiseText(text: string): boolean {
+  const lowerText = text.toLowerCase().trim()
+  
+  const noisePatterns = [
+    'advertisement', 'sponsored', 'click here', 'read more', 'subscribe',
+    'follow us', 'share this', 'cookie notice', 'privacy policy',
+    'terms of service', 'all rights reserved', '© 20', 'copyright'
+  ]
+  
+  return noisePatterns.some(pattern => lowerText.includes(pattern)) ||
+         text.length < 20 ||
+         /^[\d\s.,:-]+$/.test(text) // Just numbers, spaces, and punctuation
+}
+
+function scoreContentQuality(text: string, title: string): number {
+  let score = 0
+  
+  // Length scoring
+  const wordCount = text.split(/\s+/).length
+  if (wordCount > 100) score += 0.3
+  if (wordCount > 300) score += 0.2
+  if (wordCount > 500) score += 0.2
+  
+  // Sentence structure
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10)
+  if (sentences.length > 5) score += 0.2
+  
+  // Editorial language patterns
+  const editorialWords = ['according', 'reported', 'said', 'announced', 'revealed', 'explained']
+  const editorialCount = editorialWords.filter(word => text.toLowerCase().includes(word)).length
+  score += Math.min(editorialCount * 0.05, 0.2)
+  
+  // Penalize noise content
+  const noiseWords = ['click', 'subscribe', 'follow', 'advertisement', 'sponsored']
+  const noiseCount = noiseWords.filter(word => text.toLowerCase().includes(word)).length
+  score -= noiseCount * 0.1
+  
+  return Math.max(0, Math.min(1, score))
+}
+
+function extractTitleFromHtml(html: string, $?: cheerio.CheerioAPI): string {
+  if (!$) {
+    $ = cheerio.load(html)
+  }
+  
+  // Priority order for title extraction
+  const titleSelectors = [
+    'h1.headline', 'h1.title', 'h1.article-title', 'h1.story-title',
+    '.article-headline', '.story-headline', '.post-title',
+    'h1', 'h2.title', '.headline', '.title',
+    'meta[property="og:title"]', 'meta[name="twitter:title"]',
+    'title'
+  ]
+  
+  for (const selector of titleSelectors) {
+    try {
+      const element = $(selector).first()
+      if (element.length > 0) {
+        const title = selector.includes('meta') 
+          ? element.attr('content') 
+          : element.text()
+        
+        if (title && title.trim().length > 0) {
+          return title.trim()
+        }
+      }
+    } catch (e) {
+      continue
+    }
+  }
+  
+  return 'Untitled Article'
+}
+
+function cleanTitle(title: string): string {
+  return title
+    .replace(/\s*[-–—|]\s*.+$/, '') // Remove site name after separator
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function cleanExtractedText(text: string): string {
+  return text
+    .replace(/\s+/g, ' ') // Normalize whitespace
+    .replace(/\n\s*\n/g, '\n') // Remove empty lines
+    .replace(/[^\S\n]+/g, ' ') // Normalize spaces but keep newlines
+    .replace(/\.{3,}/g, '...') // Normalize ellipsis
+    .replace(/\s+([,.!?;:])/g, '$1') // Fix punctuation spacing
+    .trim()
 }
 
 // Special extraction method for MoneyControl
@@ -396,52 +700,7 @@ async function extractMoneyControlContent(url: string): Promise<ExtractedContent
         throw new Error('Response too short for MoneyControl')
       }
       
-      // Try to extract content using basic HTML parsing
-      const $ = cheerio.load(html)
-      
-      // MoneyControl specific selectors
-      let title = $('h1').first().text().trim() || 
-                  $('.story_title').first().text().trim() || 
-                  $('title').text().replace(' - Moneycontrol.com', '').trim()
-      
-      let content = ''
-      
-      // Try different content selectors for MoneyControl
-      const contentSelectors = [
-        '.arti-flow',
-        '.content_wrapper',
-        '.story_content',
-        '#story_content',
-        '.article-content',
-        '.news_content'
-      ]
-      
-      for (const selector of contentSelectors) {
-        const element = $(selector)
-        if (element.length > 0) {
-          content = element.text().trim()
-          if (content.length > 200) break
-        }
-      }
-      
-      // Fallback to paragraph extraction
-      if (content.length < 200) {
-        content = $('p').map((i, el) => $(el).text().trim()).get().join(' ')
-      }
-      
-      if (title && content && content.length > 200) {
-        const cleanContent = content
-          .replace(/\s+/g, ' ')
-          .replace(/\n\s*\n/g, '\n')
-          .trim()
-        
-        return {
-          title: title,
-          text: cleanContent,
-          url,
-          excerpt: cleanContent.substring(0, 300) + (cleanContent.length > 300 ? '...' : '')
-        }
-      }
+      return await extractEditorialContent(html, url)
       
     } catch (error) {
       console.log(`MoneyControl attempt failed with ${userAgent.substring(0, 20)}: ${error}`)
@@ -459,19 +718,42 @@ export function summarizeForAudio(text: string, maxWords: number = 200): string 
     return text
   }
 
-  // Simple extractive summarization - take first paragraph and key sentences
+  // Smart extractive summarization - prioritize key editorial content
   const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10)
+  
+  // Score sentences for importance
+  const scoredSentences = sentences.map(sentence => {
+    let score = 0
+    const lowerSentence = sentence.toLowerCase()
+    
+    // Boost sentences with editorial keywords
+    const editorialKeywords = ['said', 'announced', 'reported', 'according', 'revealed', 'explained', 'stated']
+    editorialKeywords.forEach(keyword => {
+      if (lowerSentence.includes(keyword)) score += 2
+    })
+    
+    // Boost sentences with numbers/data
+    if (/\d+/.test(sentence)) score += 1
+    
+    // Penalty for very short or very long sentences
+    const wordCount = sentence.split(/\s+/).length
+    if (wordCount < 5 || wordCount > 30) score -= 1
+    
+    return { sentence: sentence.trim(), score, wordCount }
+  })
+  
+  // Sort by score and select best sentences within word limit
+  scoredSentences.sort((a, b) => b.score - a.score)
   
   let summary = ''
   let wordCount = 0
   
-  for (const sentence of sentences) {
-    const sentenceWords = sentence.trim().split(/\s+/).length
-    if (wordCount + sentenceWords > maxWords) {
+  for (const item of scoredSentences) {
+    if (wordCount + item.wordCount > maxWords) {
       break
     }
-    summary += sentence.trim() + '. '
-    wordCount += sentenceWords
+    summary += item.sentence + '. '
+    wordCount += item.wordCount
   }
   
   return summary.trim() || text.substring(0, maxWords * 6) // Fallback
