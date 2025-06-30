@@ -124,8 +124,7 @@ export async function uploadAudioToStorage(
       Bucket: bucketName,
       Key: key,
       Body: audioBuffer,
-      ContentType: 'audio/mpeg',
-      ACL: 'public-read'
+      ContentType: 'audio/mpeg'
     })
 
     console.log(`☁️  Uploading ${fileName} to S3 bucket: ${bucketName}`)
