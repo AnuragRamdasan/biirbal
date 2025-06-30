@@ -86,21 +86,33 @@ async function scrapeContent(url: string): Promise<ExtractedContent> {
     throw new Error('URL appears to be a media file or social media post, not an article')
   }
 
-  // Try multiple user agents to bypass blocking
+  // Try multiple user agents to bypass blocking - prioritize crawlers that WAFs often whitelist
   const userAgents = [
+    // Social media crawlers (often whitelisted by WAFs)
+    'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+    'Twitterbot/1.0',
+    'LinkedInBot/1.0 (compatible; Mozilla/5.0; Apache-HttpClient +http://www.linkedin.com/)',
+    
+    // Search engine bots (usually allowed)
+    'Googlebot/2.1 (+http://www.google.com/bot.html)',
+    'Bingbot/2.0 (+http://www.bing.com/bingbot.htm)',
+    'Mozilla/5.0 (compatible; Yahoo! Slurp; http://help.yahoo.com/help/us/ysearch/slurp)',
+    
+    // Standard browsers
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0',
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Safari/605.1.15',
+    
+    // Mobile browsers (sometimes less restricted)
     'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-    'Mozilla/5.0 (Android 14; Mobile; rv:123.0) Gecko/123.0 Firefox/123.0',
-    'curl/8.4.0',
-    'Googlebot/2.1 (+http://www.google.com/bot.html)'
+    'Mozilla/5.0 (Android 14; Mobile; rv:123.0) Gecko/123.0 Firefox/123.0'
   ]
 
   // Special handling for certain domains
   const isMoneyControl = url.includes('moneycontrol.com')
   const isFinancialSite = url.includes('moneycontrol.com') || url.includes('bloomberg.com') || url.includes('reuters.com')
+  const isWAFProtected = url.includes('stepstonegroup.com') || url.includes('incapsula') || url.includes('imperva')
   
   // For MoneyControl, try a completely different approach first
   if (isMoneyControl) {
@@ -146,13 +158,15 @@ async function scrapeContent(url: string): Promise<ExtractedContent> {
         delete headers['DNT'] // Some financial sites block DNT requests
       }
 
-      // Add random delay between requests to appear more human
+      // Add random delay between requests to appear more human - longer for WAF-protected sites
       if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 3000))
+        const baseDelay = isWAFProtected ? 5000 : 1000
+        const randomDelay = isWAFProtected ? Math.random() * 10000 : Math.random() * 3000
+        await new Promise(resolve => setTimeout(resolve, baseDelay + randomDelay))
       }
 
       // Adjust timeout based on site and attempt
-      const timeout = isMoneyControl ? 45000 : (isFinancialSite ? 35000 : 25000)
+      const timeout = isWAFProtected ? 60000 : (isMoneyControl ? 45000 : (isFinancialSite ? 35000 : 25000))
       
       response = await axios.get(url, {
         timeout: timeout,
@@ -223,6 +237,12 @@ async function scrapeContent(url: string): Promise<ExtractedContent> {
   const contentType = response.headers['content-type'] || ''
   if (!contentType.includes('text/html') && !contentType.includes('application/xhtml')) {
     throw new Error(`Unsupported content type: ${contentType}`)
+  }
+
+  // Check for WAF/Bot blocking
+  const wafError = detectWAFBlocking(html, response)
+  if (wafError) {
+    throw new Error(`Access blocked: ${wafError}`)
   }
 
   // Smart content extraction with editorial focus
@@ -762,6 +782,54 @@ async function extractMoneyControlContent(url: string): Promise<ExtractedContent
   }
   
   throw new Error('All MoneyControl extraction methods failed')
+}
+
+// Detect WAF and bot blocking systems
+function detectWAFBlocking(html: string, response: any): string | null {
+  const lowerHtml = html.toLowerCase()
+  const url = response.config?.url || ''
+  
+  // Incapsula/Imperva detection
+  if (lowerHtml.includes('incapsula') || 
+      lowerHtml.includes('_incapsula_resource') ||
+      lowerHtml.includes('imperva')) {
+    return 'This website uses Incapsula/Imperva WAF protection that blocks automated access. The content cannot be extracted automatically.'
+  }
+  
+  // Cloudflare detection  
+  if (lowerHtml.includes('cloudflare') && 
+      (lowerHtml.includes('checking your browser') || 
+       lowerHtml.includes('security check') ||
+       lowerHtml.includes('ddos protection'))) {
+    return 'This website uses Cloudflare protection that requires browser verification. The content cannot be extracted automatically.'
+  }
+  
+  // Generic WAF patterns
+  const wafPatterns = [
+    'access denied', 'blocked request', 'security check', 'bot detection',
+    'captcha required', 'human verification', 'suspicious activity detected',
+    'request blocked', 'access forbidden', 'anti-bot protection'
+  ]
+  
+  if (wafPatterns.some(pattern => lowerHtml.includes(pattern))) {
+    return 'This website uses anti-bot protection that prevents automated content extraction.'
+  }
+  
+  // Check for very short content that might indicate blocking
+  const textContent = html.replace(/<[^>]*>/g, '').trim()
+  if (textContent.length < 200 && (
+      lowerHtml.includes('iframe') || 
+      lowerHtml.includes('javascript') ||
+      lowerHtml.includes('redirect'))) {
+    return 'This website appears to use JavaScript-based protection or redirects that prevent content extraction.'
+  }
+  
+  // StepStone Group specific detection
+  if (url.includes('stepstonegroup.com') && textContent.length < 500) {
+    return 'StepStone Group website uses advanced bot protection (likely Incapsula) that blocks automated access. Please try accessing the content manually.'
+  }
+  
+  return null
 }
 
 export function summarizeForAudio(text: string, maxWords: number = 200): string {
