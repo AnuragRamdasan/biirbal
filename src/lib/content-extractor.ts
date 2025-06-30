@@ -404,7 +404,10 @@ async function extractWithCheerio(html: string, url: string): Promise<ExtractedC
       'related stories', 'you might also like', 'trending now', 'popular posts',
       'newsletter signup', 'get updates', 'download app', 'install app',
       'transcript', 'embed', 'iframe', 'embedded audio player', 'hide caption',
-      'toggle caption', 'embedded video', 'audio player'
+      'toggle caption', 'embedded video', 'audio player', 'getty images',
+      'shutterstock', 'unsplash', 'ap photo', 'photo by', 'image by',
+      'courtesy of', 'credit:', 'photo credit', 'image credit', 'copyright',
+      'westend61', 'westend61getty'
     ]
     
     if (noiseTexts.some(noise => text.includes(noise))) {
@@ -680,6 +683,24 @@ function cleanExtractedText(text: string): string {
     .replace(/\btoggle caption\b/gi, '')
     .replace(/\bembedded audio player\b/gi, '')
     .replace(/\bnpr embedded\b/gi, '')
+    // Remove image credits and photography attributions
+    .replace(/\b[A-Z][a-z]*\d+[A-Z][a-z]*\s*Images?\b/gi, '') // Westend61Getty Images
+    .replace(/\b[A-Z][a-z]*\d+\b/gi, '') // Westend61
+    .replace(/\bGetty Images?\b/gi, '')
+    .replace(/\bShutterstock\b/gi, '')
+    .replace(/\bUnsplash\b/gi, '')
+    .replace(/\bAP Photo\b/gi, '')
+    .replace(/\bReuters\b/gi, '')
+    .replace(/\bAFP\b/gi, '')
+    .replace(/\bPhoto by\b/gi, '')
+    .replace(/\bImage by\b/gi, '')
+    .replace(/\bCourtesy of\b/gi, '')
+    .replace(/\bCredit:\b/gi, '')
+    .replace(/\bPhoto credit\b/gi, '')
+    .replace(/\bImage credit\b/gi, '')
+    .replace(/\b© \d{4}\b/gi, '')
+    .replace(/\bCopyright\b/gi, '')
+    .replace(/\bAll rights reserved\b/gi, '')
     // Remove URL fragments
     .replace(/https?:\/\/[^\s]+/g, '')
     .replace(/www\.[^\s]+/g, '')

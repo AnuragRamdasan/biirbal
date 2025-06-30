@@ -173,6 +173,22 @@ function prepareTextForTTS(text: string, title: string, maxWords: number): strin
     .replace(/\btoggle caption\b/gi, '')
     .replace(/\bembedded audio player\b/gi, '')
     .replace(/\bnpr embedded\b/gi, '')
+    // Remove image credits and photography attributions
+    .replace(/\b[A-Z][a-z]*\d+[A-Z][a-z]*\s*Images?\b/gi, '') // Westend61Getty Images
+    .replace(/\b[A-Z][a-z]*\d+\b/gi, '') // Westend61
+    .replace(/\bGetty Images?\b/gi, '')
+    .replace(/\bShutterstock\b/gi, '')
+    .replace(/\bUnsplash\b/gi, '')
+    .replace(/\bAP Photo\b/gi, '')
+    .replace(/\bPhoto by\b/gi, '')
+    .replace(/\bImage by\b/gi, '')
+    .replace(/\bCourtesy of\b/gi, '')
+    .replace(/\bCredit:\b/gi, '')
+    .replace(/\bPhoto credit\b/gi, '')
+    .replace(/\bImage credit\b/gi, '')
+    .replace(/\b© \d{4}\b/gi, '')
+    .replace(/\bCopyright\b/gi, '')
+    .replace(/\bAll rights reserved\b/gi, '')
     // Remove URL fragments
     .replace(/https?:\/\/[^\s]+/g, '')
     .replace(/www\.[^\s]+/g, '')
