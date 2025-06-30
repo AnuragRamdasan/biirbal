@@ -8,6 +8,7 @@ interface ProcessedLink {
   title: string | null
   extractedText: string | null
   audioFileUrl: string | null
+  ttsScript: string | null
   createdAt: string
   processingStatus: string
   listens: AudioListen[]
@@ -267,7 +268,7 @@ export default function Dashboard() {
 
                     {link.audioFileUrl && link.processingStatus === 'COMPLETED' && (
                       <div className="border-t border-gray-100 pt-3 mt-3">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 mb-3">
                           <span className="text-sm font-medium text-gray-900">Audio Summary:</span>
                           <audio 
                             controls 
@@ -285,23 +286,55 @@ export default function Dashboard() {
                             Your browser does not support the audio element.
                           </audio>
                           
-                          {link.listens.length > 0 && (
-                            <button 
-                              className="text-xs text-gray-500 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 px-2 py-1 rounded transition-colors"
-                              onClick={(e) => {
-                                const details = e.currentTarget.parentElement?.parentElement?.querySelector('details')
-                                if (details) {
-                                  details.open = !details.open
-                                }
-                              }}
-                            >
-                              History ({link.listens.length})
-                            </button>
-                          )}
+                          <div className="flex gap-2">
+                            {link.ttsScript && (
+                              <button 
+                                className="text-xs text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded transition-colors"
+                                onClick={(e) => {
+                                  const scriptDetails = e.currentTarget.parentElement?.parentElement?.parentElement?.querySelector('.script-details') as HTMLDetailsElement
+                                  if (scriptDetails) {
+                                    scriptDetails.open = !scriptDetails.open
+                                  }
+                                }}
+                              >
+                                📝 Script
+                              </button>
+                            )}
+                            
+                            {link.listens.length > 0 && (
+                              <button 
+                                className="text-xs text-gray-500 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 px-2 py-1 rounded transition-colors"
+                                onClick={(e) => {
+                                  const details = e.currentTarget.parentElement?.parentElement?.parentElement?.querySelector('.history-details') as HTMLDetailsElement
+                                  if (details) {
+                                    details.open = !details.open
+                                  }
+                                }}
+                              >
+                                History ({link.listens.length})
+                              </button>
+                            )}
+                          </div>
                         </div>
 
+                        {/* TTS Script */}
+                        {link.ttsScript && (
+                          <details className="script-details mb-2">
+                            <summary className="sr-only">Audio Script</summary>
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-sm font-medium text-blue-800">🎤 Audio Script</span>
+                                <span className="text-xs text-blue-600">({link.ttsScript.split(' ').length} words)</span>
+                              </div>
+                              <div className="text-sm text-blue-900 leading-relaxed whitespace-pre-wrap">
+                                {link.ttsScript}
+                              </div>
+                            </div>
+                          </details>
+                        )}
+
                         {link.listens.length > 0 && (
-                          <details className="mt-2">
+                          <details className="history-details mt-2">
                             <summary className="sr-only">Listen History</summary>
                             <div className="bg-gray-50 rounded-lg p-3 space-y-1">
                               {link.listens.slice(-3).map((listen) => (

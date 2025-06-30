@@ -17,6 +17,7 @@ export interface AudioResult {
   audioBuffer: Buffer
   fileName: string
   publicUrl?: string
+  ttsScript?: string
 }
 
 export async function generateAudioSummary(
@@ -71,7 +72,8 @@ export async function generateAudioSummary(
 
       return {
         audioBuffer,
-        fileName
+        fileName,
+        ttsScript: processedText
       }
       
     } catch (error) {

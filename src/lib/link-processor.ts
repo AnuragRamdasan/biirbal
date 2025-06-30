@@ -1,6 +1,6 @@
 import { prisma } from './prisma'
 import { extractContentFromUrl, summarizeForAudio } from './content-extractor'
-import { generateAudioSummary, uploadAudioToStorage, saveAudioLocally } from './text-to-speech'
+import { generateAudioSummary, uploadAudioToStorage } from './text-to-speech'
 import { WebClient } from '@slack/web-api'
 import { Readable } from 'stream'
 import { PerformanceTimer, performanceMetrics, logMemoryUsage } from './performance'
@@ -108,15 +108,8 @@ export async function processLink({
     
     timer.mark('Phase3:AudioGeneration')
 
-    // PARALLEL PHASE 4: File upload and database update preparation
-    let audioUrl: string
-    if (process.env.NODE_ENV === 'development') {
-      audioUrl = await saveAudioLocally(audioResult.audioBuffer, audioResult.fileName)
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://biirbal.com'
-      audioUrl = `${baseUrl}${audioUrl}`
-    } else {
-      audioUrl = await uploadAudioToStorage(audioResult.audioBuffer, audioResult.fileName)
-    }
+    // PARALLEL PHASE 4: File upload and database update preparation  
+    const audioUrl = await uploadAudioToStorage(audioResult.audioBuffer, audioResult.fileName)
     
     timer.mark('Phase4:FileUpload')
 
@@ -130,6 +123,7 @@ export async function processLink({
           extractedText: extractedContent.excerpt,
           audioFileUrl: audioUrl,
           audioFileKey: audioResult.fileName,
+          ttsScript: audioResult.ttsScript,
           processingStatus: 'COMPLETED',
           updatedAt: new Date()
         }

@@ -49,6 +49,7 @@ model ProcessedLink {
   extractedText   String?
   audioFileUrl    String?
   audioFileKey    String?
+  ttsScript       String?
   processingStatus ProcessingStatus @default(PENDING)
   errorMessage    String?
   createdAt       DateTime @default(now())
