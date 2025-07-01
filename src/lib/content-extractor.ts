@@ -2,6 +2,7 @@ import axios from 'axios'
 import * as cheerio from 'cheerio'
 import { Readability } from '@mozilla/readability'
 import { JSDOM } from 'jsdom'
+import OpenAI from 'openai'
 
 export interface ExtractedContent {
   title: string
@@ -777,6 +778,47 @@ function cleanExtractedText(text: string): string {
     .replace(/\btoggle caption\b/gi, '')
     .replace(/\bembedded audio player\b/gi, '')
     .replace(/\bnpr embedded\b/gi, '')
+    // Remove publication dates and magazine boilerplate
+    .replace(/\d{1,2}\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}Get\s+the\s+latest\s+issue\s+of\s+[\w\s]+/gi, '')
+    .replace(/\d{1,2}\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}Get\s+the\s+latest\s+issue\s+of\s+[\w\s]+/gi, '')
+    .replace(/Get\s+the\s+latest\s+issue\s+of\s+[\w\s]+/gi, '')
+    .replace(/\d{1,2}\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}/g, '')
+    .replace(/\d{1,2}\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}/g, '')
+    // Remove common navigation and section headers
+    .replace(/\bHits\s+and\s+Misses\b/gi, '')
+    .replace(/\bIn\s+This\s+Issue\b/gi, '')
+    .replace(/\bTable\s+of\s+Contents\b/gi, '')
+    .replace(/\bMost\s+Popular\b/gi, '')
+    .replace(/\bTrending\s+Now\b/gi, '')
+    .replace(/\bRelated\s+Stories\b/gi, '')
+    .replace(/\bYou\s+Might\s+Also\s+Like\b/gi, '')
+    .replace(/\bRecommended\s+for\s+You\b/gi, '')
+    .replace(/\bMore\s+from\s+[\w\s]+\b/gi, '')
+    .replace(/\bSubscribe\s+to\s+our\s+newsletter\b/gi, '')
+    .replace(/\bSign\s+up\s+for\s+updates\b/gi, '')
+    .replace(/\bJoin\s+our\s+mailing\s+list\b/gi, '')
+    .replace(/\bFollow\s+us\s+on\s+[\w\s]+\b/gi, '')
+    .replace(/\bShare\s+this\s+article\b/gi, '')
+    .replace(/\bPrint\s+this\s+article\b/gi, '')
+    .replace(/\bSave\s+to\s+favorites\b/gi, '')
+    // Remove common website navigation elements
+    .replace(/\bHome\s+>\s+[\w\s>]+\b/gi, '')
+    .replace(/\bBreadcrumb\s+navigation\b/gi, '')
+    .replace(/\bSkip\s+to\s+content\b/gi, '')
+    .replace(/\bSkip\s+to\s+main\s+content\b/gi, '')
+    .replace(/\bMenu\s+toggle\b/gi, '')
+    .replace(/\bSearch\s+form\b/gi, '')
+    .replace(/\bLogin\s+\/\s+Register\b/gi, '')
+    .replace(/\bMy\s+Account\b/gi, '')
+    .replace(/\bCart\s+\(\d+\)\b/gi, '')
+    // Remove publication-specific boilerplate
+    .replace(/\bRead\s+more\s+in\s+the\s+latest\s+issue\b/gi, '')
+    .replace(/\bAvailable\s+in\s+print\s+and\s+digital\b/gi, '')
+    .replace(/\bDownload\s+the\s+app\b/gi, '')
+    .replace(/\bGet\s+the\s+magazine\b/gi, '')
+    .replace(/\bSubscribe\s+now\b/gi, '')
+    .replace(/\bFree\s+trial\b/gi, '')
+    .replace(/\bSpecial\s+offer\b/gi, '')
     // Remove image credits and photography attributions
     .replace(/\b[A-Z][a-z]*\d+[A-Z][a-z]*\s*Images?\b/gi, '') // Westend61Getty Images
     .replace(/\b[A-Z][a-z]*\d+\b/gi, '') // Westend61
@@ -1016,7 +1058,60 @@ function detectWAFBlocking(html: string, response: any): string | null {
   return null
 }
 
-export function summarizeForAudio(text: string, maxWords: number = 200): string {
+export async function summarizeForAudio(text: string, maxWords: number = 200): Promise<string> {
+  const words = text.split(/\s+/)
+  
+  // If text is already short enough, return as-is
+  if (words.length <= maxWords) {
+    return text
+  }
+
+  try {
+    // Use OpenAI for high-quality editorial summarization
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY
+    })
+
+    const prompt = `Create a professional, concise summary of this article suitable for audio narration. Focus on the main points, key facts, and important context. Keep it under ${maxWords} words and make it engaging for listeners:
+
+${text.substring(0, 12000)}` // Limit input to avoid token limits
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini", // Fast and cost-effective model
+      messages: [{ 
+        role: "user", 
+        content: prompt 
+      }],
+      max_tokens: Math.ceil(maxWords * 1.5), // Allow buffer for response
+      temperature: 0.3, // Lower temperature for more focused summaries
+      presence_penalty: 0.1, // Slight penalty to avoid repetition
+      frequency_penalty: 0.1
+    })
+
+    const summary = response.choices[0]?.message?.content?.trim()
+    
+    if (summary && summary.length > 0) {
+      // Ensure the summary doesn't exceed word limit
+      const summaryWords = summary.split(/\s+/)
+      if (summaryWords.length > maxWords) {
+        return summaryWords.slice(0, maxWords).join(' ') + '...'
+      }
+      return summary
+    }
+    
+    // Fallback to rule-based if AI fails
+    console.warn('OpenAI summarization failed, falling back to extractive method')
+    return fallbackSummarizeForAudio(text, maxWords)
+    
+  } catch (error) {
+    console.error('OpenAI summarization error:', error)
+    // Fallback to rule-based summarization
+    return fallbackSummarizeForAudio(text, maxWords)
+  }
+}
+
+// Fallback rule-based summarization (original logic)
+function fallbackSummarizeForAudio(text: string, maxWords: number = 200): string {
   const words = text.split(/\s+/)
   
   if (words.length <= maxWords) {

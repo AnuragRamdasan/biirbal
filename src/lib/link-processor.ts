@@ -59,7 +59,7 @@ export async function processLink({
     timer.mark('Phase1:DatabaseAndExtraction')
 
     // PARALLEL PHASE 2: Database record creation and audio text preparation
-    const audioText = summarizeForAudio(extractedContent.text, 200)
+    const audioText = await summarizeForAudio(extractedContent.text, 200)
     
     const [processedLinkRecord] = await Promise.all([
       // Database operation: Create processed link record
