@@ -13,11 +13,6 @@ interface ProcessLinkParams {
   slackTeamId: string
 }
 
-export async function processLinkInBackground(params: ProcessLinkParams) {
-  // Legacy function - now just delegates to the main processLink
-  // The job queue handles the background processing
-  return processLink(params)
-}
 
 export async function processLink({
   url,

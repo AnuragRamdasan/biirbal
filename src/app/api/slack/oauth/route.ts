@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   console.log(request.url)
   const oauthLogger = logger.child('slack-oauth')
   
-  //try {
+  try {
     const searchParams = request.nextUrl.searchParams
     const code = searchParams.get('code')
     const state = searchParams.get('state')
@@ -140,10 +140,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(
       new URL(`/?installed=true&teamId=${encodeURIComponent(teamId)}`, 'https://biirbal.com')
     )
-  // } catch (error) {
-  //   console.error('OAuth error:', error)
-  //   return NextResponse.redirect(
-  //     new URL(`/?error=${encodeURIComponent('Installation failed')}`, process.env.NEXTAUTH_URL || request.url)
-  //   )
-  // }
+  } catch (error) {
+    console.error('OAuth error:', error)
+    return NextResponse.redirect(
+      new URL(`/?error=${encodeURIComponent('Installation failed')}`, 'https://biirbal.com')
+    )
+  }
 }
