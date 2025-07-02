@@ -130,12 +130,24 @@ export default function ProfilePage() {
           <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
             <h2 className="text-xl font-semibold text-red-800 mb-2">Error</h2>
             <p className="text-red-600 mb-4">{error}</p>
-            <Link 
-              href="/"
-              className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Go Home
-            </Link>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => {
+                  // For development: set a test team ID
+                  localStorage.setItem('biirbal_team_id', 'cmclrwmta0000xrpul8gd2x5i')
+                  window.location.reload()
+                }}
+                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Use Test Team
+              </button>
+              <Link 
+                href="/"
+                className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Go Home
+              </Link>
+            </div>
           </div>
         </div>
       </div>
