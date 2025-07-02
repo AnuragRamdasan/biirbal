@@ -24,6 +24,19 @@ interface TeamData {
     totalListens: number
     monthlyLimit: number
   }
+  currentUser?: {
+    id: string
+    name: string
+    email?: string
+    profile?: {
+      display_name?: string
+      real_name?: string
+      image_24?: string
+      image_32?: string
+      image_48?: string
+      title?: string
+    }
+  }
 }
 
 export default function ProfilePage() {
@@ -47,8 +60,18 @@ export default function ProfilePage() {
         return
       }
 
-      console.log('Fetching profile for team ID:', storedTeamId)
-      const response = await fetch(`/api/profile?teamId=${storedTeamId}`)
+      // Try to get user ID from localStorage (this would typically come from Slack OAuth or session)
+      // For demonstration, we'll check for a stored user ID
+      const storedUserId = localStorage.getItem('biirbal_user_id')
+      
+      console.log('Fetching profile for team ID:', storedTeamId, 'and user ID:', storedUserId)
+      
+      let url = `/api/profile?teamId=${storedTeamId}`
+      if (storedUserId) {
+        url += `&userId=${storedUserId}`
+      }
+      
+      const response = await fetch(url)
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         console.error('Profile API error:', errorData)
@@ -70,6 +93,7 @@ export default function ProfilePage() {
       // Clear all local storage items
       localStorage.removeItem('biirbal_visited_dashboard')
       localStorage.removeItem('biirbal_team_id')
+      localStorage.removeItem('biirbal_user_id')
       
       // Clear any other app-specific storage
       Object.keys(localStorage).forEach(key => {
@@ -230,6 +254,74 @@ export default function ProfilePage() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Team Profile</h1>
           <p className="text-gray-600">Manage your biirbal.ai settings and subscription</p>
         </div>
+
+        {/* Current User Information */}
+        {teamData.currentUser ? (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 p-8 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Current User</h2>
+            <div className="flex items-center space-x-4">
+              {teamData.currentUser.profile?.image_48 && (
+                <img 
+                  src={teamData.currentUser.profile.image_48} 
+                  alt={teamData.currentUser.name}
+                  className="w-16 h-16 rounded-full border border-gray-200"
+                />
+              )}
+              <div className="flex-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500 mb-1">Display Name</label>
+                    <p className="text-lg text-gray-900">
+                      {teamData.currentUser.profile?.display_name || teamData.currentUser.name}
+                    </p>
+                  </div>
+                  {teamData.currentUser.profile?.real_name && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500 mb-1">Real Name</label>
+                      <p className="text-lg text-gray-900">{teamData.currentUser.profile.real_name}</p>
+                    </div>
+                  )}
+                  {teamData.currentUser.email && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500 mb-1">Email</label>
+                      <p className="text-sm text-gray-700">{teamData.currentUser.email}</p>
+                    </div>
+                  )}
+                  {teamData.currentUser.profile?.title && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500 mb-1">Title</label>
+                      <p className="text-sm text-gray-700">{teamData.currentUser.profile.title}</p>
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500 mb-1">User ID</label>
+                    <p className="text-sm text-gray-700 font-mono">{teamData.currentUser.id}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-blue-50 rounded-2xl border border-blue-200 shadow-sm p-8 mb-6">
+            <h2 className="text-xl font-semibold text-blue-900 mb-4">User Information</h2>
+            <div className="flex items-start space-x-3">
+              <div className="bg-blue-500 rounded-full p-2 mt-1">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="text-blue-800 mb-2">
+                  To see your user information, you need to set your Slack User ID.
+                </p>
+                <p className="text-sm text-blue-600">
+                  You can find your User ID in your Slack profile or by asking a team admin. 
+                  Once you have it, you can store it by running: <code className="bg-blue-100 px-2 py-1 rounded font-mono">localStorage.setItem(&apos;biirbal_user_id&apos;, &apos;YOUR_USER_ID&apos;)</code> in your browser console and then refresh this page.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Team Information */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 p-8 mb-6">

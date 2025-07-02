@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '../../../lib/prisma'
+import { WebClient } from '@slack/web-api'
 
 export async function GET(request: NextRequest) {
   try {
-    // Get Slack team ID from query params (stored in localStorage during OAuth)
+    // Get Slack team ID and optional user ID from query params
     // In a real app, this would come from authenticated session
     const { searchParams } = new URL(request.url)
     const slackTeamId = searchParams.get('teamId')
+    const userId = searchParams.get('userId') // Optional current user ID
     
     if (!slackTeamId) {
       return NextResponse.json(
@@ -59,6 +61,34 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // Fetch current user information if userId is provided
+    let currentUser = null
+    if (userId && team.accessToken) {
+      try {
+        const slackClient = new WebClient(team.accessToken)
+        const userInfo = await slackClient.users.info({ user: userId })
+        
+        if (userInfo.ok && userInfo.user) {
+          currentUser = {
+            id: userInfo.user.id,
+            name: userInfo.user.name || userInfo.user.real_name || 'Unknown User',
+            email: userInfo.user.profile?.email,
+            profile: {
+              display_name: userInfo.user.profile?.display_name,
+              real_name: userInfo.user.profile?.real_name,
+              image_24: userInfo.user.profile?.image_24,
+              image_32: userInfo.user.profile?.image_32,
+              image_48: userInfo.user.profile?.image_48,
+              title: userInfo.user.profile?.title
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to fetch user info:', error)
+        // Don't fail the entire request if user info fetch fails
+      }
+    }
+
     return NextResponse.json({
       team: {
         id: team.id,
@@ -73,7 +103,8 @@ export async function GET(request: NextRequest) {
         monthlyUsage,
         totalListens,
         monthlyLimit: team.subscription?.monthlyLimit || 50
-      }
+      },
+      currentUser
     })
   } catch (error) {
     console.error('Profile API error:', error)
