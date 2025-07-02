@@ -62,12 +62,18 @@ export default function Dashboard() {
 
   const trackListen = async (linkId: string) => {
     try {
+      // Get the current user ID from localStorage if available
+      const slackUserId = localStorage.getItem('biirbal_user_id')
+      
       await fetch('/api/dashboard/track-listen', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ linkId }),
+        body: JSON.stringify({ 
+          linkId,
+          slackUserId 
+        }),
       })
       fetchLinks()
     } catch (err) {

@@ -20,8 +20,32 @@ model Team {
   channels     Channel[]
   processedLinks ProcessedLink[]
   subscription Subscription?
+  users        User[]
 
   @@map("teams")
+}
+
+model User {
+  id              String   @id @default(cuid())
+  slackUserId     String   @unique
+  teamId          String
+  name            String?
+  displayName     String?
+  realName        String?
+  email           String?
+  profileImage24  String?
+  profileImage32  String?
+  profileImage48  String?
+  title           String?
+  userAccessToken String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  audioListens AudioListen[]
+
+  @@map("users")
 }
 
 model Channel {
@@ -83,7 +107,8 @@ model Subscription {
 model AudioListen {
   id              String   @id @default(cuid())
   processedLinkId String
-  userId          String?
+  userId          String?  // Keep this for backwards compatibility and anonymous listens
+  slackUserId     String?  // New field for authenticated user tracking
   userAgent       String?
   ipAddress       String?
   listenedAt      DateTime @default(now())
@@ -91,6 +116,7 @@ model AudioListen {
   listenDuration  Int?     // Duration in seconds
 
   processedLink ProcessedLink @relation(fields: [processedLinkId], references: [id], onDelete: Cascade)
+  user          User?         @relation(fields: [slackUserId], references: [slackUserId], onDelete: SetNull)
 
   @@map("audio_listens")
 }

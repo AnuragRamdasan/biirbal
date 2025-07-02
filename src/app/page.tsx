@@ -15,10 +15,14 @@ function HomeContent() {
       setInstalled(true)
       setShowDashboard(true)
       
-      // Store team ID from OAuth response
+      // Store team ID and user ID from OAuth response
       const teamId = searchParams.get('teamId')
+      const userId = searchParams.get('userId')
       if (teamId) {
         localStorage.setItem('biirbal_team_id', teamId)
+      }
+      if (userId) {
+        localStorage.setItem('biirbal_user_id', userId)
       }
     }
     if (searchParams.get('error')) {
@@ -46,7 +50,7 @@ function HomeContent() {
     return 'https://biirbal.com/api/slack/oauth'
   }
 
-  const slackInstallUrl = `https://slack.com/oauth/v2/authorize?client_id=${process.env.NEXT_PUBLIC_SLACK_CLIENT_ID}&scope=app_mentions:read,channels:history,channels:read,chat:write,files:write,groups:history,groups:read,im:history,im:read,mpim:history,mpim:read&user_scope=&redirect_uri=${encodeURIComponent(getRedirectUri())}`
+  const slackInstallUrl = `https://slack.com/oauth/v2/authorize?client_id=${process.env.NEXT_PUBLIC_SLACK_CLIENT_ID}&scope=app_mentions:read,channels:history,channels:read,chat:write,files:write,groups:history,groups:read,im:history,im:read,mpim:history,mpim:read&user_scope=users:read&redirect_uri=${encodeURIComponent(getRedirectUri())}`
 
   return (
     <>

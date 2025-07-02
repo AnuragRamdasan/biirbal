@@ -105,10 +105,22 @@ export async function GET(request: NextRequest) {
       botUserId,
       hasAccessToken: !!accessToken,
       tokenType: typeof accessToken,
-      scopes: result.scope || 'No scopes returned'
+      scopes: result.scope || 'No scopes returned',
+      fullResult: result // Log the full result to see what user info is available
     })
 
-    await prisma.team.upsert({
+    // Extract user information from OAuth result
+    const userId = result.authed_user?.id
+    const userAccessToken = result.authed_user?.access_token
+    
+    console.log('User info from OAuth:', {
+      userId,
+      hasUserToken: !!userAccessToken,
+      authedUser: result.authed_user
+    })
+
+    // Store team information
+    const team = await prisma.team.upsert({
       where: { slackTeamId: teamId },
       update: {
         teamName,
@@ -133,12 +145,69 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // Store user information if available
+    if (userId && userAccessToken) {
+      try {
+        // Use the user access token to get detailed user info
+        const userSlackClient = new WebClient(userAccessToken)
+        const userInfo = await userSlackClient.users.info({ user: userId })
+        
+        if (userInfo.ok && userInfo.user) {
+          await prisma.user.upsert({
+            where: { slackUserId: userId },
+            update: {
+              teamId: team.id,
+              name: userInfo.user.name,
+              displayName: userInfo.user.profile?.display_name,
+              realName: userInfo.user.profile?.real_name,
+              email: userInfo.user.profile?.email,
+              profileImage24: userInfo.user.profile?.image_24,
+              profileImage32: userInfo.user.profile?.image_32,
+              profileImage48: userInfo.user.profile?.image_48,
+              title: userInfo.user.profile?.title,
+              userAccessToken,
+              isActive: true,
+              updatedAt: new Date()
+            },
+            create: {
+              slackUserId: userId,
+              teamId: team.id,
+              name: userInfo.user.name,
+              displayName: userInfo.user.profile?.display_name,
+              realName: userInfo.user.profile?.real_name,
+              email: userInfo.user.profile?.email,
+              profileImage24: userInfo.user.profile?.image_24,
+              profileImage32: userInfo.user.profile?.image_32,
+              profileImage48: userInfo.user.profile?.image_48,
+              title: userInfo.user.profile?.title,
+              userAccessToken,
+              isActive: true
+            }
+          })
+          
+          console.log('User information stored:', {
+            userId,
+            name: userInfo.user.name,
+            email: userInfo.user.profile?.email
+          })
+        }
+      } catch (error) {
+        console.error('Failed to fetch/store user info:', error)
+        // Don't fail the OAuth flow if user info fails
+      }
+    }
+
     console.log(process.env.NEXTAUTH_URL)
     console.log(request.url)
     
-    // Store team ID in URL for client-side storage
+    // Store team ID and user ID in URL for client-side storage
+    let redirectUrl = `/?installed=true&teamId=${encodeURIComponent(teamId)}`
+    if (userId) {
+      redirectUrl += `&userId=${encodeURIComponent(userId)}`
+    }
+    
     return NextResponse.redirect(
-      new URL(`/?installed=true&teamId=${encodeURIComponent(teamId)}`, 'https://biirbal.com')
+      new URL(redirectUrl, 'https://biirbal.com')
     )
   } catch (error) {
     console.error('OAuth error:', error)

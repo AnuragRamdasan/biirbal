@@ -61,30 +61,82 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Fetch current user information if userId is provided
+    // Fetch current user information and their specific stats if userId is provided
     let currentUser = null
-    if (userId && team.accessToken) {
+    let userListenStats = null
+    if (userId) {
       try {
-        const slackClient = new WebClient(team.accessToken)
-        const userInfo = await slackClient.users.info({ user: userId })
+        const user = await prisma.user.findUnique({
+          where: { slackUserId: userId },
+          select: {
+            slackUserId: true,
+            name: true,
+            displayName: true,
+            realName: true,
+            email: true,
+            profileImage24: true,
+            profileImage32: true,
+            profileImage48: true,
+            title: true,
+            teamId: true
+          }
+        })
         
-        if (userInfo.ok && userInfo.user) {
+        if (user && user.teamId === team.id) {
           currentUser = {
-            id: userInfo.user.id,
-            name: userInfo.user.name || userInfo.user.real_name || 'Unknown User',
-            email: userInfo.user.profile?.email,
+            id: user.slackUserId,
+            name: user.name || user.realName || 'Unknown User',
+            email: user.email,
             profile: {
-              display_name: userInfo.user.profile?.display_name,
-              real_name: userInfo.user.profile?.real_name,
-              image_24: userInfo.user.profile?.image_24,
-              image_32: userInfo.user.profile?.image_32,
-              image_48: userInfo.user.profile?.image_48,
-              title: userInfo.user.profile?.title
+              display_name: user.displayName,
+              real_name: user.realName,
+              image_24: user.profileImage24,
+              image_32: user.profileImage32,
+              image_48: user.profileImage48,
+              title: user.title
             }
+          }
+
+          // Get user-specific listen statistics
+          const userTotalListens = await prisma.audioListen.count({
+            where: {
+              slackUserId: userId,
+              processedLink: {
+                teamId: team.id
+              }
+            }
+          })
+
+          const userMonthlyListens = await prisma.audioListen.count({
+            where: {
+              slackUserId: userId,
+              processedLink: {
+                teamId: team.id
+              },
+              listenedAt: {
+                gte: currentMonth
+              }
+            }
+          })
+
+          const userCompletedListens = await prisma.audioListen.count({
+            where: {
+              slackUserId: userId,
+              processedLink: {
+                teamId: team.id
+              },
+              completed: true
+            }
+          })
+
+          userListenStats = {
+            totalListens: userTotalListens,
+            monthlyListens: userMonthlyListens,
+            completedListens: userCompletedListens
           }
         }
       } catch (error) {
-        console.warn('Failed to fetch user info:', error)
+        console.warn('Failed to fetch user info from database:', error)
         // Don't fail the entire request if user info fetch fails
       }
     }
@@ -104,7 +156,8 @@ export async function GET(request: NextRequest) {
         totalListens,
         monthlyLimit: team.subscription?.monthlyLimit || 50
       },
-      currentUser
+      currentUser,
+      userListenStats
     })
   } catch (error) {
     console.error('Profile API error:', error)

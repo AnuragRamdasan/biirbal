@@ -37,6 +37,11 @@ interface TeamData {
       title?: string
     }
   }
+  userListenStats?: {
+    totalListens: number
+    monthlyListens: number
+    completedListens: number
+  }
 }
 
 export default function ProfilePage() {
@@ -256,7 +261,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Current User Information */}
-        {teamData.currentUser ? (
+        {teamData.currentUser && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 p-8 mb-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">Current User</h2>
             <div className="flex items-center space-x-4">
@@ -301,23 +306,39 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
-        ) : (
-          <div className="bg-blue-50 rounded-2xl border border-blue-200 shadow-sm p-8 mb-6">
-            <h2 className="text-xl font-semibold text-blue-900 mb-4">User Information</h2>
-            <div className="flex items-start space-x-3">
-              <div className="bg-blue-500 rounded-full p-2 mt-1">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+        )}
+
+        {/* User Listen Statistics */}
+        {teamData.userListenStats && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 p-8 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Your Listen Statistics</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-2xl border border-green-200">
+                <div className="bg-gradient-to-r from-green-500 to-emerald-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                  </svg>
+                </div>
+                <div className="text-3xl font-bold text-green-600 mb-2">{teamData.userListenStats.totalListens}</div>
+                <div className="text-sm text-gray-600 font-medium">Your Total Listens</div>
               </div>
-              <div className="flex-1">
-                <p className="text-blue-800 mb-2">
-                  To see your user information, you need to set your Slack User ID.
-                </p>
-                <p className="text-sm text-blue-600">
-                  You can find your User ID in your Slack profile or by asking a team admin. 
-                  Once you have it, you can store it by running: <code className="bg-blue-100 px-2 py-1 rounded font-mono">localStorage.setItem(&apos;biirbal_user_id&apos;, &apos;YOUR_USER_ID&apos;)</code> in your browser console and then refresh this page.
-                </p>
+              <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl border border-blue-200">
+                <div className="bg-gradient-to-r from-blue-500 to-indigo-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div className="text-3xl font-bold text-blue-600 mb-2">{teamData.userListenStats.monthlyListens}</div>
+                <div className="text-sm text-gray-600 font-medium">This Month&apos;s Listens</div>
+              </div>
+              <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl border border-purple-200">
+                <div className="bg-gradient-to-r from-purple-500 to-pink-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div className="text-3xl font-bold text-purple-600 mb-2">{teamData.userListenStats.completedListens}</div>
+                <div className="text-sm text-gray-600 font-medium">Completed Listens</div>
               </div>
             </div>
           </div>
