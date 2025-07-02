@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '../../../lib/prisma'
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,6 +14,9 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    // Test database connection
+    await prisma.$connect()
 
     const team = await prisma.team.findUnique({
       where: { id: teamId },

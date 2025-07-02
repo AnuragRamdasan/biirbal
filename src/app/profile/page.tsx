@@ -43,27 +43,46 @@ export default function ProfilePage() {
       const storedTeamId = localStorage.getItem('biirbal_team_id')
       if (!storedTeamId) {
         setError('No team found. Please install the bot first.')
+        setLoading(false)
         return
       }
 
       const response = await fetch(`/api/profile?teamId=${storedTeamId}`)
       if (!response.ok) {
-        throw new Error('Failed to fetch profile data')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `HTTP ${response.status}: Failed to fetch profile data`)
       }
 
       const data = await response.json()
       setTeamData(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
+      console.error('Profile fetch error:', err)
+      setError(err instanceof Error ? err.message : 'Unknown error occurred')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem('biirbal_visited_dashboard')
-    localStorage.removeItem('biirbal_team_id')
-    router.push('/')
+  const handleLogout = async () => {
+    try {
+      // Clear all local storage items
+      localStorage.removeItem('biirbal_visited_dashboard')
+      localStorage.removeItem('biirbal_team_id')
+      
+      // Clear any other app-specific storage
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('biirbal_')) {
+          localStorage.removeItem(key)
+        }
+      })
+      
+      // Redirect to home page
+      router.push('/')
+    } catch (error) {
+      console.error('Logout error:', error)
+      // Even if there's an error, still redirect to home
+      router.push('/')
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -127,7 +146,9 @@ export default function ProfilePage() {
     return null
   }
 
-  const usagePercentage = (teamData.usage.monthlyUsage / teamData.usage.monthlyLimit) * 100
+  const usagePercentage = teamData.usage && teamData.usage.monthlyLimit > 0 
+    ? (teamData.usage.monthlyUsage / teamData.usage.monthlyLimit) * 100 
+    : 0
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4">
@@ -160,21 +181,21 @@ export default function ProfilePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-500 mb-1">Team Name</label>
-              <p className="text-lg text-gray-900">{teamData.team.teamName || 'Unknown Team'}</p>
+              <p className="text-lg text-gray-900">{teamData.team?.teamName || 'Unknown Team'}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-500 mb-1">Status</label>
-              <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(teamData.team.isActive ? 'Active' : 'Inactive')}`}>
-                {teamData.team.isActive ? 'Active' : 'Inactive'}
+              <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(teamData.team?.isActive ? 'Active' : 'Inactive')}`}>
+                {teamData.team?.isActive ? 'Active' : 'Inactive'}
               </span>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-500 mb-1">Slack Team ID</label>
-              <p className="text-sm text-gray-700 font-mono">{teamData.team.slackTeamId}</p>
+              <p className="text-sm text-gray-700 font-mono">{teamData.team?.slackTeamId || 'N/A'}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-500 mb-1">Joined</label>
-              <p className="text-sm text-gray-700">{formatDate(teamData.team.createdAt)}</p>
+              <p className="text-sm text-gray-700">{teamData.team?.createdAt ? formatDate(teamData.team.createdAt) : 'N/A'}</p>
             </div>
           </div>
         </div>
@@ -186,17 +207,17 @@ export default function ProfilePage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-500 mb-1">Plan</label>
-                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(teamData.subscription.status)}`}>
-                  {teamData.subscription.status}
+                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(teamData.subscription?.status || 'inactive')}`}>
+                  {teamData.subscription?.status || 'No Plan'}
                 </span>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-500 mb-1">Monthly Limit</label>
-                <p className="text-lg text-gray-900">{teamData.subscription.monthlyLimit} links</p>
+                <p className="text-lg text-gray-900">{teamData.subscription?.monthlyLimit || 0} links</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-500 mb-1">Used This Month</label>
-                <p className="text-lg text-gray-900">{teamData.subscription.linksProcessed} links</p>
+                <p className="text-lg text-gray-900">{teamData.subscription?.linksProcessed || 0} links</p>
               </div>
             </div>
             
@@ -224,16 +245,16 @@ export default function ProfilePage() {
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Usage Statistics</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
-              <div className="text-3xl font-bold text-indigo-600">{teamData.team.totalLinks}</div>
+              <div className="text-3xl font-bold text-indigo-600">{teamData.team?.totalLinks || 0}</div>
               <div className="text-sm text-gray-500">Total Links Processed</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-purple-600">{teamData.usage.totalListens}</div>
+              <div className="text-3xl font-bold text-purple-600">{teamData.usage?.totalListens || 0}</div>
               <div className="text-sm text-gray-500">Total Audio Listens</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600">{teamData.usage.monthlyUsage}</div>
-              <div className="text-sm text-gray-500">This Month's Usage</div>
+              <div className="text-3xl font-bold text-blue-600">{teamData.usage?.monthlyUsage || 0}</div>
+              <div className="text-sm text-gray-500">This Month&apos;s Usage</div>
             </div>
           </div>
         </div>
