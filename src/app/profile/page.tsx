@@ -110,15 +110,30 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4">
-        <div className="max-w-4xl mx-auto py-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+      <div className="min-h-screen bg-gradient-to-br from-white to-gray-50">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+          <div className="container mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="text-xl font-bold">🧠 biirbal.ai</span>
+              </div>
+              <div className="flex items-center space-x-4">
+                <Link href="/dashboard" className="text-white/80 hover:text-white transition-colors text-sm">
+                  Dashboard
+                </Link>
+                <Link href="/" className="text-white/80 hover:text-white transition-colors text-sm">
+                  ← Home
+                </Link>
+              </div>
             </div>
+          </div>
+        </div>
+        
+        <div className="container mx-auto px-6 py-12">
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading your profile...</p>
           </div>
         </div>
       </div>
@@ -127,20 +142,41 @@ export default function ProfilePage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4">
-        <div className="max-w-4xl mx-auto py-8">
-          <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-            <h2 className="text-xl font-semibold text-red-800 mb-2">Authentication Error</h2>
-            <p className="text-red-600 mb-4">{error}</p>
-            <p className="text-sm text-red-500 mb-4">
-              Please reinstall the Slack bot to fix this issue.
-            </p>
-            <Link 
-              href="/"
-              className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Reinstall Bot
-            </Link>
+      <div className="min-h-screen bg-gradient-to-br from-white to-gray-50">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+          <div className="container mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="text-xl font-bold">🧠 biirbal.ai</span>
+              </div>
+              <div className="flex items-center space-x-4">
+                <Link href="/dashboard" className="text-white/80 hover:text-white transition-colors text-sm">
+                  Dashboard
+                </Link>
+                <Link href="/" className="text-white/80 hover:text-white transition-colors text-sm">
+                  ← Home
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="container mx-auto px-6 py-12">
+          <div className="text-center py-12">
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-8 max-w-md mx-auto shadow-sm">
+              <h2 className="text-xl font-semibold text-red-800 mb-2">Authentication Error</h2>
+              <p className="text-red-600 mb-4">{error}</p>
+              <p className="text-sm text-red-500 mb-6">
+                Please reinstall the Slack bot to fix this issue.
+              </p>
+              <Link 
+                href="/"
+                className="inline-flex items-center px-6 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-semibold"
+              >
+                Reinstall Bot
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -156,33 +192,48 @@ export default function ProfilePage() {
     : 0
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4">
-      <div className="max-w-4xl mx-auto py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Team Profile</h1>
-            <p className="text-gray-600 mt-1">Manage your biirbal.ai settings</p>
+    <div className="min-h-screen bg-gradient-to-br from-white to-gray-50">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <span className="text-xl font-bold">🧠 biirbal.ai</span>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Link
+                href="/dashboard"
+                className="text-white/80 hover:text-white transition-colors text-sm"
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/"
+                className="text-white/80 hover:text-white transition-colors text-sm"
+              >
+                ← Home
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+              >
+                Logout
+              </button>
+            </div>
           </div>
-          <div className="flex gap-3">
-            <Link
-              href="/dashboard"
-              className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              Dashboard
-            </Link>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Logout
-            </button>
-          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-6 py-8">
+        {/* Page Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Team Profile</h1>
+          <p className="text-gray-600">Manage your biirbal.ai settings and subscription</p>
         </div>
 
         {/* Team Information */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Team Information</h2>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 p-8 mb-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">Team Information</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-500 mb-1">Team Name</label>
@@ -207,8 +258,8 @@ export default function ProfilePage() {
 
         {/* Subscription Info */}
         {teamData.subscription && (
-          <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Subscription</h2>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 p-8 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Subscription</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-500 mb-1">Plan</label>
@@ -246,20 +297,35 @@ export default function ProfilePage() {
         )}
 
         {/* Usage Statistics */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Usage Statistics</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-indigo-600">{teamData.team?.totalLinks || 0}</div>
-              <div className="text-sm text-gray-500">Total Links Processed</div>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 p-8 mb-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">Usage Statistics</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="text-center p-6 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-2xl border border-indigo-200">
+              <div className="bg-gradient-to-r from-indigo-500 to-purple-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+              </div>
+              <div className="text-3xl font-bold text-indigo-600 mb-2">{teamData.team?.totalLinks || 0}</div>
+              <div className="text-sm text-gray-600 font-medium">Total Links Processed</div>
             </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-purple-600">{teamData.usage?.totalListens || 0}</div>
-              <div className="text-sm text-gray-500">Total Audio Listens</div>
+            <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl border border-purple-200">
+              <div className="bg-gradient-to-r from-purple-500 to-pink-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                </svg>
+              </div>
+              <div className="text-3xl font-bold text-purple-600 mb-2">{teamData.usage?.totalListens || 0}</div>
+              <div className="text-sm text-gray-600 font-medium">Total Audio Listens</div>
             </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600">{teamData.usage?.monthlyUsage || 0}</div>
-              <div className="text-sm text-gray-500">This Month&apos;s Usage</div>
+            <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl border border-blue-200">
+              <div className="bg-gradient-to-r from-blue-500 to-indigo-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <div className="text-3xl font-bold text-blue-600 mb-2">{teamData.usage?.monthlyUsage || 0}</div>
+              <div className="text-sm text-gray-600 font-medium">This Month&apos;s Usage</div>
             </div>
           </div>
         </div>
@@ -268,7 +334,7 @@ export default function ProfilePage() {
         <div className="mt-8 flex justify-center">
           <Link
             href="/pricing"
-            className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-indigo-500/25"
           >
             Upgrade Plan
           </Link>
