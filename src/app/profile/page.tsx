@@ -47,9 +47,11 @@ export default function ProfilePage() {
         return
       }
 
+      console.log('Fetching profile for team ID:', storedTeamId)
       const response = await fetch(`/api/profile?teamId=${storedTeamId}`)
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
+        console.error('Profile API error:', errorData)
         throw new Error(errorData.error || `HTTP ${response.status}: Failed to fetch profile data`)
       }
 
@@ -128,26 +130,17 @@ export default function ProfilePage() {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4">
         <div className="max-w-4xl mx-auto py-8">
           <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-            <h2 className="text-xl font-semibold text-red-800 mb-2">Error</h2>
+            <h2 className="text-xl font-semibold text-red-800 mb-2">Authentication Error</h2>
             <p className="text-red-600 mb-4">{error}</p>
-            <div className="flex gap-3 justify-center">
-              <button
-                onClick={() => {
-                  // For development: set a test team ID
-                  localStorage.setItem('biirbal_team_id', 'cmclrwmta0000xrpul8gd2x5i')
-                  window.location.reload()
-                }}
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Use Test Team
-              </button>
-              <Link 
-                href="/"
-                className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Go Home
-              </Link>
-            </div>
+            <p className="text-sm text-red-500 mb-4">
+              Please reinstall the Slack bot to fix this issue.
+            </p>
+            <Link 
+              href="/"
+              className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Reinstall Bot
+            </Link>
           </div>
         </div>
       </div>

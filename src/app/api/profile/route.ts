@@ -3,12 +3,12 @@ import { prisma } from '../../../lib/prisma'
 
 export async function GET(request: NextRequest) {
   try {
-    // For now, get team ID from query params
+    // Get Slack team ID from query params (stored in localStorage during OAuth)
     // In a real app, this would come from authenticated session
     const { searchParams } = new URL(request.url)
-    const teamId = searchParams.get('teamId')
+    const slackTeamId = searchParams.get('teamId')
     
-    if (!teamId) {
+    if (!slackTeamId) {
       return NextResponse.json(
         { error: 'Team ID required' },
         { status: 400 }
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     await prisma.$connect()
 
     const team = await prisma.team.findUnique({
-      where: { id: teamId },
+      where: { slackTeamId: slackTeamId },
       include: {
         subscription: true,
         _count: {
