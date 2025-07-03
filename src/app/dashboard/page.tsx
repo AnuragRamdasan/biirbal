@@ -269,7 +269,7 @@ export default function Dashboard() {
                     </div>
 
                     {link.extractedText && (
-                      <p className="text-gray-700 text-sm line-clamp-2 mb-3">{link.extractedText}</p>
+                      <p className="text-gray-700 text-sm mb-3">{link.extractedText}</p>
                     )}
 
                     {link.audioFileUrl && link.processingStatus === 'COMPLETED' && (
@@ -291,80 +291,8 @@ export default function Dashboard() {
                             <source src={link.audioFileUrl} type="audio/mpeg" />
                             Your browser does not support the audio element.
                           </audio>
-                          
-                          <div className="flex gap-2">
-                            {link.ttsScript && (
-                              <button 
-                                className="text-xs text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded transition-colors"
-                                onClick={(e) => {
-                                  const scriptDetails = e.currentTarget.parentElement?.parentElement?.parentElement?.querySelector('.script-details') as HTMLDetailsElement
-                                  if (scriptDetails) {
-                                    scriptDetails.open = !scriptDetails.open
-                                  }
-                                }}
-                              >
-                                📝 Script
-                              </button>
-                            )}
-                            
-                            {link.listens.length > 0 && (
-                              <button 
-                                className="text-xs text-gray-500 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 px-2 py-1 rounded transition-colors"
-                                onClick={(e) => {
-                                  const details = e.currentTarget.parentElement?.parentElement?.parentElement?.querySelector('.history-details') as HTMLDetailsElement
-                                  if (details) {
-                                    details.open = !details.open
-                                  }
-                                }}
-                              >
-                                History ({link.listens.length})
-                              </button>
-                            )}
-                          </div>
                         </div>
 
-                        {/* TTS Script */}
-                        {link.ttsScript && (
-                          <details className="script-details mb-2">
-                            <summary className="sr-only">Audio Script</summary>
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                              <div className="flex items-center gap-2 mb-2">
-                                <span className="text-sm font-medium text-blue-800">🎤 Audio Script</span>
-                                <span className="text-xs text-blue-600">({link.ttsScript.split(' ').length} words)</span>
-                              </div>
-                              <div className="text-sm text-blue-900 leading-relaxed whitespace-pre-wrap">
-                                {link.ttsScript}
-                              </div>
-                            </div>
-                          </details>
-                        )}
-
-                        {link.listens.length > 0 && (
-                          <details className="history-details mt-2">
-                            <summary className="sr-only">Listen History</summary>
-                            <div className="bg-gray-50 rounded-lg p-3 space-y-1">
-                              {link.listens.slice(-3).map((listen) => (
-                                <div key={listen.id} className="flex justify-between items-center text-xs">
-                                  <span className="text-gray-600">
-                                    {new Date(listen.listenedAt).toLocaleDateString()} {new Date(listen.listenedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                  </span>
-                                  <span className={`px-2 py-0.5 rounded text-xs ${
-                                    listen.completed 
-                                      ? 'bg-green-100 text-green-700' 
-                                      : 'bg-gray-200 text-gray-700'
-                                  }`}>
-                                    {listen.completed ? 'Done' : 'Started'}
-                                  </span>
-                                </div>
-                              ))}
-                              {link.listens.length > 3 && (
-                                <div className="text-xs text-gray-500 text-center pt-1 border-t border-gray-200">
-                                  +{link.listens.length - 3} more
-                                </div>
-                              )}
-                            </div>
-                          </details>
-                        )}
                       </div>
                     )}
                   </div>
