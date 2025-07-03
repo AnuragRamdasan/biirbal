@@ -130,11 +130,44 @@ async function handleMessage(event: any, teamId: string) {
     }))
 
   // Fire and forget - don't await the queueing
-  Promise.all(queuePromises).catch(error => {
+  Promise.all(queuePromises).then(async (jobIds) => {
+    console.log(`✅ Queued ${jobIds.length} links for processing`)
+    
+    // Trigger the worker to process the jobs
+    try {
+      const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://biirbal.com'
+      const workerUrl = `${baseUrl}/api/queue/worker`
+      
+      console.log(`🔔 Triggering worker at ${workerUrl}`)
+      
+      // Trigger worker in background (don't await)
+      fetch(workerUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }).then(response => {
+        console.log(`✅ Worker triggered successfully: ${response.status}`)
+      }).catch(error => {
+        console.error('❌ Failed to trigger worker:', error)
+        
+        // If worker trigger fails, try cron endpoint as backup
+        const cronUrl = `${baseUrl}/api/cron/process-queue`
+        fetch(cronUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        }).then(() => {
+          console.log('✅ Backup cron worker triggered')
+        }).catch(cronError => {
+          console.error('❌ Backup cron worker also failed:', cronError)
+        })
+      })
+    } catch (error) {
+      console.error('❌ Error triggering worker:', error)
+    }
+  }).catch(error => {
     console.error('Failed to queue some link processing jobs:', error)
   })
-
-  console.log(`Queued ${queuePromises.length} links for processing`)
 }
 
 async function handleAppMention(event: any, teamId: string) {
