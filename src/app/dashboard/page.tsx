@@ -268,8 +268,8 @@ export default function Dashboard() {
                       </a>
                     </div>
 
-                    {link.extractedText && (
-                      <p className="text-gray-700 text-sm mb-3">{link.extractedText}</p>
+                    {link.ttsScript && (
+                      <div className="text-gray-700 text-sm mb-3 leading-relaxed whitespace-pre-wrap">{link.ttsScript}</div>
                     )}
 
                     {link.audioFileUrl && link.processingStatus === 'COMPLETED' && (
