@@ -3,6 +3,8 @@ import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { extractLinksFromMessage, shouldProcessUrl } from '@/lib/slack'
 import { queueClient } from '@/lib/queue/client'
+import { withDatabaseCleanup } from '@/lib/request-cleanup'
+import { queries } from '@/lib/query-timeout'
 
 function verifySlackRequest(body: string, signature: string, timestamp: string): boolean {
   const signingSecret = process.env.SLACK_SIGNING_SECRET
@@ -22,49 +24,51 @@ function verifySlackRequest(body: string, signature: string, timestamp: string):
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.text()
-    const signature = request.headers.get('x-slack-signature')
-    const timestamp = request.headers.get('x-slack-request-timestamp')
+  return withDatabaseCleanup(async () => {
+    try {
+      const body = await request.text()
+      const signature = request.headers.get('x-slack-signature')
+      const timestamp = request.headers.get('x-slack-request-timestamp')
 
-    if (!signature || !timestamp) {
-      return NextResponse.json({ error: 'Missing headers' }, { status: 400 })
-    }
-
-    // Verify request is from Slack
-    if (!verifySlackRequest(body, signature, timestamp)) {
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
-    }
-
-    const event = JSON.parse(body)
-
-    // Handle URL verification challenge
-    if (event.type === 'url_verification') {
-      return NextResponse.json({ challenge: event.challenge })
-    }
-
-    // Handle events
-    if (event.type === 'event_callback') {
-      const { event: slackEvent } = event
-
-      switch (slackEvent.type) {
-        case 'message':
-          await handleMessage(slackEvent, event.team_id)
-          break
-        case 'app_mention':
-          await handleAppMention(slackEvent, event.team_id)
-          break
-        case 'member_joined_channel':
-          await handleMemberJoinedChannel(slackEvent, event.team_id)
-          break
+      if (!signature || !timestamp) {
+        return NextResponse.json({ error: 'Missing headers' }, { status: 400 })
       }
-    }
 
-    return NextResponse.json({ ok: true })
-  } catch (error) {
-    console.error('Slack event error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
+      // Verify request is from Slack
+      if (!verifySlackRequest(body, signature, timestamp)) {
+        return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+      }
+
+      const event = JSON.parse(body)
+
+      // Handle URL verification challenge
+      if (event.type === 'url_verification') {
+        return NextResponse.json({ challenge: event.challenge })
+      }
+
+      // Handle events
+      if (event.type === 'event_callback') {
+        const { event: slackEvent } = event
+
+        switch (slackEvent.type) {
+          case 'message':
+            await handleMessage(slackEvent, event.team_id)
+            break
+          case 'app_mention':
+            await handleAppMention(slackEvent, event.team_id)
+            break
+          case 'member_joined_channel':
+            await handleMemberJoinedChannel(slackEvent, event.team_id)
+            break
+        }
+      }
+
+      return NextResponse.json({ ok: true })
+    } catch (error) {
+      console.error('Slack event error:', error)
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    }
+  }, 'slack-events')
 }
 
 async function handleMessage(event: any, teamId: string) {
@@ -79,10 +83,7 @@ async function handleMessage(event: any, teamId: string) {
   }
 
   // Get team info to check subscription status
-  const team = await prisma.team.findUnique({
-    where: { slackTeamId: teamId },
-    include: { subscription: true }
-  })
+  const team = await queries.findTeamSafe(teamId)
 
   if (!team || !team.isActive) {
     return
@@ -108,15 +109,7 @@ async function handleMessage(event: any, teamId: string) {
   }
 
   // Store or update channel info
-  await prisma.channel.upsert({
-    where: { slackChannelId: event.channel },
-    update: { updatedAt: new Date() },
-    create: {
-      slackChannelId: event.channel,
-      teamId: team.id,
-      isActive: true
-    }
-  })
+  await queries.upsertChannelSafe(event.channel, team.id)
 
   // Queue each link for background processing (non-blocking)
   const queuePromises = links
@@ -129,45 +122,52 @@ async function handleMessage(event: any, teamId: string) {
       slackTeamId: teamId
     }))
 
-  // Fire and forget - don't await the queueing
-  Promise.all(queuePromises).then(async (jobIds) => {
+  // Queue links and trigger worker - proper async handling
+  try {
+    const jobIds = await Promise.all(queuePromises)
     console.log(`✅ Queued ${jobIds.length} links for processing`)
     
-    // Trigger the worker to process the jobs
-    try {
-      const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://biirbal.com'
-      const workerUrl = `${baseUrl}/api/queue/worker`
-      
-      console.log(`🔔 Triggering worker at ${workerUrl}`)
-      
-      // Trigger worker in background (don't await)
-      fetch(workerUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+    // Trigger worker in background (separate from main response)
+    setImmediate(async () => {
+      try {
+        const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://biirbal.com'
+        const workerUrl = `${baseUrl}/api/queue/worker`
+        
+        console.log(`🔔 Triggering worker at ${workerUrl}`)
+        
+        const response = await fetch(workerUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          signal: AbortSignal.timeout(5000) // 5 second timeout
+        })
+        
+        if (response.ok) {
+          console.log(`✅ Worker triggered successfully: ${response.status}`)
+        } else {
+          throw new Error(`Worker responded with ${response.status}`)
         }
-      }).then(response => {
-        console.log(`✅ Worker triggered successfully: ${response.status}`)
-      }).catch(error => {
+      } catch (error) {
         console.error('❌ Failed to trigger worker:', error)
         
-        // If worker trigger fails, try cron endpoint as backup
-        const cronUrl = `${baseUrl}/api/cron/process-queue`
-        fetch(cronUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        }).then(() => {
+        // Backup cron trigger
+        try {
+          const cronUrl = `${baseUrl}/api/cron/process-queue`
+          await fetch(cronUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: AbortSignal.timeout(5000)
+          })
           console.log('✅ Backup cron worker triggered')
-        }).catch(cronError => {
+        } catch (cronError) {
           console.error('❌ Backup cron worker also failed:', cronError)
-        })
-      })
-    } catch (error) {
-      console.error('❌ Error triggering worker:', error)
-    }
-  }).catch(error => {
-    console.error('Failed to queue some link processing jobs:', error)
-  })
+        }
+      }
+    })
+  } catch (error) {
+    console.error('Failed to queue link processing jobs:', error)
+  }
 }
 
 async function handleAppMention(event: any, teamId: string) {

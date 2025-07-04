@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
     
     // Bull handles job processing automatically, this just monitors/manages
     const results = await processJobs({
-      concurrency: 3, // Process up to 3 jobs concurrently
+      concurrency: 2, // Reduced concurrency to avoid connection pool exhaustion
       workerId: `bull-api-worker-${Date.now()}`
     })
 

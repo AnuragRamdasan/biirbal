@@ -4,17 +4,17 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// Enhanced Prisma configuration for performance
+// Enhanced Prisma configuration for performance and connection pooling
 const createPrismaClient = () => {
   return new PrismaClient({
     datasources: {
       db: {
         url: process.env.DATABASE_URL + (process.env.DATABASE_URL?.includes('?') ? '&' : '?') + 
-            'connection_limit=20&pool_timeout=20&statement_timeout=300000'
+            'connection_limit=50&pool_timeout=30&statement_timeout=30000&query_timeout=20000'
       }
     },
     log: process.env.NODE_ENV === 'development' 
-      ? ['error', 'warn'] 
+      ? ['error', 'warn', 'info'] 
       : ['error'],
     errorFormat: 'minimal'
   })
