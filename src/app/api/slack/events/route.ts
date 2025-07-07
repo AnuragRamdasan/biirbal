@@ -3,8 +3,6 @@ import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { extractLinksFromMessage, shouldProcessUrl } from '@/lib/slack'
 import { queueClient } from '@/lib/queue/client'
-import { withDatabaseCleanup } from '@/lib/request-cleanup'
-import { queries } from '@/lib/query-timeout'
 
 function verifySlackRequest(body: string, signature: string, timestamp: string): boolean {
   const signingSecret = process.env.SLACK_SIGNING_SECRET
@@ -24,51 +22,49 @@ function verifySlackRequest(body: string, signature: string, timestamp: string):
 }
 
 export async function POST(request: NextRequest) {
-  return withDatabaseCleanup(async () => {
-    try {
-      const body = await request.text()
-      const signature = request.headers.get('x-slack-signature')
-      const timestamp = request.headers.get('x-slack-request-timestamp')
+  try {
+    const body = await request.text()
+    const signature = request.headers.get('x-slack-signature')
+    const timestamp = request.headers.get('x-slack-request-timestamp')
 
-      if (!signature || !timestamp) {
-        return NextResponse.json({ error: 'Missing headers' }, { status: 400 })
-      }
-
-      // Verify request is from Slack
-      if (!verifySlackRequest(body, signature, timestamp)) {
-        return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
-      }
-
-      const event = JSON.parse(body)
-
-      // Handle URL verification challenge
-      if (event.type === 'url_verification') {
-        return NextResponse.json({ challenge: event.challenge })
-      }
-
-      // Handle events
-      if (event.type === 'event_callback') {
-        const { event: slackEvent } = event
-
-        switch (slackEvent.type) {
-          case 'message':
-            await handleMessage(slackEvent, event.team_id)
-            break
-          case 'app_mention':
-            await handleAppMention(slackEvent, event.team_id)
-            break
-          case 'member_joined_channel':
-            await handleMemberJoinedChannel(slackEvent, event.team_id)
-            break
-        }
-      }
-
-      return NextResponse.json({ ok: true })
-    } catch (error) {
-      console.error('Slack event error:', error)
-      return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    if (!signature || !timestamp) {
+      return NextResponse.json({ error: 'Missing headers' }, { status: 400 })
     }
-  }, 'slack-events')
+
+    // Verify request is from Slack
+    if (!verifySlackRequest(body, signature, timestamp)) {
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+    }
+
+    const event = JSON.parse(body)
+
+    // Handle URL verification challenge
+    if (event.type === 'url_verification') {
+      return NextResponse.json({ challenge: event.challenge })
+    }
+
+    // Handle events
+    if (event.type === 'event_callback') {
+      const { event: slackEvent } = event
+
+      switch (slackEvent.type) {
+        case 'message':
+          await handleMessage(slackEvent, event.team_id)
+          break
+        case 'app_mention':
+          await handleAppMention(slackEvent, event.team_id)
+          break
+        case 'member_joined_channel':
+          await handleMemberJoinedChannel(slackEvent, event.team_id)
+          break
+      }
+    }
+
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    console.error('Slack event error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }
 
 async function handleMessage(event: any, teamId: string) {
@@ -83,7 +79,10 @@ async function handleMessage(event: any, teamId: string) {
   }
 
   // Get team info to check subscription status
-  const team = await queries.findTeamSafe(teamId)
+  const team = await prisma.team.findUnique({
+    where: { slackTeamId: teamId },
+    include: { subscription: true }
+  })
 
   if (!team || !team.isActive) {
     return
@@ -109,7 +108,15 @@ async function handleMessage(event: any, teamId: string) {
   }
 
   // Store or update channel info
-  await queries.upsertChannelSafe(event.channel, team.id)
+  await prisma.channel.upsert({
+    where: { slackChannelId: event.channel },
+    update: { updatedAt: new Date() },
+    create: {
+      slackChannelId: event.channel,
+      teamId: team.id,
+      isActive: true
+    }
+  })
 
   // Queue each link for background processing (non-blocking)
   const queuePromises = links
