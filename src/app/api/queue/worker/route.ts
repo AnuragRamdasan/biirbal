@@ -1,10 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { processJobs, workerHealthCheck } from '@/lib/queue/bull-worker'
 import { linkProcessingQueue } from '@/lib/queue/bull-queue'
+import { ensureDatabaseConnection } from '@/lib/prisma'
 
 export async function POST(_request: NextRequest) {
   try {
     console.log('🐂 Bull worker API called')
+    
+    // Check database connection first
+    const dbConnected = await ensureDatabaseConnection()
+    if (!dbConnected) {
+      return NextResponse.json({
+        success: false,
+        error: 'Database connection failed',
+        timestamp: new Date().toISOString()
+      }, { status: 503 })
+    }
     
     // Ensure the queue processor is initialized by importing it
     console.log('🔄 Initializing Bull queue processor...')

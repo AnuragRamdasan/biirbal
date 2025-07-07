@@ -2,10 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { processJobs, resumeWorker } from '@/lib/queue/bull-worker'
 import { queueClient } from '@/lib/queue/client'
 import { linkProcessingQueue } from '@/lib/queue/bull-queue'
+import { ensureDatabaseConnection } from '@/lib/prisma'
 
 export async function GET(_request: NextRequest) {
   try {
     console.log('🕐 Bull cron job: Initializing and monitoring queue...')
+    
+    // Check database connection first
+    const dbConnected = await ensureDatabaseConnection()
+    if (!dbConnected) {
+      return NextResponse.json({
+        success: false,
+        error: 'Database connection failed',
+        timestamp: new Date().toISOString()
+      }, { status: 503 })
+    }
     
     // Ensure the queue processor is initialized by importing it
     console.log('🔄 Initializing Bull queue processor...')

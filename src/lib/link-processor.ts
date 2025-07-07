@@ -1,4 +1,4 @@
-import { prisma } from './prisma'
+import { prisma, ensureDatabaseConnection } from './prisma'
 import { extractContentFromUrl, summarizeForAudio } from './content-extractor'
 import { generateAudioSummary, uploadAudioToStorage } from './text-to-speech'
 import { WebClient } from '@slack/web-api'
@@ -27,6 +27,12 @@ export async function processLink({
   try {
     logMemoryUsage('ProcessLink:Start')
     console.log(`🚀 Starting lightning-fast processing for: ${url}`)
+    
+    // Ensure database connection is working before processing
+    const dbConnected = await ensureDatabaseConnection()
+    if (!dbConnected) {
+      throw new Error('Database connection failed - cannot process link')
+    }
     
     // PARALLEL PHASE 1: Database setup and content extraction
     const [channel, team, extractedContent] = await Promise.all([
