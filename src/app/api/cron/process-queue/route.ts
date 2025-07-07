@@ -1,14 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { processJobs, resumeWorker } from '@/lib/queue/bull-worker'
 import { queueClient } from '@/lib/queue/client'
+import { linkProcessingQueue } from '@/lib/queue/bull-queue'
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
-    console.log('🕐 Bull cron job: Monitoring queue...')
+    console.log('🕐 Bull cron job: Initializing and monitoring queue...')
+    
+    // Ensure the queue processor is initialized by importing it
+    console.log('🔄 Initializing Bull queue processor...')
     
     // Check if there are any pending jobs
     const stats = await queueClient.getStats()
     console.log('📊 Bull queue stats:', stats)
+    
+    // Get detailed queue status
+    const waiting = await linkProcessingQueue.getWaiting()
+    const active = await linkProcessingQueue.getActive()
+    
+    console.log(`📊 Detailed queue status: ${waiting.length} waiting, ${active.length} active jobs`)
     
     // Ensure the queue is running
     await resumeWorker()

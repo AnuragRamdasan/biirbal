@@ -5,10 +5,21 @@
  * but uses Bull under the hood for better reliability
  */
 
-import { queueManager, ProcessLinkJobData } from './bull-queue'
+import { queueManager, ProcessLinkJobData, linkProcessingQueue } from './bull-queue'
 import { processLink } from '@/lib/link-processor'
 
 class BullQueueClient {
+  private initialized = false
+  
+  private async ensureInitialized() {
+    if (!this.initialized) {
+      console.log('🔄 Ensuring Bull queue processor is initialized...')
+      // Simply importing linkProcessingQueue will initialize the processor
+      await linkProcessingQueue.isReady()
+      this.initialized = true
+      console.log('✅ Bull queue processor initialized')
+    }
+  }
   /**
    * Add a job to the queue
    */
@@ -20,6 +31,9 @@ class BullQueueClient {
     console.log(`🐂 Adding ${type} job to Bull queue`, { url: data.url })
     
     try {
+      // Ensure processor is initialized
+      await this.ensureInitialized()
+      
       // Bull uses priority differently (higher number = higher priority)
       // Convert our priority (1-10) to Bull's priority (10-1)
       const bullPriority = options.priority ? 11 - options.priority : 5
@@ -51,6 +65,7 @@ class BullQueueClient {
    */
   async getStatus(jobId: string) {
     try {
+      await this.ensureInitialized()
       const job = await queueManager.getJob(jobId)
       if (!job) return null
 
@@ -81,6 +96,7 @@ class BullQueueClient {
    */
   async getStats() {
     try {
+      await this.ensureInitialized()
       const stats = await queueManager.getStats()
       
       return {
@@ -109,6 +125,7 @@ class BullQueueClient {
    */
   async healthCheck() {
     try {
+      await this.ensureInitialized()
       const health = await queueManager.getHealth()
       const stats = await this.getStats()
       

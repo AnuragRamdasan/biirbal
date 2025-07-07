@@ -37,30 +37,38 @@ export const linkProcessingQueue = new Bull<ProcessLinkJobData>('link processing
   }
 })
 
+// Initialize processor flag to prevent multiple processors
+let processorInitialized = false
+
 // Process jobs with configurable concurrency
-linkProcessingQueue.process('process-link', 3, async (job) => { // Process up to 3 jobs concurrently
-  const { data } = job
-  
-  console.log(`🐂 Bull processing job ${job.id} for URL: ${data.url}`)
-  
-  // Update job progress
-  await job.progress(0)
-  
-  try {
-    // Process the link
-    await processLink(data)
+if (!processorInitialized) {
+  linkProcessingQueue.process('process-link', 3, async (job) => { // Process up to 3 jobs concurrently
+    const { data } = job
     
-    // Mark as complete
-    await job.progress(100)
+    console.log(`🐂 Bull processing job ${job.id} for URL: ${data.url}`)
     
-    console.log(`✅ Bull job ${job.id} completed successfully`)
+    // Update job progress
+    await job.progress(0)
     
-    return { success: true, url: data.url }
-  } catch (error) {
-    console.error(`❌ Bull job ${job.id} failed:`, error)
-    throw error // Let Bull handle retries
-  }
-})
+    try {
+      // Process the link
+      await processLink(data)
+      
+      // Mark as complete
+      await job.progress(100)
+      
+      console.log(`✅ Bull job ${job.id} completed successfully`)
+      
+      return { success: true, url: data.url }
+    } catch (error) {
+      console.error(`❌ Bull job ${job.id} failed:`, error)
+      throw error // Let Bull handle retries
+    }
+  })
+  
+  processorInitialized = true
+  console.log('🐂 Bull processor initialized')
+}
 
 // Event listeners for monitoring
 linkProcessingQueue.on('completed', (job, result) => {
