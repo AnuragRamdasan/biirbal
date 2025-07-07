@@ -160,23 +160,56 @@ export const db = {
 
   // Channel operations
   async upsertChannel(slackChannelId: string, teamId: string, channelName?: string): Promise<Channel> {
-    const result = await sql`
-      INSERT INTO channels ("slackChannelId", "teamId", "channelName", "isActive", "createdAt", "updatedAt")
-      VALUES (${slackChannelId}, ${teamId}, ${channelName || null}, true, NOW(), NOW())
-      ON CONFLICT ("slackChannelId") 
-      DO UPDATE SET "updatedAt" = NOW(), "isActive" = true
-      RETURNING *
+    // First try to find existing channel
+    const existing = await sql`
+      SELECT * FROM channels WHERE "slackChannelId" = ${slackChannelId}
     `
     
-    const channel = result[0]
-    return {
-      id: channel.id,
-      slackChannelId: channel.slackChannelId,
-      channelName: channel.channelName,
-      teamId: channel.teamId,
-      isActive: channel.isActive,
-      createdAt: new Date(channel.createdAt),
-      updatedAt: new Date(channel.updatedAt)
+    if (existing.length > 0) {
+      // Update existing channel
+      const result = await sql`
+        UPDATE channels 
+        SET "updatedAt" = NOW(), "isActive" = true, "channelName" = COALESCE(${channelName}, "channelName")
+        WHERE "slackChannelId" = ${slackChannelId}
+        RETURNING *
+      `
+      
+      const channel = result[0]
+      return {
+        id: channel.id,
+        slackChannelId: channel.slackChannelId,
+        channelName: channel.channelName,
+        teamId: channel.teamId,
+        isActive: channel.isActive,
+        createdAt: new Date(channel.createdAt),
+        updatedAt: new Date(channel.updatedAt)
+      }
+    } else {
+      // Create new channel with generated ID
+      const result = await sql`
+        INSERT INTO channels (id, "slackChannelId", "teamId", "channelName", "isActive", "createdAt", "updatedAt")
+        VALUES (
+          'c' || substr(md5(random()::text), 1, 24), 
+          ${slackChannelId}, 
+          ${teamId}, 
+          ${channelName || null}, 
+          true, 
+          NOW(), 
+          NOW()
+        )
+        RETURNING *
+      `
+      
+      const channel = result[0]
+      return {
+        id: channel.id,
+        slackChannelId: channel.slackChannelId,
+        channelName: channel.channelName,
+        teamId: channel.teamId,
+        isActive: channel.isActive,
+        createdAt: new Date(channel.createdAt),
+        updatedAt: new Date(channel.updatedAt)
+      }
     }
   },
 
@@ -190,39 +223,75 @@ export const db = {
     extractedText?: string
     processingStatus?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
   }): Promise<ProcessedLink> {
-    const result = await sql`
-      INSERT INTO processed_links (
-        url, "messageTs", "channelId", "teamId", title, "extractedText", 
-        "processingStatus", "createdAt", "updatedAt"
-      )
-      VALUES (
-        ${data.url}, ${data.messageTs}, ${data.channelId}, ${data.teamId}, 
-        ${data.title || null}, ${data.extractedText || null}, 
-        ${data.processingStatus || 'PENDING'}, NOW(), NOW()
-      )
-      ON CONFLICT (url, "messageTs", "channelId") 
-      DO UPDATE SET 
-        "processingStatus" = ${data.processingStatus || 'PENDING'},
-        "updatedAt" = NOW()
-      RETURNING *
+    // First try to find existing link
+    const existing = await sql`
+      SELECT * FROM processed_links 
+      WHERE url = ${data.url} AND "messageTs" = ${data.messageTs} AND "channelId" = ${data.channelId}
     `
     
-    const link = result[0]
-    return {
-      id: link.id,
-      url: link.url,
-      messageTs: link.messageTs,
-      channelId: link.channelId,
-      teamId: link.teamId,
-      title: link.title,
-      extractedText: link.extractedText,
-      audioFileUrl: link.audioFileUrl,
-      audioFileKey: link.audioFileKey,
-      ttsScript: link.ttsScript,
-      processingStatus: link.processingStatus,
-      errorMessage: link.errorMessage,
-      createdAt: new Date(link.createdAt),
-      updatedAt: new Date(link.updatedAt)
+    if (existing.length > 0) {
+      // Update existing link
+      const result = await sql`
+        UPDATE processed_links 
+        SET 
+          "processingStatus" = ${data.processingStatus || 'PENDING'},
+          "title" = COALESCE(${data.title}, title),
+          "extractedText" = COALESCE(${data.extractedText}, "extractedText"),
+          "updatedAt" = NOW()
+        WHERE url = ${data.url} AND "messageTs" = ${data.messageTs} AND "channelId" = ${data.channelId}
+        RETURNING *
+      `
+      
+      const link = result[0]
+      return {
+        id: link.id,
+        url: link.url,
+        messageTs: link.messageTs,
+        channelId: link.channelId,
+        teamId: link.teamId,
+        title: link.title,
+        extractedText: link.extractedText,
+        audioFileUrl: link.audioFileUrl,
+        audioFileKey: link.audioFileKey,
+        ttsScript: link.ttsScript,
+        processingStatus: link.processingStatus,
+        errorMessage: link.errorMessage,
+        createdAt: new Date(link.createdAt),
+        updatedAt: new Date(link.updatedAt)
+      }
+    } else {
+      // Create new link with generated ID
+      const result = await sql`
+        INSERT INTO processed_links (
+          id, url, "messageTs", "channelId", "teamId", title, "extractedText", 
+          "processingStatus", "createdAt", "updatedAt"
+        )
+        VALUES (
+          'pl_' || substr(md5(random()::text), 1, 23),
+          ${data.url}, ${data.messageTs}, ${data.channelId}, ${data.teamId}, 
+          ${data.title || null}, ${data.extractedText || null}, 
+          ${data.processingStatus || 'PENDING'}, NOW(), NOW()
+        )
+        RETURNING *
+      `
+      
+      const link = result[0]
+      return {
+        id: link.id,
+        url: link.url,
+        messageTs: link.messageTs,
+        channelId: link.channelId,
+        teamId: link.teamId,
+        title: link.title,
+        extractedText: link.extractedText,
+        audioFileUrl: link.audioFileUrl,
+        audioFileKey: link.audioFileKey,
+        ttsScript: link.ttsScript,
+        processingStatus: link.processingStatus,
+        errorMessage: link.errorMessage,
+        createdAt: new Date(link.createdAt),
+        updatedAt: new Date(link.updatedAt)
+      }
     }
   },
 
@@ -345,10 +414,11 @@ export const db = {
   }): Promise<AudioListen> {
     const result = await sql`
       INSERT INTO audio_listens (
-        "processedLinkId", "userId", "slackUserId", "userAgent", 
+        id, "processedLinkId", "userId", "slackUserId", "userAgent", 
         "ipAddress", completed, "listenDuration", "listenedAt"
       )
       VALUES (
+        'al_' || substr(md5(random()::text), 1, 23),
         ${data.processedLinkId}, ${data.userId || null}, ${data.slackUserId || null}, 
         ${data.userAgent || null}, ${data.ipAddress || null}, ${data.completed || false}, 
         ${data.listenDuration || null}, NOW()
