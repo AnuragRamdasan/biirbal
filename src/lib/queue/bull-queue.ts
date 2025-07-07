@@ -33,7 +33,7 @@ export const linkProcessingQueue = new Bull<ProcessLinkJobData>('link processing
     jobId: undefined,     // Let Bull generate unique job IDs
   },
   settings: {
-    stalledInterval: 90 * 1000,    // Check for stalled jobs every 90 seconds (increased)
+    stalledInterval: 300 * 1000,    // Check for stalled jobs every 90 seconds (increased)
     maxStalledCount: 3,            // Allow jobs to be stalled up to 3 times
     retryProcessDelay: 5000,       // Delay before retrying stalled jobs
   }
