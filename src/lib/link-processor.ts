@@ -145,9 +145,7 @@ export async function processLink({
 
     // Optionally notify in Slack about the failure
     try {
-      const team = await prisma.team.findUnique({
-        where: { id: teamId }
-      })
+      const team = await db.findTeamById(teamId)
       
       if (team) {
         const slackClient = new WebClient(team.accessToken)

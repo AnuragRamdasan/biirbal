@@ -89,13 +89,23 @@ export interface AudioListen {
 export const db = {
   // Team operations
   async findTeamBySlackId(slackTeamId: string): Promise<(Team & { subscription?: Subscription }) | null> {
+    console.log('🔍 Looking for team with Slack ID:', slackTeamId)
+    
     const teams = await sql`
-      SELECT t.*, s.* 
+      SELECT 
+        t.id, t."slackTeamId", t."teamName", t."accessToken", t."botUserId", 
+        t."isActive", t."createdAt", t."updatedAt",
+        s.id as sub_id, s."teamId" as sub_teamId, s."stripeCustomerId", 
+        s."stripeSubscriptionId", s.status as sub_status, s."currentPeriodEnd", 
+        s."linksProcessed", s."monthlyLimit", 
+        s."createdAt" as sub_createdAt, s."updatedAt" as sub_updatedAt
       FROM teams t 
       LEFT JOIN subscriptions s ON t.id = s."teamId"
       WHERE t."slackTeamId" = ${slackTeamId}
     `
     
+    console.log('🔍 Found teams:', teams.length)
+    
     if (teams.length === 0) return null
     
     const team = teams[0]
@@ -108,28 +118,38 @@ export const db = {
       isActive: team.isActive,
       createdAt: new Date(team.createdAt),
       updatedAt: new Date(team.updatedAt),
-      subscription: team.teamId ? {
-        id: team.teamId,
-        teamId: team.teamId,
+      subscription: team.sub_id ? {
+        id: team.sub_id,
+        teamId: team.sub_teamId,
         stripeCustomerId: team.stripeCustomerId,
         stripeSubscriptionId: team.stripeSubscriptionId,
-        status: team.status,
+        status: team.sub_status,
         currentPeriodEnd: team.currentPeriodEnd ? new Date(team.currentPeriodEnd) : undefined,
         linksProcessed: team.linksProcessed,
         monthlyLimit: team.monthlyLimit,
-        createdAt: new Date(team.createdAt),
-        updatedAt: new Date(team.updatedAt)
+        createdAt: new Date(team.sub_createdAt),
+        updatedAt: new Date(team.sub_updatedAt)
       } : undefined
     }
   },
 
   async findTeamById(id: string): Promise<(Team & { subscription?: Subscription }) | null> {
+    console.log('🔍 Looking for team with ID:', id)
+    
     const teams = await sql`
-      SELECT t.*, s.* 
+      SELECT 
+        t.id, t."slackTeamId", t."teamName", t."accessToken", t."botUserId", 
+        t."isActive", t."createdAt", t."updatedAt",
+        s.id as sub_id, s."teamId" as sub_teamId, s."stripeCustomerId", 
+        s."stripeSubscriptionId", s.status as sub_status, s."currentPeriodEnd", 
+        s."linksProcessed", s."monthlyLimit", 
+        s."createdAt" as sub_createdAt, s."updatedAt" as sub_updatedAt
       FROM teams t 
       LEFT JOIN subscriptions s ON t.id = s."teamId"
       WHERE t.id = ${id}
     `
+    
+    console.log('🔍 Found teams:', teams.length)
     
     if (teams.length === 0) return null
     
@@ -143,17 +163,17 @@ export const db = {
       isActive: team.isActive,
       createdAt: new Date(team.createdAt),
       updatedAt: new Date(team.updatedAt),
-      subscription: team.teamId ? {
-        id: team.teamId,
-        teamId: team.teamId,
+      subscription: team.sub_id ? {
+        id: team.sub_id,
+        teamId: team.sub_teamId,
         stripeCustomerId: team.stripeCustomerId,
         stripeSubscriptionId: team.stripeSubscriptionId,
-        status: team.status,
+        status: team.sub_status,
         currentPeriodEnd: team.currentPeriodEnd ? new Date(team.currentPeriodEnd) : undefined,
         linksProcessed: team.linksProcessed,
         monthlyLimit: team.monthlyLimit,
-        createdAt: new Date(team.createdAt),
-        updatedAt: new Date(team.updatedAt)
+        createdAt: new Date(team.sub_createdAt),
+        updatedAt: new Date(team.sub_updatedAt)
       } : undefined
     }
   },
