@@ -322,50 +322,80 @@ export const db = {
   },
 
   async updateProcessedLink(id: string, data: Partial<ProcessedLink>): Promise<ProcessedLink | null> {
-    const updateFields = []
+    const updates = []
     const values = []
     
     if (data.title !== undefined) {
-      updateFields.push('"title" = $' + (values.length + 1))
+      updates.push('"title" = $' + (values.length + 1))
       values.push(data.title)
     }
     if (data.extractedText !== undefined) {
-      updateFields.push('"extractedText" = $' + (values.length + 1))
+      updates.push('"extractedText" = $' + (values.length + 1))
       values.push(data.extractedText)
     }
     if (data.audioFileUrl !== undefined) {
-      updateFields.push('"audioFileUrl" = $' + (values.length + 1))
+      updates.push('"audioFileUrl" = $' + (values.length + 1))
       values.push(data.audioFileUrl)
     }
     if (data.audioFileKey !== undefined) {
-      updateFields.push('"audioFileKey" = $' + (values.length + 1))
+      updates.push('"audioFileKey" = $' + (values.length + 1))
       values.push(data.audioFileKey)
     }
     if (data.ttsScript !== undefined) {
-      updateFields.push('"ttsScript" = $' + (values.length + 1))
+      updates.push('"ttsScript" = $' + (values.length + 1))
       values.push(data.ttsScript)
     }
     if (data.processingStatus !== undefined) {
-      updateFields.push('"processingStatus" = $' + (values.length + 1))
+      updates.push('"processingStatus" = $' + (values.length + 1))
       values.push(data.processingStatus)
     }
     if (data.errorMessage !== undefined) {
-      updateFields.push('"errorMessage" = $' + (values.length + 1))
+      updates.push('"errorMessage" = $' + (values.length + 1))
       values.push(data.errorMessage)
     }
     
-    updateFields.push('"updatedAt" = NOW()')
+    updates.push('"updatedAt" = NOW()')
     
+    if (updates.length === 1) {
+      // Only updatedAt was added, no other fields to update
+      const result = await sql`
+        UPDATE processed_links 
+        SET "updatedAt" = NOW()
+        WHERE id = ${id}
+        RETURNING *
+      `
+      if (result.length === 0) return null;
+      const link = result[0]
+      return {
+        id: link.id,
+        url: link.url,
+        messageTs: link.messageTs,
+        channelId: link.channelId,
+        teamId: link.teamId,
+        title: link.title,
+        extractedText: link.extractedText,
+        audioFileUrl: link.audioFileUrl,
+        audioFileKey: link.audioFileKey,
+        ttsScript: link.ttsScript,
+        processingStatus: link.processingStatus,
+        errorMessage: link.errorMessage,
+        createdAt: new Date(link.createdAt),
+        updatedAt: new Date(link.updatedAt)
+      }
+    }
+    
+    // Use template literal with dynamic query
     const query = `
       UPDATE processed_links 
-      SET ${updateFields.join(', ')} 
+      SET ${updates.join(', ')} 
       WHERE id = $${values.length + 1} 
       RETURNING *
     `
     
     values.push(id)
     
-    const result = await sql.unsafe(query, values).execute()
+    // Use sql.unsafe with proper parameter spreading
+    const result = await (sql.unsafe as any)(query, ...values)
     if (result.length === 0) return null;
     
     const link = result[0]
@@ -390,30 +420,56 @@ export const db = {
 
   // Subscription operations
   async updateSubscription(teamId: string, data: Partial<Subscription>): Promise<Subscription | null> {
-    const updateFields = []
+    const updates = []
     const values = []
     
     if (data.linksProcessed !== undefined) {
-      updateFields.push('"linksProcessed" = $' + (values.length + 1))
+      updates.push('"linksProcessed" = $' + (values.length + 1))
       values.push(data.linksProcessed)
     }
     if (data.status !== undefined) {
-      updateFields.push('status = $' + (values.length + 1))
+      updates.push('status = $' + (values.length + 1))
       values.push(data.status)
     }
     
-    updateFields.push('"updatedAt" = NOW()')
+    updates.push('"updatedAt" = NOW()')
     
+    if (updates.length === 1) {
+      // Only updatedAt was added, no other fields to update
+      const result = await sql`
+        UPDATE subscriptions 
+        SET "updatedAt" = NOW()
+        WHERE "teamId" = ${teamId}
+        RETURNING *
+      `
+      if (result.length === 0) return null;
+      const subscription = result[0]
+      return {
+        id: subscription.id,
+        teamId: subscription.teamId,
+        stripeCustomerId: subscription.stripeCustomerId,
+        stripeSubscriptionId: subscription.stripeSubscriptionId,
+        status: subscription.status,
+        currentPeriodEnd: subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd) : undefined,
+        linksProcessed: subscription.linksProcessed,
+        monthlyLimit: subscription.monthlyLimit,
+        createdAt: new Date(subscription.createdAt),
+        updatedAt: new Date(subscription.updatedAt)
+      }
+    }
+    
+    // Use template literal with dynamic query
     const query = `
       UPDATE subscriptions 
-      SET ${updateFields.join(', ')} 
+      SET ${updates.join(', ')} 
       WHERE "teamId" = $${values.length + 1} 
       RETURNING *
     `
     
     values.push(teamId)
     
-    const result = await sql.unsafe(query, values).execute()
+    // Use sql.unsafe with proper parameter spreading
+    const result = await (sql.unsafe as any)(query, ...values)
 
     if (result.length === 0) return null;
 
