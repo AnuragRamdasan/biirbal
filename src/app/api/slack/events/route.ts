@@ -122,8 +122,8 @@ async function handleMessage(event: any, teamId: string) {
     
     // Trigger worker in background (separate from main response)
     setImmediate(async () => {
+      const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://biirbal.com'
       try {
-        const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://biirbal.com'
         const workerUrl = `${baseUrl}/api/queue/worker`
         
         console.log(`🔔 Triggering worker at ${workerUrl}`)
