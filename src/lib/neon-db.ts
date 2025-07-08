@@ -179,7 +179,7 @@ export const db = {
   },
 
   // Channel operations
-  async upsertChannel(slackChannelId: string, teamId: string, channelName?: string): Promise<Channel> {
+  async upsertChannel(slackChannelId: string, teamId: string, channelName?: string): Promise<Channel | null> {
     // First try to find existing channel
     const existing = await sql`
       SELECT * FROM channels WHERE "slackChannelId" = ${slackChannelId}
@@ -193,6 +193,8 @@ export const db = {
         WHERE "slackChannelId" = ${slackChannelId}
         RETURNING *
       `
+
+      if (result.length === 0) return null;
       
       const channel = result[0]
       return {
@@ -242,7 +244,7 @@ export const db = {
     title?: string
     extractedText?: string
     processingStatus?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
-  }): Promise<ProcessedLink> {
+  }): Promise<ProcessedLink | null> {
     // First try to find existing link
     const existing = await sql`
       SELECT * FROM processed_links 
@@ -262,6 +264,8 @@ export const db = {
         RETURNING *
       `
       
+      if (result.length === 0) return null;
+
       const link = result[0]
       return {
         id: link.id,
@@ -295,6 +299,8 @@ export const db = {
         RETURNING *
       `
       
+      if (result.length === 0) return null;
+
       const link = result[0]
       return {
         id: link.id,
@@ -315,7 +321,7 @@ export const db = {
     }
   },
 
-  async updateProcessedLink(id: string, data: Partial<ProcessedLink>): Promise<ProcessedLink> {
+  async updateProcessedLink(id: string, data: Partial<ProcessedLink>): Promise<ProcessedLink | null> {
     const updateFields = []
     const values = []
     
@@ -359,7 +365,9 @@ export const db = {
     
     values.push(id)
     
-    const result = await sql.unsafe(query, values)
+    const result = await sql.unsafe(query, values).execute()
+    if (result.length === 0) return null;
+    
     const link = result[0]
     
     return {
@@ -381,7 +389,7 @@ export const db = {
   },
 
   // Subscription operations
-  async updateSubscription(teamId: string, data: Partial<Subscription>): Promise<Subscription> {
+  async updateSubscription(teamId: string, data: Partial<Subscription>): Promise<Subscription | null> {
     const updateFields = []
     const values = []
     
@@ -405,7 +413,10 @@ export const db = {
     
     values.push(teamId)
     
-    const result = await sql.unsafe(query, values)
+    const result = await sql.unsafe(query, values).execute()
+
+    if (result.length === 0) return null;
+
     const subscription = result[0]
     
     return {
@@ -431,7 +442,7 @@ export const db = {
     ipAddress?: string
     completed?: boolean
     listenDuration?: number
-  }): Promise<AudioListen> {
+  }): Promise<AudioListen | null> {
     const result = await sql`
       INSERT INTO audio_listens (
         id, "processedLinkId", "userId", "slackUserId", "userAgent", 
@@ -445,6 +456,8 @@ export const db = {
       )
       RETURNING *
     `
+
+    if (result.length === 0) return null;
     
     const listen = result[0]
     return {
