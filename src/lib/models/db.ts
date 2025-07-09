@@ -1,19 +1,14 @@
 import { neon } from '@neondatabase/serverless'
 
 // Initialize Neon serverless client with configuration
-const databaseUrl = process.env.DATABASE_URL || process.env.DATABASE_UNPOOLED_URL
+const databaseUrl = process.env.DATABASE_UNPOOLED_URL
 
 if (!databaseUrl) {
-  throw new Error('DATABASE_URL or DATABASE_UNPOOLED_URL environment variable is required')
+  throw new Error('DATABASE_UNPOOLED_URL environment variable is required')
 }
 
-// Ensure we're using the serverless endpoint
-let serverlessUrl = databaseUrl
-if (databaseUrl.includes('pooler')) {
-  // Replace pooler with direct endpoint for serverless
-  serverlessUrl = databaseUrl.replace('-pooler.', '.')
-  console.log('🔄 Using direct Neon endpoint for serverless')
-}
+// Use unpooled URL directly for serverless
+const serverlessUrl = databaseUrl
 
 const sql = neon(serverlessUrl, {
   fetchConnectionCache: true,
