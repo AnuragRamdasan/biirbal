@@ -28,7 +28,8 @@ biirbal.ai is a production-ready Slack application that automatically generates 
 ## Architecture Overview
 
 ### Architecture Guidelines
-Given that we have web endpoints, queue setup and database, ensure that any new additions to the architecture is kept as minimal as possible. Ensure that the architecture design is done to be compatible with production which hosts web and worker on vercel, postgres on neon and redis on redis.io and managed via bull.
+- Given that we have web endpoints, queue setup and database, ensure that any new additions to the architecture is kept as minimal as possible. Ensure that the architecture design is done to be compatible with production which hosts web and worker on vercel, postgres on neon and redis on redis.io and managed via bull.
+- when failure is hit, it is important to fix the root cause of failure instead of wrapping it in retries logic.
 
 ### Database Layer
 - **Primary Database**: PostgreSQL with Prisma ORM
