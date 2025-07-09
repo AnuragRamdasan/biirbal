@@ -1,4 +1,5 @@
-import { db, ensureDatabaseConnection } from './prisma'
+import { ensureDatabaseConnection } from './prisma'
+import { db } from './models'
 import { extractContentFromUrl, summarizeForAudio } from './content-extractor'
 import { generateAudioSummary, uploadAudioToStorage } from './text-to-speech'
 import { WebClient } from '@slack/web-api'

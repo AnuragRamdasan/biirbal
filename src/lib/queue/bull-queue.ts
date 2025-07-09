@@ -23,8 +23,8 @@ console.log('🐂 Initializing Bull queue with Redis:', redisUrl.replace(/:([^:/
 export const linkProcessingQueue = new Bull<ProcessLinkJobData>('link processing', {
   redis: redisUrl,
   defaultJobOptions: {
-    removeOnComplete: 10, // Keep last 10 completed jobs
-    removeOnFail: 50,     // Keep last 50 failed jobs
+    removeOnComplete: 5,  // Keep fewer completed jobs to reduce memory
+    removeOnFail: 20,     // Keep fewer failed jobs
     attempts: 3,          // Retry failed jobs up to 3 times
     backoff: {
       type: 'exponential',
@@ -33,9 +33,9 @@ export const linkProcessingQueue = new Bull<ProcessLinkJobData>('link processing
     jobId: undefined,     // Let Bull generate unique job IDs
   },
   settings: {
-    stalledInterval: 300 * 1000,    // Check for stalled jobs every 90 seconds (increased)
-    maxStalledCount: 3,            // Allow jobs to be stalled up to 3 times
-    retryProcessDelay: 5000,       // Delay before retrying stalled jobs
+    stalledInterval: 60 * 1000,     // Check for stalled jobs every 60 seconds
+    maxStalledCount: 2,             // Reduce stalled count to prevent lock issues
+    retryProcessDelay: 3000,        // Faster retry delay
   }
 })
 
@@ -95,6 +95,11 @@ linkProcessingQueue.on('completed', (job, result) => {
 
 linkProcessingQueue.on('failed', (job, err) => {
   console.error(`💥 Bull job ${job.id} failed after ${job.attemptsMade} attempts:`, err.message)
+  
+  // Handle specific Redis lock errors
+  if (err.message.includes('Missing lock') || err.message.includes('lock')) {
+    console.warn(`🔒 Redis lock error detected for job ${job.id}, this is usually not critical`)
+  }
 })
 
 linkProcessingQueue.on('stalled', (job) => {
@@ -118,6 +123,15 @@ linkProcessingQueue.on('active', (job) => {
   console.log(`🚀 Bull job ${job.id} started processing`)
 })
 
+// Handle Redis connection errors and lock issues
+linkProcessingQueue.on('error', (error) => {
+  if (error.message.includes('Missing lock') || error.message.includes('lock')) {
+    console.warn('🔒 Redis lock warning (non-critical):', error.message)
+  } else {
+    console.error('🚨 Bull queue error:', error)
+  }
+})
+
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('🛑 Shutting down Bull queue gracefully...')
@@ -129,6 +143,22 @@ process.on('SIGINT', async () => {
   await linkProcessingQueue.close()
 })
 
+// Helper function to handle Redis lock errors
+async function withRedisLockRetry<T>(operation: () => Promise<T>, operationName: string): Promise<T> {
+  try {
+    return await operation()
+  } catch (error) {
+    if (error.message.includes('Missing lock') || error.message.includes('lock')) {
+      console.warn(`🔒 Redis lock warning in ${operationName} (retrying):`, error.message)
+      // Wait a bit and retry once
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      return await operation()
+    } else {
+      throw error
+    }
+  }
+}
+
 // Queue management functions
 export const queueManager = {
   /**
@@ -138,35 +168,53 @@ export const queueManager = {
     priority?: number
     delay?: number
   } = {}) {
-    const job = await linkProcessingQueue.add('process-link', data, {
-      priority: options.priority || 0, // Higher numbers = higher priority
-      delay: options.delay || 0,       // Delay in milliseconds
-    })
-    
-    console.log(`📝 Bull job ${job.id} added to queue for URL: ${data.url}`)
-    return job
+    try {
+      const job = await linkProcessingQueue.add('process-link', data, {
+        priority: options.priority || 0, // Higher numbers = higher priority
+        delay: options.delay || 0,       // Delay in milliseconds
+      })
+      
+      console.log(`📝 Bull job ${job.id} added to queue for URL: ${data.url}`)
+      return job
+    } catch (error) {
+      if (error.message.includes('Missing lock') || error.message.includes('lock')) {
+        console.warn('🔒 Redis lock warning while adding job (retrying):', error.message)
+        // Retry once after a short delay
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        const job = await linkProcessingQueue.add('process-link', data, {
+          priority: options.priority || 0,
+          delay: options.delay || 0,
+        })
+        console.log(`📝 Bull job ${job.id} added to queue for URL: ${data.url} (retry successful)`)
+        return job
+      } else {
+        throw error
+      }
+    }
   },
 
   /**
    * Get queue statistics
    */
   async getStats() {
-    const [waiting, active, completed, failed, delayed] = await Promise.all([
-      linkProcessingQueue.getWaiting(),
-      linkProcessingQueue.getActive(),
-      linkProcessingQueue.getCompleted(),
-      linkProcessingQueue.getFailed(),
-      linkProcessingQueue.getDelayed(),
-    ])
+    return withRedisLockRetry(async () => {
+      const [waiting, active, completed, failed, delayed] = await Promise.all([
+        linkProcessingQueue.getWaiting(),
+        linkProcessingQueue.getActive(),
+        linkProcessingQueue.getCompleted(),
+        linkProcessingQueue.getFailed(),
+        linkProcessingQueue.getDelayed(),
+      ])
 
-    return {
-      waiting: waiting.length,
-      active: active.length,
-      completed: completed.length,
-      failed: failed.length,
-      delayed: delayed.length,
-      total: waiting.length + active.length + completed.length + failed.length + delayed.length
-    }
+      return {
+        waiting: waiting.length,
+        active: active.length,
+        completed: completed.length,
+        failed: failed.length,
+        delayed: delayed.length,
+        total: waiting.length + active.length + completed.length + failed.length + delayed.length
+      }
+    }, 'getStats')
   },
 
   /**

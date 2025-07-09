@@ -1,8 +1,9 @@
-// Import database utilities first
-import { sql, withTimeout, healthCheck, dbHealthCheck } from './db'
+// Import database utilities from prisma
+import { withTimeout, healthCheck } from '../prisma'
 
 // Export database utilities
-export { sql, withTimeout, healthCheck, dbHealthCheck }
+export { withTimeout, healthCheck }
+export { healthCheck as dbHealthCheck }
 
 // Export types
 export * from './types'

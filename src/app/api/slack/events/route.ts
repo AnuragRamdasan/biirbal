@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
-import { db } from '@/lib/prisma'
+import { db } from '@/lib/models'
 import { extractLinksFromMessage, shouldProcessUrl } from '@/lib/slack'
 import { queueClient } from '@/lib/queue/client'
 import { WebClient } from '@slack/web-api'
