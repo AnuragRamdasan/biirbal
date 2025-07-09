@@ -70,7 +70,7 @@ export const ensureDatabaseConnection = async () => {
     }
   } catch (error) {
     console.error('❌ Prisma database connection failed:', error)
-    console.error('DATABASE_URL available:', !!process.env.DATABASE_URL)
+    console.error('PRISMA_POSTGRES_POSTGRES_URL available:', !!process.env.PRISMA_POSTGRES_POSTGRES_URL)
     return false
   }
 }
