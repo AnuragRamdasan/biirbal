@@ -1,7 +1,7 @@
 import { neon } from '@neondatabase/serverless'
 
 // Initialize Neon serverless client
-const sql = neon(process.env.DATABASE_URL!)
+const sql = neon(process.env.DATABASE_UNPOOLED_URL!)
 
 // Database interface for type safety
 export interface Team {
