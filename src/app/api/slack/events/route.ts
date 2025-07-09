@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import { db } from '@/lib/prisma'
 import { extractLinksFromMessage, shouldProcessUrl } from '@/lib/slack'
 import { queueClient } from '@/lib/queue/client'
+import { WebClient } from '@slack/web-api'
 
 function verifySlackRequest(body: string, signature: string, timestamp: string): boolean {
   const signingSecret = process.env.SLACK_SIGNING_SECRET
@@ -120,6 +121,22 @@ async function handleMessage(event: any, teamId: string) {
     const jobIds = await Promise.all(queuePromises)
     console.log(`✅ Queued ${jobIds.length} links for processing`)
     
+    // Quick success notification to Slack (non-blocking)
+    if (jobIds.length > 0) {
+      setImmediate(async () => {
+        try {
+          const slackClient = new WebClient(team.accessToken)
+          await slackClient.reactions.add({
+            channel: event.channel,
+            timestamp: event.ts,
+            name: 'hourglass_flowing_sand'
+          })
+        } catch (err) {
+          console.log('Could not add processing reaction:', err.message)
+        }
+      })
+    }
+    
     // Trigger worker in background (separate from main response)
     setImmediate(async () => {
       const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://biirbal.com'
@@ -133,29 +150,24 @@ async function handleMessage(event: any, teamId: string) {
           headers: {
             'Content-Type': 'application/json',
           },
-          signal: AbortSignal.timeout(5000) // 5 second timeout
+          signal: AbortSignal.timeout(15000) // Increased to 15 second timeout
         })
         
         if (response.ok) {
           console.log(`✅ Worker triggered successfully: ${response.status}`)
         } else {
-          throw new Error(`Worker responded with ${response.status}`)
+          console.warn(`⚠️ Worker responded with ${response.status}, but jobs are queued`)
         }
       } catch (error) {
-        console.error('❌ Failed to trigger worker:', error)
-        
-        // Backup cron trigger
-        try {
-          const cronUrl = `${baseUrl}/api/cron/process-queue`
-          await fetch(cronUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            signal: AbortSignal.timeout(5000)
-          })
-          console.log('✅ Backup cron worker triggered')
-        } catch (cronError) {
-          console.error('❌ Backup cron worker also failed:', cronError)
+        if (error.name === 'TimeoutError') {
+          console.warn('⏰ Worker trigger timed out, but jobs are queued. Cron will process them.')
+        } else {
+          console.error('❌ Failed to trigger worker:', error)
         }
+        
+        // Don't try backup cron immediately as it might also timeout
+        // The scheduled cron job will pick up the queued jobs
+        console.log('📅 Scheduled cron will process queued jobs automatically')
       }
     })
   } catch (error) {
