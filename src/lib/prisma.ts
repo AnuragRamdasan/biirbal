@@ -1,7 +1,7 @@
 // Keep Prisma for migrations and schema management
 import { PrismaClient } from '@prisma/client'
-// Use Neon serverless for actual database operations
-import { db, sql } from './neon-db'
+// Use Neon serverless models for actual database operations
+import { db, sql, healthCheck } from './models'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
@@ -22,7 +22,7 @@ export { db, sql }
 // Test database connection using Neon serverless
 export const ensureDatabaseConnection = async () => {
   try {
-    const isHealthy = await db.healthCheck()
+    const isHealthy = await healthCheck()
     if (isHealthy) {
       console.log('✅ Neon serverless database connection verified')
       return true
@@ -32,8 +32,8 @@ export const ensureDatabaseConnection = async () => {
     }
   } catch (error) {
     console.error('❌ Neon serverless database connection failed:', error)
-    console.error('DATABASE_URL available:', !!process.env.DATABASE_URL)
-    console.error('DATABASE_URL starts with:', process.env.DATABASE_URL?.substring(0, 20) + '...')
+    console.error('DATABASE_UNPOOLED_URL available:', !!process.env.DATABASE_UNPOOLED_URL)
+    console.error('DATABASE_UNPOOLED_URL starts with:', process.env.DATABASE_UNPOOLED_URL?.substring(0, 20) + '...')
     return false
   }
 }
