@@ -12,6 +12,10 @@ function isNodeRuntime(): boolean {
   return typeof process !== 'undefined' && process.versions?.node !== undefined && !isEdgeRuntime()
 }
 
+function isVercelRuntime(): boolean {
+  return process.env.VERCEL === '1' || process.env.AWS_LAMBDA_FUNCTION_NAME !== undefined
+}
+
 // Client factory functions
 async function createNodeClient(): Promise<any> {
   // Dynamic import to avoid browser bundle issues
@@ -67,17 +71,17 @@ const globalForPrisma = globalThis as unknown as {
 // Unified client getter
 export async function getDbClient(): Promise<any> {
   try {
-    if (isEdgeRuntime()) {
-      // Edge runtime - use Neon adapter
+    if (isEdgeRuntime() || isVercelRuntime()) {
+      // Edge runtime or Vercel serverless - use Neon adapter for better connection handling
       if (!globalForPrisma.edgePrisma) {
-        console.log('🔗 Creating edge client with Neon adapter')
+        console.log('🔗 Creating edge client with Neon adapter (Vercel/Edge)')
         globalForPrisma.edgePrisma = await createEdgeClient()
       }
       return globalForPrisma.edgePrisma
     } else if (isNodeRuntime()) {
-      // Node.js runtime - use standard client
+      // Local Node.js runtime - use standard client
       if (!globalForPrisma.prisma) {
-        console.log('🔗 Creating Node.js client')
+        console.log('🔗 Creating Node.js client (local)')
         globalForPrisma.prisma = await createNodeClient()
       }
       return globalForPrisma.prisma
@@ -107,8 +111,8 @@ export const prisma = new Proxy({} as any, {
   }
 })
 
-// Initialize lazy client in Node.js environment only
-if (typeof process !== 'undefined' && process.versions?.node && !isEdgeRuntime()) {
+// Initialize lazy client in local Node.js environment only (not in Vercel)
+if (typeof process !== 'undefined' && process.versions?.node && !isEdgeRuntime() && !isVercelRuntime()) {
   createNodeClient().then(client => {
     _lazyPrisma = client
     if (process.env.NODE_ENV !== 'production') {
