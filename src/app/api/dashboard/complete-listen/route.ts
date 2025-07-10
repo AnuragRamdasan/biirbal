@@ -14,10 +14,7 @@ export async function POST(request: NextRequest) {
 
     // Update the listen record to mark as completed
     const updatedListen = await prisma.audioListen.update({
-      where: {
-        id: listenId,
-        processedLinkId: linkId // Ensure the listen belongs to this link
-      },
+      where: { id: listenId },
       data: {
         completed: true
       }

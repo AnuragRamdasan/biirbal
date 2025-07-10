@@ -1,5 +1,4 @@
-import { prisma } from '../prisma'
-import { withTimeout } from '../prisma'
+import { getPrismaClient, dbWithTimeout } from './connection'
 import type { Channel } from './types'
 
 export class ChannelModel {
@@ -7,9 +6,9 @@ export class ChannelModel {
    * Upsert channel (create if doesn't exist, update if exists)
    */
   static async upsert(slackChannelId: string, teamId: string, channelName?: string): Promise<Channel | null> {
-    return withTimeout(async () => {
+    return dbWithTimeout(async () => {
       try {
-        return await prisma.channel.upsert({
+        return await getPrismaClient().channel.upsert({
           where: { slackChannelId },
           update: {
             teamId,
@@ -34,8 +33,8 @@ export class ChannelModel {
    * Find channel by Slack channel ID
    */
   static async findBySlackId(slackChannelId: string): Promise<Channel | null> {
-    return withTimeout(async () => {
-      return await prisma.channel.findUnique({
+    return dbWithTimeout(async () => {
+      return await getPrismaClient().channel.findUnique({
         where: { slackChannelId }
       })
     })
@@ -45,8 +44,8 @@ export class ChannelModel {
    * Find channel by internal ID
    */
   static async findById(id: string): Promise<Channel | null> {
-    return withTimeout(async () => {
-      return await prisma.channel.findUnique({
+    return dbWithTimeout(async () => {
+      return await getPrismaClient().channel.findUnique({
         where: { id }
       })
     })
@@ -56,9 +55,9 @@ export class ChannelModel {
    * Update channel data
    */
   static async update(id: string, data: Partial<Channel>): Promise<Channel | null> {
-    return withTimeout(async () => {
+    return dbWithTimeout(async () => {
       try {
-        return await prisma.channel.update({
+        return await getPrismaClient().channel.update({
           where: { id },
           data: {
             channelName: data.channelName,

@@ -1,5 +1,4 @@
-import { ensureDatabaseConnection } from './prisma'
-import { db } from './models'
+import { prisma } from './prisma'
 import { extractContentFromUrl, summarizeForAudio } from './content-extractor'
 import { generateAudioSummary, uploadAudioToStorage } from './text-to-speech'
 import { WebClient } from '@slack/web-api'
@@ -30,18 +29,30 @@ export async function processLink({
     console.log(`🚀 Starting lightning-fast processing for: ${url}`)
     
     // Ensure database connection is working before processing
-    const dbConnected = await ensureDatabaseConnection()
-    if (!dbConnected) {
+    try {
+      await prisma.$connect()
+    } catch (error) {
       throw new Error('Database connection failed - cannot process link')
     }
     
     // PARALLEL PHASE 1: Database setup and content extraction
     const [channel, team, extractedContent] = await Promise.all([
       // Database operation 1: Channel upsert
-      db.upsertChannel(channelId, teamId),
+      prisma.channel.upsert({
+        where: { slackChannelId: channelId },
+        update: { teamId, isActive: true },
+        create: {
+          slackChannelId: channelId,
+          teamId,
+          isActive: true
+        }
+      }),
       
       // Database operation 2: Team lookup with subscription
-      db.findTeamById(teamId),
+      prisma.team.findUnique({
+        where: { id: teamId },
+        include: { subscription: true }
+      }),
       
       // Slow operation: Content extraction (run in parallel)
       extractContentFromUrl(url)
@@ -58,12 +69,24 @@ export async function processLink({
     
     const [processedLinkRecord] = await Promise.all([
       // Database operation: Create processed link record
-      db.upsertProcessedLink({
-        url,
-        messageTs,
-        channelId: channel.id,
-        teamId,
-        processingStatus: 'PROCESSING'
+      prisma.processedLink.upsert({
+        where: {
+          url_messageTs_channelId: {
+            url,
+            messageTs,
+            channelId: channel.id
+          }
+        },
+        update: {
+          processingStatus: 'PROCESSING'
+        },
+        create: {
+          url,
+          messageTs,
+          channelId: channel.id,
+          teamId,
+          processingStatus: 'PROCESSING'
+        }
       }),
       
       // No await needed - audio text preparation is synchronous
@@ -101,13 +124,16 @@ export async function processLink({
     // PARALLEL PHASE 5: Final database updates and Slack notification
     await Promise.all([
       // Database update: Mark as completed
-      db.updateProcessedLink(processedLink.id, {
-        title: extractedContent.title,
-        extractedText: extractedContent.excerpt,
-        audioFileUrl: audioUrl,
-        audioFileKey: audioResult.fileName,
-        ttsScript: audioResult.ttsScript,
-        processingStatus: 'COMPLETED'
+      prisma.processedLink.update({
+        where: { id: processedLink.id },
+        data: {
+          title: extractedContent.title,
+          extractedText: extractedContent.excerpt,
+          audioFileUrl: audioUrl,
+          audioFileKey: audioResult.fileName,
+          ttsScript: audioResult.ttsScript,
+          processingStatus: 'COMPLETED'
+        }
       }),
       
       // Slack notification: Send dashboard link
@@ -122,8 +148,11 @@ export async function processLink({
       }),
       
       // Database update: Increment usage counter
-      team.subscription ? db.updateSubscription(team.id, {
-        linksProcessed: team.subscription.linksProcessed + 1
+      team.subscription ? prisma.subscription.update({
+        where: { id: team.subscription.id },
+        data: {
+          linksProcessed: team.subscription.linksProcessed + 1
+        }
       }) : Promise.resolve()
     ])
     
@@ -138,15 +167,20 @@ export async function processLink({
     
     // Update database with error
     if (processedLink) {
-      await db.updateProcessedLink(processedLink.id, {
-        processingStatus: 'FAILED',
-        errorMessage: error instanceof Error ? error.message : 'Unknown error'
+      await prisma.processedLink.update({
+        where: { id: processedLink.id },
+        data: {
+          processingStatus: 'FAILED',
+          errorMessage: error instanceof Error ? error.message : 'Unknown error'
+        }
       })
     }
 
     // Optionally notify in Slack about the failure
     try {
-      const team = await db.findTeamById(teamId)
+      const team = await prisma.team.findUnique({
+        where: { id: teamId }
+      })
       
       if (team) {
         const slackClient = new WebClient(team.accessToken)

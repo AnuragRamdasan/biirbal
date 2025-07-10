@@ -1,5 +1,4 @@
-import { prisma } from '../prisma'
-import { withTimeout } from '../prisma'
+import { getPrismaClient, dbWithTimeout } from './connection'
 import type { AudioListen } from './types'
 
 export class AudioListenModel {
@@ -15,9 +14,9 @@ export class AudioListenModel {
     completed?: boolean
     listenDuration?: number
   }): Promise<AudioListen | null> {
-    return withTimeout(async () => {
+    return dbWithTimeout(async () => {
       try {
-        return await prisma.audioListen.create({
+        return await getPrismaClient().audioListen.create({
           data: {
             processedLinkId: data.processedLinkId,
             userId: data.userId,
@@ -39,9 +38,9 @@ export class AudioListenModel {
    * Update audio listen record
    */
   static async update(id: string, data: Partial<AudioListen>): Promise<AudioListen | null> {
-    return withTimeout(async () => {
+    return dbWithTimeout(async () => {
       try {
-        return await prisma.audioListen.update({
+        return await getPrismaClient().audioListen.update({
           where: { id },
           data: {
             completed: data.completed,
@@ -59,8 +58,8 @@ export class AudioListenModel {
    * Find audio listen records by processed link ID
    */
   static async findByProcessedLinkId(processedLinkId: string): Promise<AudioListen[]> {
-    return withTimeout(async () => {
-      return await prisma.audioListen.findMany({
+    return dbWithTimeout(async () => {
+      return await getPrismaClient().audioListen.findMany({
         where: { processedLinkId },
         orderBy: { listenedAt: 'desc' }
       })
@@ -71,8 +70,8 @@ export class AudioListenModel {
    * Find audio listen record by ID
    */
   static async findById(id: string): Promise<AudioListen | null> {
-    return withTimeout(async () => {
-      return await prisma.audioListen.findUnique({
+    return dbWithTimeout(async () => {
+      return await getPrismaClient().audioListen.findUnique({
         where: { id }
       })
     })
@@ -86,15 +85,15 @@ export class AudioListenModel {
     completedListens: number
     averageDuration: number | null
   }> {
-    return withTimeout(async () => {
+    return dbWithTimeout(async () => {
       const [totalStats, completedStats, avgDuration] = await Promise.all([
-        prisma.audioListen.count({
+        getPrismaClient().audioListen.count({
           where: { processedLinkId }
         }),
-        prisma.audioListen.count({
+        getPrismaClient().audioListen.count({
           where: { processedLinkId, completed: true }
         }),
-        prisma.audioListen.aggregate({
+        getPrismaClient().audioListen.aggregate({
           where: { processedLinkId },
           _avg: { listenDuration: true }
         })
@@ -112,8 +111,8 @@ export class AudioListenModel {
    * Get recent listens for a team
    */
   static async getRecentByTeamId(teamId: string, limit: number = 10): Promise<AudioListen[]> {
-    return withTimeout(async () => {
-      return await prisma.audioListen.findMany({
+    return dbWithTimeout(async () => {
+      return await getPrismaClient().audioListen.findMany({
         where: {
           processedLink: {
             teamId

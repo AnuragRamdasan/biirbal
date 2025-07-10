@@ -1,9 +1,9 @@
-// Import database utilities from prisma
-import { withTimeout, healthCheck } from '../prisma'
+// Import database utilities from connection
+import { dbWithTimeout, dbHealthCheck, getPrismaClient } from './connection'
 
 // Export database utilities
-export { withTimeout, healthCheck }
-export { healthCheck as dbHealthCheck }
+export { dbWithTimeout, dbHealthCheck, getPrismaClient }
+export { dbHealthCheck as healthCheck }
 
 // Export types
 export * from './types'
@@ -54,6 +54,43 @@ export const db = {
   getAudioListenStats: AudioListenModel.getStatsByProcessedLinkId,
   getRecentAudioListens: AudioListenModel.getRecentByTeamId,
 
+  // QueuedJob operations
+  createQueuedJob: async (data: { id: string; type: string; payload: any; status?: string; priority?: number; maxRetries?: number }) => {
+    return dbWithTimeout(async () => {
+      return await getPrismaClient().queuedJob.create({
+        data: {
+          ...data,
+          status: data.status || 'PENDING',
+          priority: data.priority || 1,
+          maxRetries: data.maxRetries || 3
+        }
+      })
+    })
+  },
+  updateQueuedJob: async (id: string, data: { status?: string; error?: string; retryCount?: number; processedAt?: Date }) => {
+    return dbWithTimeout(async () => {
+      return await getPrismaClient().queuedJob.update({
+        where: { id },
+        data: {
+          ...data,
+          updatedAt: new Date()
+        }
+      })
+    })
+  },
+  findPendingJobs: async (limit: number = 10) => {
+    return dbWithTimeout(async () => {
+      return await getPrismaClient().queuedJob.findMany({
+        where: { status: 'PENDING' },
+        orderBy: [
+          { priority: 'desc' },
+          { createdAt: 'asc' }
+        ],
+        take: limit
+      })
+    })
+  },
+
   // Health check
-  healthCheck
+  healthCheck: dbHealthCheck
 }

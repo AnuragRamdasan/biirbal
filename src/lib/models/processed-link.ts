@@ -1,5 +1,4 @@
-import { prisma } from '../prisma'
-import { withTimeout } from '../prisma'
+import { getPrismaClient, dbWithTimeout } from './connection'
 import type { ProcessedLink } from './types'
 
 export class ProcessedLinkModel {
@@ -15,9 +14,9 @@ export class ProcessedLinkModel {
     extractedText?: string
     processingStatus?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
   }): Promise<ProcessedLink | null> {
-    return withTimeout(async () => {
+    return dbWithTimeout(async () => {
       try {
-        return await prisma.processedLink.upsert({
+        return await getPrismaClient().processedLink.upsert({
           where: {
             url_messageTs_channelId: {
               url: data.url,
@@ -51,9 +50,9 @@ export class ProcessedLinkModel {
    * Update processed link by ID
    */
   static async update(id: string, data: Partial<ProcessedLink>): Promise<ProcessedLink | null> {
-    return withTimeout(async () => {
+    return dbWithTimeout(async () => {
       try {
-        return await prisma.processedLink.update({
+        return await getPrismaClient().processedLink.update({
           where: { id },
           data: {
             title: data.title,
@@ -76,8 +75,8 @@ export class ProcessedLinkModel {
    * Find processed link by ID
    */
   static async findById(id: string): Promise<ProcessedLink | null> {
-    return withTimeout(async () => {
-      return await prisma.processedLink.findUnique({
+    return dbWithTimeout(async () => {
+      return await getPrismaClient().processedLink.findUnique({
         where: { id }
       })
     })
@@ -87,8 +86,8 @@ export class ProcessedLinkModel {
    * Find processed links by team ID
    */
   static async findByTeamId(teamId: string, limit: number = 50): Promise<ProcessedLink[]> {
-    return withTimeout(async () => {
-      return await prisma.processedLink.findMany({
+    return dbWithTimeout(async () => {
+      return await getPrismaClient().processedLink.findMany({
         where: { teamId },
         orderBy: { createdAt: 'desc' },
         take: limit
@@ -100,8 +99,8 @@ export class ProcessedLinkModel {
    * Find processed link by unique combination
    */
   static async findByUnique(url: string, messageTs: string, channelId: string): Promise<ProcessedLink | null> {
-    return withTimeout(async () => {
-      return await prisma.processedLink.findUnique({
+    return dbWithTimeout(async () => {
+      return await getPrismaClient().processedLink.findUnique({
         where: {
           url_messageTs_channelId: {
             url,

@@ -2,15 +2,32 @@ import { PrismaClient } from '@prisma/client'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
+  workerPrisma: PrismaClient | undefined
 }
 
-// Initialize Prisma client
+// Web client uses Prisma Accelerate (connection pooling)
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error']
+  log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+  datasources: {
+    db: {
+      url: process.env.PRISMA_POSTGRES_PRISMA_DATABASE_URL || process.env.DATABASE_URL
+    }
+  }
+})
+
+// Worker client uses direct Postgres connection (no pooling overhead)
+export const workerPrisma = globalForPrisma.workerPrisma ?? new PrismaClient({
+  log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+  datasources: {
+    db: {
+      url: process.env.PRISMA_POSTGRES_POSTGRES_URL || process.env.DATABASE_UNPOOLED_URL || process.env.DATABASE_URL
+    }
+  }
 })
 
 if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma
+  globalForPrisma.workerPrisma = workerPrisma
 }
 
 // Wrapper function with timeout and retry logic
@@ -57,6 +74,17 @@ export const healthCheck = async (): Promise<boolean> => {
   }
 }
 
+// Worker health check using direct connection
+export const workerHealthCheck = async (): Promise<boolean> => {
+  try {
+    await withTimeout(() => workerPrisma.$queryRaw`SELECT 1`, 10000, 1)
+    return true
+  } catch (error) {
+    console.error('Worker database health check failed:', error)
+    return false
+  }
+}
+
 // Test database connection using Prisma
 export const ensureDatabaseConnection = async () => {
   try {
@@ -70,6 +98,24 @@ export const ensureDatabaseConnection = async () => {
     }
   } catch (error) {
     console.error('❌ Prisma database connection failed:', error)
+    console.error('PRISMA_POSTGRES_POSTGRES_URL available:', !!process.env.PRISMA_POSTGRES_POSTGRES_URL)
+    return false
+  }
+}
+
+// Test worker database connection using direct Postgres
+export const ensureWorkerDatabaseConnection = async () => {
+  try {
+    const isHealthy = await workerHealthCheck()
+    if (isHealthy) {
+      console.log('✅ Worker database connection verified')
+      return true
+    } else {
+      console.error('❌ Worker database health check failed')
+      return false
+    }
+  } catch (error) {
+    console.error('❌ Worker database connection failed:', error)
     console.error('PRISMA_POSTGRES_POSTGRES_URL available:', !!process.env.PRISMA_POSTGRES_POSTGRES_URL)
     return false
   }
