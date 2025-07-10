@@ -52,7 +52,7 @@ export async function generateAudioSummary(
           speed: 1.1 // Slightly faster for efficiency
         }),
         new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('TTS timeout after 30 seconds')), 30000)
+          setTimeout(() => reject(new Error('TTS timeout after 60 seconds')), 120000)
         )
       ])
 
