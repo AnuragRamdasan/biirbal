@@ -1,4 +1,4 @@
-import { prisma } from './prisma'
+import { getDbClient } from './db'
 import { extractContentFromUrl, summarizeForAudio } from './content-extractor'
 import { generateAudioSummary, uploadAudioToStorage } from './text-to-speech'
 import { WebClient } from '@slack/web-api'
@@ -28,17 +28,13 @@ export async function processLink({
     logMemoryUsage('ProcessLink:Start')
     console.log(`🚀 Starting lightning-fast processing for: ${url}`)
     
-    // Ensure database connection is working before processing
-    try {
-      await prisma.$connect()
-    } catch (error) {
-      throw new Error('Database connection failed - cannot process link')
-    }
+    // Get database client
+    const db = await getDbClient()
     
     // PARALLEL PHASE 1: Database setup and content extraction
     const [channel, team, extractedContent] = await Promise.all([
       // Database operation 1: Channel upsert
-      prisma.channel.upsert({
+      db.channel.upsert({
         where: { slackChannelId: channelId },
         update: { teamId, isActive: true },
         create: {
@@ -49,7 +45,7 @@ export async function processLink({
       }),
       
       // Database operation 2: Team lookup with subscription
-      prisma.team.findUnique({
+      db.team.findUnique({
         where: { id: teamId },
         include: { subscription: true }
       }),
@@ -69,7 +65,7 @@ export async function processLink({
     
     const [processedLinkRecord] = await Promise.all([
       // Database operation: Create processed link record
-      prisma.processedLink.upsert({
+      db.processedLink.upsert({
         where: {
           url_messageTs_channelId: {
             url,
@@ -124,7 +120,7 @@ export async function processLink({
     // PARALLEL PHASE 5: Final database updates and Slack notification
     await Promise.all([
       // Database update: Mark as completed
-      prisma.processedLink.update({
+      db.processedLink.update({
         where: { id: processedLink.id },
         data: {
           title: extractedContent.title,
@@ -148,7 +144,7 @@ export async function processLink({
       }),
       
       // Database update: Increment usage counter
-      team.subscription ? prisma.subscription.update({
+      team.subscription ? db.subscription.update({
         where: { id: team.subscription.id },
         data: {
           linksProcessed: team.subscription.linksProcessed + 1
@@ -167,7 +163,8 @@ export async function processLink({
     
     // Update database with error
     if (processedLink) {
-      await prisma.processedLink.update({
+      const db = await getDbClient()
+      await db.processedLink.update({
         where: { id: processedLink.id },
         data: {
           processingStatus: 'FAILED',
@@ -178,7 +175,8 @@ export async function processLink({
 
     // Optionally notify in Slack about the failure
     try {
-      const team = await prisma.team.findUnique({
+      const db = await getDbClient()
+      const team = await db.team.findUnique({
         where: { id: teamId }
       })
       

@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getDbClient, ensureDbConnection } from '@/lib/db'
 
-// export const runtime = 'edge' // Temporarily disabled for development
+export const runtime = 'edge'
 
 export async function POST(_request: NextRequest) {
   try {
     console.log('🔄 Edge worker API called')
     
     // Check database connection first
-    try {
-      await prisma.$connect()
-    } catch (error) {
+    const connected = await ensureDbConnection()
+    if (!connected) {
       return NextResponse.json({
         success: false,
         error: 'Database connection failed',
@@ -22,7 +21,8 @@ export async function POST(_request: NextRequest) {
     console.log('🔄 Processing queued jobs from database...')
     
     // Find pending jobs from the database
-    const pendingJobs = await prisma.queuedJob.findMany({
+    const db = await getDbClient()
+    const pendingJobs = await db.queuedJob.findMany({
       where: { status: 'PENDING' },
       take: 5,
       orderBy: { createdAt: 'asc' }
@@ -36,7 +36,7 @@ export async function POST(_request: NextRequest) {
     for (const job of pendingJobs) {
       try {
         // Mark job as processing
-        await prisma.queuedJob.update({
+        await db.queuedJob.update({
           where: { id: job.id },
           data: { 
             status: 'PROCESSING',
@@ -49,7 +49,7 @@ export async function POST(_request: NextRequest) {
         console.log(`📋 Processing job ${job.id} of type ${job.type}`)
         
         // For now, mark as completed since we can't do heavy processing in edge
-        await prisma.queuedJob.update({
+        await db.queuedJob.update({
           where: { id: job.id },
           data: { 
             status: 'COMPLETED',
@@ -61,7 +61,7 @@ export async function POST(_request: NextRequest) {
       } catch (error) {
         console.error(`❌ Failed to process job ${job.id}:`, error)
         
-        await prisma.queuedJob.update({
+        await db.queuedJob.update({
           where: { id: job.id },
           data: { 
             status: 'FAILED',
@@ -101,13 +101,7 @@ export async function GET(_request: NextRequest) {
   try {
     console.log('📊 Edge worker health check called')
     
-    let dbHealth = false
-    try {
-      await prisma.$connect()
-      dbHealth = true
-    } catch (error) {
-      dbHealth = false
-    }
+    const dbHealth = await ensureDbConnection()
     
     return NextResponse.json({
       success: true,

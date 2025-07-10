@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getDbClient } from '@/lib/db'
 
 export async function GET(request: NextRequest) {
   try {
     // For now, we'll return all links. In production, you'd want to add authentication
     // and filter by the authenticated user's team
-    const links = await prisma.processedLink.findMany({
+    const db = await getDbClient()
+    const links = await db.processedLink.findMany({
       include: {
         listens: {
           orderBy: {

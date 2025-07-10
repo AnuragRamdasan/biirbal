@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getDbClient } from '@/lib/db'
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +13,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Update the listen record to mark as completed
-    const updatedListen = await prisma.audioListen.update({
+    const db = await getDbClient()
+    const updatedListen = await db.audioListen.update({
       where: { id: listenId },
       data: {
         completed: true

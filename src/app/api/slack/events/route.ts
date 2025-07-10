@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
-import { prisma } from '@/lib/prisma'
+import { getDbClient } from '@/lib/db'
 import { extractLinksFromMessage, shouldProcessUrl } from '@/lib/slack'
 import { queueClient } from '@/lib/queue/client'
 import { WebClient } from '@slack/web-api'
@@ -80,7 +80,8 @@ async function handleMessage(event: any, teamId: string) {
   }
 
   // Get team info to check subscription status
-  const team = await prisma.team.findUnique({
+  const db = await getDbClient()
+  const team = await db.team.findUnique({
     where: { slackTeamId: teamId },
     include: { subscription: true }
   })
@@ -96,7 +97,7 @@ async function handleMessage(event: any, teamId: string) {
     
     // Reset counter if new month
     if (currentMonth !== subscriptionMonth) {
-      await prisma.subscription.update({
+      await db.subscription.update({
         where: { teamId: team.id },
         data: { linksProcessed: 0 }
       })
@@ -109,7 +110,7 @@ async function handleMessage(event: any, teamId: string) {
   }
 
   // Store or update channel info
-  await prisma.channel.upsert({
+  await db.channel.upsert({
     where: { slackChannelId: event.channel },
     update: { updatedAt: new Date() },
     create: {
@@ -196,12 +197,13 @@ async function handleAppMention(event: any, teamId: string) {
 async function handleMemberJoinedChannel(event: any, teamId: string) {
   // Update channel info when bot is added to a channel
   if (event.user === process.env.SLACK_BOT_USER_ID) {
-    const team = await prisma.team.findUnique({
+    const db = await getDbClient()
+    const team = await db.team.findUnique({
       where: { slackTeamId: teamId }
     })
 
     if (team) {
-      await prisma.channel.upsert({
+      await db.channel.upsert({
         where: { slackChannelId: event.channel },
         update: { updatedAt: new Date() },
         create: {

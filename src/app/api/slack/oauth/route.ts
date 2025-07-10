@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { WebClient } from '@slack/web-api'
-import { prisma } from '@/lib/prisma'
+import { getDbClient } from '@/lib/db'
 import { logger } from '@/lib/logger'
 import { handleApiError, ValidationError } from '@/lib/error-handler'
 
@@ -120,7 +120,8 @@ export async function GET(request: NextRequest) {
     })
 
     // Store team information
-    const team = await prisma.team.upsert({
+    const db = await getDbClient()
+    const team = await db.team.upsert({
       where: { slackTeamId: teamId },
       update: {
         teamName,
@@ -153,7 +154,7 @@ export async function GET(request: NextRequest) {
         const userInfo = await userSlackClient.users.info({ user: userId })
         
         if (userInfo.ok && userInfo.user) {
-          await prisma.user.upsert({
+          await db.user.upsert({
             where: { slackUserId: userId },
             update: {
               teamId: team.id,

@@ -2,16 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { processJobs, resumeWorker } from '@/lib/queue/bull-worker'
 import { queueClient } from '@/lib/queue/client'
 import { linkProcessingQueue } from '@/lib/queue/bull-queue'
-import { prisma } from '@/lib/prisma'
+import { ensureDbConnection } from '@/lib/db'
 
 export async function GET(_request: NextRequest) {
   try {
     console.log('🕐 Bull cron job: Initializing and monitoring queue...')
     
     // Check database connection first
-    try {
-      await prisma.$connect()
-    } catch (error) {
+    const connected = await ensureDbConnection()
+    if (!connected) {
       return NextResponse.json({
         success: false,
         error: 'Database connection failed',

@@ -1,11 +1,8 @@
-import { PrismaClient } from '@prisma/client'
+// Legacy compatibility - redirects to the new unified client
+export { prisma, getDbClient, dbHealthCheck, ensureDbConnection } from './db'
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
-}
-
-export const prisma = globalForPrisma.prisma ?? new PrismaClient()
-
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma
+// For backwards compatibility
+export const healthCheck = async (): Promise<boolean> => {
+  const { dbHealthCheck } = await import('./db')
+  return dbHealthCheck()
 }

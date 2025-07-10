@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { dbHealthCheck } from '@/lib/db'
 
 export async function GET() {
   try {
-    await prisma.$queryRaw`SELECT 1`
-    return NextResponse.json({ healthy: true })
+    const healthy = await dbHealthCheck()
+    return NextResponse.json({ healthy })
   } catch (error) {
     console.error('Health check failed:', error)
     return NextResponse.json({ healthy: false }, { status: 503 })

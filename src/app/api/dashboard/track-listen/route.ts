@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getDbClient } from '@/lib/db'
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,7 +19,8 @@ export async function POST(request: NextRequest) {
       request.headers.get('x-real-ip') || undefined
 
     // Create a new listen record
-    const listen = await prisma.audioListen.create({
+    const db = await getDbClient()
+    const listen = await db.audioListen.create({
       data: {
         processedLinkId: linkId,
         userId, // Keep for backwards compatibility
