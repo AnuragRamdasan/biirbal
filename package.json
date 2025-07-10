@@ -21,6 +21,7 @@
     "@slack/bolt": "^4.4.0",
     "@slack/web-api": "^7.9.3",
     "axios": "^1.10.0",
+    "bufferutil": "^4.0.9",
     "bull": "^4.16.5",
     "cheerio": "^1.1.0",
     "dotenv": "^16.5.0",
@@ -31,7 +32,8 @@
     "prisma": "^6.10.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "stripe": "^18.2.1"
+    "stripe": "^18.2.1",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

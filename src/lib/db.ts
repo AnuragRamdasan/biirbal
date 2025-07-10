@@ -2,7 +2,7 @@
 function isEdgeRuntime(): boolean {
   // Check for Edge Runtime environment
   return (
-    typeof EdgeRuntime !== 'undefined' ||
+    typeof globalThis !== 'undefined' && 'EdgeRuntime' in globalThis ||
     process.env.NEXT_RUNTIME === 'edge' ||
     globalThis.navigator?.userAgent?.includes('Edge-Runtime')
   )
@@ -28,11 +28,17 @@ async function createNodeClient(): Promise<any> {
 
 async function createEdgeClient(): Promise<any> {
   // Dynamic imports for edge runtime
-  const [{ PrismaClient }, { PrismaNeon }, { neon }] = await Promise.all([
+  const [{ PrismaClient }, { PrismaNeon }, { neon, neonConfig }] = await Promise.all([
     import('@prisma/client'),
     import('@prisma/adapter-neon'),
     import('@neondatabase/serverless')
   ])
+  
+  // Configure WebSocket constructor for edge environments
+  if (typeof WebSocket === 'undefined') {
+    const { default: ws } = await import('ws')
+    neonConfig.webSocketConstructor = ws
+  }
   
   const connectionString = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL
   
@@ -44,7 +50,7 @@ async function createEdgeClient(): Promise<any> {
   
   // Use neon adapter for edge compatibility
   const sql = neon(connectionString)
-  const adapter = new PrismaNeon(sql)
+  const adapter = new PrismaNeon({ connectionString })
   
   return new PrismaClient({ 
     adapter,
