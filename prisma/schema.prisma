@@ -4,8 +4,8 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("PRISMA_POSTGRES_POSTGRES_URL")
-  directUrl = env("PRISMA_POSTGRES_POSTGRES_URL")
+  url       = env("PRISMA_POSTGRES_PRISMA_DATABASE_URL")
+  directUrl = env("PRISMA_POSTGRES_PRISMA_DATABASE_URL")
 }
 
 model Team {
