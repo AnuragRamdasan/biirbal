@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
-import { db } from '@/lib/models'
+import { prisma } from '@/lib/prisma'
 import { extractLinksFromMessage, shouldProcessUrl } from '@/lib/slack'
 import { queueClient } from '@/lib/queue/client'
 import { WebClient } from '@slack/web-api'
@@ -80,7 +80,10 @@ async function handleMessage(event: any, teamId: string) {
   }
 
   // Get team info to check subscription status
-  const team = await db.findTeamBySlackId(teamId)
+  const team = await prisma.team.findUnique({
+    where: { slackTeamId: teamId },
+    include: { subscription: true }
+  })
 
   if (!team || !team.isActive) {
     return
@@ -93,7 +96,10 @@ async function handleMessage(event: any, teamId: string) {
     
     // Reset counter if new month
     if (currentMonth !== subscriptionMonth) {
-      await db.updateSubscription(team.id, { linksProcessed: 0 })
+      await prisma.subscription.update({
+        where: { teamId: team.id },
+        data: { linksProcessed: 0 }
+      })
     }
 
     if (team.subscription.linksProcessed >= team.subscription.monthlyLimit) {
@@ -103,7 +109,14 @@ async function handleMessage(event: any, teamId: string) {
   }
 
   // Store or update channel info
-  await db.upsertChannel(event.channel, team.id)
+  await prisma.channel.upsert({
+    where: { slackChannelId: event.channel },
+    update: { updatedAt: new Date() },
+    create: {
+      slackChannelId: event.channel,
+      teamId: team.id
+    }
+  })
 
   // Queue each link for background processing (non-blocking)
   const queuePromises = links
@@ -183,10 +196,19 @@ async function handleAppMention(event: any, teamId: string) {
 async function handleMemberJoinedChannel(event: any, teamId: string) {
   // Update channel info when bot is added to a channel
   if (event.user === process.env.SLACK_BOT_USER_ID) {
-    const team = await db.findTeamBySlackId(teamId)
+    const team = await prisma.team.findUnique({
+      where: { slackTeamId: teamId }
+    })
 
     if (team) {
-      await db.upsertChannel(event.channel, team.id)
+      await prisma.channel.upsert({
+        where: { slackChannelId: event.channel },
+        update: { updatedAt: new Date() },
+        create: {
+          slackChannelId: event.channel,
+          teamId: team.id
+        }
+      })
     }
   }
 }
