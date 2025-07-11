@@ -12,6 +12,10 @@ export interface ExtractedContent {
 }
 
 export async function extractContentFromUrl(url: string): Promise<ExtractedContent> {
+  // Set overall timeout for entire extraction process
+  const overallTimeout = 60000 // 60 seconds total
+  const startTime = Date.now()
+  
   try {
     // Try Mercury Parser first if API key is available
     if (process.env.READABILITY_API_KEY && process.env.READABILITY_API_URL) {
@@ -21,7 +25,7 @@ export async function extractContentFromUrl(url: string): Promise<ExtractedConte
           headers: {
             'Authorization': `Bearer ${process.env.READABILITY_API_KEY}`
           },
-          timeout: 30000
+          timeout: 15000 // Reduced timeout
         })
 
         if (response.data && response.data.title) {
@@ -37,8 +41,13 @@ export async function extractContentFromUrl(url: string): Promise<ExtractedConte
       }
     }
 
+    // Check if we've exceeded overall timeout
+    if (Date.now() - startTime > overallTimeout) {
+      throw new Error('Content extraction timed out')
+    }
+
     // Fallback to direct scraping
-    return await scrapeContent(url)
+    return await scrapeContent(url, startTime, overallTimeout)
   } catch (error: any) {
     console.error('Content extraction failed:', error)
     
@@ -63,7 +72,7 @@ export async function extractContentFromUrl(url: string): Promise<ExtractedConte
   }
 }
 
-async function scrapeContent(url: string): Promise<ExtractedContent> {
+async function scrapeContent(url: string, startTime: number, overallTimeout: number): Promise<ExtractedContent> {
   // Validate URL
   try {
     new URL(url)
@@ -87,44 +96,17 @@ async function scrapeContent(url: string): Promise<ExtractedContent> {
     throw new Error('URL appears to be a media file or social media post, not an article')
   }
 
-  // Advanced user agents for WAF bypass - prioritize legitimate crawlers and services
+  // Reduced user agents for faster extraction - only try the most effective ones
   const userAgents = [
-    // Incapsula often whitelists these legitimate crawlers
+    // Most effective crawlers first
     'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
-    'Mozilla/5.0 (compatible; Bingbot/2.0; +http://www.bing.com/bingbot.htm)',
     'Mozilla/5.0 (compatible; facebookexternalhit/1.1; +http://www.facebook.com/externalhit_uatext.php)',
     'Twitterbot/1.0',
-    'LinkedInBot/1.0 (compatible; Mozilla/5.0; +http://www.linkedin.com/)',
-    'Mozilla/5.0 (compatible; Yahoo! Slurp; http://help.yahoo.com/help/us/ysearch/slurp)',
-    
-    // News aggregators and content indexers
-    'Mozilla/5.0 (compatible; archive.org_bot +http://www.archive.org/details/archive.org_bot)',
-    'Mozilla/5.0 (compatible; DuckDuckBot-Https/1.1; +https://duckduckgo.com/duckduckbot)',
-    'Mozilla/5.0 (compatible; MJ12bot/v1.4.8; http://mj12bot.com/)',
-    
-    // RSS readers and content aggregators
-    'Feedly/1.0 (+http://www.feedly.com/fetcher.html; like FeedFetcher-Google)',
-    'NewsBlur/1.0 (http://www.newsblur.com; samuel@newsblur.com)',
-    'Flipboard/2.0 (+http://flipboard.com/browserproxy)',
-    
-    // Legitimate service crawlers
-    'Mozilla/5.0 (compatible; SemrushBot/7~bl; +http://www.semrush.com/bot.html)',
-    'Mozilla/5.0 (compatible; AhrefsBot/7.0; +http://ahrefs.com/robot/)',
-    'Mozilla/5.0 (compatible; MegaIndex.ru/2.0; +http://megaindex.com/crawler)',
-    
-    // Academic and research crawlers
-    'Mozilla/5.0 (compatible; ia_archiver +http://www.alexa.com/site/help/webmasters; crawler@alexa.com)',
-    'CCBot/2.0 (https://commoncrawl.org/faq/)',
-    
-    // Standard browsers with realistic headers
+    // Standard browsers
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Safari/605.1.15',
-    
     // Mobile browsers
-    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-    'Mozilla/5.0 (Android 14; Mobile; rv:123.0) Gecko/123.0 Firefox/123.0'
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
   ]
 
   // Special handling for certain domains
@@ -203,16 +185,20 @@ async function scrapeContent(url: string): Promise<ExtractedContent> {
         delete headers['DNT'] // Some financial sites block DNT requests
       }
 
-      // Add random delay between requests to appear more human - longer for WAF-protected sites
-      if (i > 0) {
-        const baseDelay = isWAFProtected ? 8000 : 1000
-        const randomDelay = isWAFProtected ? Math.random() * 15000 : Math.random() * 3000
-        console.log(`⏳ WAF bypass attempt ${i + 1}: waiting ${Math.round((baseDelay + randomDelay) / 1000)}s before retry...`)
-        await new Promise(resolve => setTimeout(resolve, baseDelay + randomDelay))
+      // Check if we've exceeded overall timeout
+      if (Date.now() - startTime > overallTimeout) {
+        throw new Error('Content extraction timed out')
       }
 
-      // Adjust timeout based on site and attempt
-      const timeout = isWAFProtected ? 60000 : (isMoneyControl ? 45000 : (isFinancialSite ? 35000 : 25000))
+      // Add minimal delay between requests - much shorter now
+      if (i > 0) {
+        const delay = isWAFProtected ? 1000 + Math.random() * 2000 : 500 + Math.random() * 1000
+        console.log(`⏳ Attempt ${i + 1}: waiting ${Math.round(delay / 1000)}s...`)
+        await new Promise(resolve => setTimeout(resolve, delay))
+      }
+
+      // Shorter timeouts for faster failure
+      const timeout = isWAFProtected ? 20000 : (isMoneyControl ? 15000 : (isFinancialSite ? 12000 : 10000))
       
       // Enhanced request configuration for WAF bypass
       const requestConfig: any = {
@@ -220,7 +206,7 @@ async function scrapeContent(url: string): Promise<ExtractedContent> {
         maxRedirects: 5,
         headers,
         maxContentLength: 10 * 1024 * 1024, // 10MB limit
-        validateStatus: (status) => status < 400, // Accept redirects
+        validateStatus: (status: number) => status < 400, // Accept redirects
         decompress: true,
         withCredentials: true, // Allow cookies for session simulation
       }
@@ -264,41 +250,34 @@ async function scrapeContent(url: string): Promise<ExtractedContent> {
   }
 
   if (!response) {
-    // For WAF-protected sites, try specialized bypass techniques
-    if (isWAFProtected) {
-      try {
-        console.log(`🔧 Attempting specialized WAF bypass for ${url}...`)
-        response = await attemptWAFBypass(url)
-      } catch (wafError) {
-        console.log(`❌ WAF bypass failed: ${wafError}`)
-      }
+    // Check timeout before trying fallback
+    if (Date.now() - startTime > overallTimeout) {
+      throw new Error('Content extraction timed out')
     }
     
-    // Final attempt with basic headers if still no response
-    if (!response) {
-      try {
-        console.log(`Final attempt for ${url} using basic fetch...`)
-        
-        const basicResponse = await axios.get(url, {
-          headers: {
-            'User-Agent': 'PostmanRuntime/7.32.3',
-            'Accept': '*/*',
-            'Accept-Encoding': 'gzip, deflate',
-            'Connection': 'keep-alive'
-          },
-          timeout: 15000,
-          maxRedirects: 3,
-          validateStatus: () => true // Accept any status code
-        })
-        
-        if (basicResponse.status === 200 && basicResponse.data) {
-          response = basicResponse
-        } else {
-          throw lastError || new Error('Failed to fetch content after trying multiple user agents')
-        }
-      } catch (finalError) {
+    // Single fallback attempt with basic headers
+    try {
+      console.log(`Final attempt for ${url} using basic fetch...`)
+      
+      const basicResponse = await axios.get(url, {
+        headers: {
+          'User-Agent': 'PostmanRuntime/7.32.3',
+          'Accept': '*/*',
+          'Accept-Encoding': 'gzip, deflate',
+          'Connection': 'keep-alive'
+        },
+        timeout: 10000,
+        maxRedirects: 3,
+        validateStatus: () => true // Accept any status code
+      })
+      
+      if (basicResponse.status === 200 && basicResponse.data) {
+        response = basicResponse
+      } else {
         throw lastError || new Error('Failed to fetch content after trying multiple user agents')
       }
+    } catch (finalError) {
+      throw lastError || new Error('Failed to fetch content after trying multiple user agents')
     }
   }
 
@@ -855,20 +834,18 @@ function cleanExtractedText(text: string): string {
 async function extractMoneyControlContent(url: string): Promise<ExtractedContent> {
   const moneyControlAgents = [
     'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-    'Mozilla/5.0 (Linux; Android 13; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36',
-    'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
-    'Twitterbot/1.0'
+    'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'
   ]
   
   for (const userAgent of moneyControlAgents) {
     try {
       console.log(`Trying MoneyControl with agent: ${userAgent.substring(0, 30)}...`)
       
-      // Wait before each attempt
-      await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000))
+      // Minimal wait
+      await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000))
       
       const response = await axios.get(url, {
-        timeout: 20000, // Shorter timeout for quicker fallback
+        timeout: 10000, // Much shorter timeout
         headers: {
           'User-Agent': userAgent,
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -880,7 +857,7 @@ async function extractMoneyControlContent(url: string): Promise<ExtractedContent
           'Pragma': 'no-cache'
         },
         maxRedirects: 3,
-        validateStatus: (status) => status === 200,
+        validateStatus: (status: number) => status === 200,
         decompress: true
       })
       
