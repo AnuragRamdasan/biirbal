@@ -13,7 +13,7 @@ export interface ExtractedContent {
 
 export async function extractContentFromUrl(url: string): Promise<ExtractedContent> {
   // Set overall timeout for entire extraction process
-  const overallTimeout = 60000 // 60 seconds total
+  const overallTimeout = 45000 // 45 seconds total - reduced for faster failure
   const startTime = Date.now()
   
   try {
@@ -121,6 +121,10 @@ async function scrapeContent(url: string, startTime: number, overallTimeout: num
       return await extractMoneyControlContent(url)
     } catch (mcError) {
       console.log('MoneyControl special method failed, trying general approach...', mcError)
+      // Check timeout before continuing
+      if (Date.now() - startTime > overallTimeout) {
+        throw new Error('Content extraction timed out')
+      }
     }
   }
 
@@ -190,15 +194,15 @@ async function scrapeContent(url: string, startTime: number, overallTimeout: num
         throw new Error('Content extraction timed out')
       }
 
-      // Add minimal delay between requests - much shorter now
+      // Add minimal delay between requests - even shorter now
       if (i > 0) {
-        const delay = isWAFProtected ? 1000 + Math.random() * 2000 : 500 + Math.random() * 1000
+        const delay = isWAFProtected ? 500 + Math.random() * 1000 : 200 + Math.random() * 500
         console.log(`⏳ Attempt ${i + 1}: waiting ${Math.round(delay / 1000)}s...`)
         await new Promise(resolve => setTimeout(resolve, delay))
       }
 
-      // Shorter timeouts for faster failure
-      const timeout = isWAFProtected ? 20000 : (isMoneyControl ? 15000 : (isFinancialSite ? 12000 : 10000))
+      // Even shorter timeouts for faster failure
+      const timeout = isWAFProtected ? 15000 : (isMoneyControl ? 8000 : (isFinancialSite ? 8000 : 6000))
       
       // Enhanced request configuration for WAF bypass
       const requestConfig: any = {
@@ -266,7 +270,7 @@ async function scrapeContent(url: string, startTime: number, overallTimeout: num
           'Accept-Encoding': 'gzip, deflate',
           'Connection': 'keep-alive'
         },
-        timeout: 10000,
+        timeout: 8000,
         maxRedirects: 3,
         validateStatus: () => true // Accept any status code
       })
@@ -834,18 +838,17 @@ function cleanExtractedText(text: string): string {
 async function extractMoneyControlContent(url: string): Promise<ExtractedContent> {
   const moneyControlAgents = [
     'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-    'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'
+    'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+    'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
   ]
   
   for (const userAgent of moneyControlAgents) {
     try {
       console.log(`Trying MoneyControl with agent: ${userAgent.substring(0, 30)}...`)
       
-      // Minimal wait
-      await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000))
-      
+      // No wait for faster attempts
       const response = await axios.get(url, {
-        timeout: 10000, // Much shorter timeout
+        timeout: 8000, // Even shorter timeout
         headers: {
           'User-Agent': userAgent,
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -856,13 +859,13 @@ async function extractMoneyControlContent(url: string): Promise<ExtractedContent
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache'
         },
-        maxRedirects: 3,
+        maxRedirects: 2, // Fewer redirects
         validateStatus: (status: number) => status === 200,
         decompress: true
       })
       
       const html = response.data
-      if (!html || html.length < 1000) {
+      if (!html || html.length < 500) { // Lower threshold
         throw new Error('Response too short for MoneyControl')
       }
       
