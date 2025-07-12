@@ -4,6 +4,7 @@ import { Readability } from '@mozilla/readability'
 import { JSDOM } from 'jsdom'
 import OpenAI from 'openai'
 
+
 export interface ExtractedContent {
   title: string
   text: string
@@ -13,7 +14,19 @@ export interface ExtractedContent {
 
 export async function extractContentFromUrl(url: string): Promise<ExtractedContent> {
   try {
-    // Try Readability API first
+    // Try ScrapingBee first if API key is available
+    if (process.env.SCRAPINGBEE_API_KEY) {
+      try {
+        const content = await scrapeWithScrapingBee(url)
+        if (content) {
+          return content
+        }
+      } catch (apiError) {
+        console.log('ScrapingBee failed, falling back to Readability API:', apiError)
+      }
+    }
+
+    // Try Readability API as fallback
     if (process.env.READABILITY_API_KEY && process.env.READABILITY_API_URL) {
       try {
         const response = await axios.get(process.env.READABILITY_API_URL, {
@@ -38,11 +51,62 @@ export async function extractContentFromUrl(url: string): Promise<ExtractedConte
       }
     }
 
-    // Fallback to direct scraping with Readability library
+    // Final fallback to direct scraping with Readability library
     return await scrapeWithReadability(url)
   } catch (error: any) {
     console.error('Content extraction failed:', error)
     throw new Error(`Content extraction failed: ${error.message}`)
+  }
+}
+
+async function scrapeWithScrapingBee(url: string): Promise<ExtractedContent | null> {
+  if (!process.env.SCRAPINGBEE_API_KEY) {
+    return null
+  }
+
+  try {
+    // Use ScrapingBee API directly with axios
+    const response = await axios.get('https://app.scrapingbee.com/api/v1/', {
+      params: {
+        api_key: process.env.SCRAPINGBEE_API_KEY,
+        url: url,
+        render_js: 'true',
+        wait: '3000',
+        premium_proxy: 'true',
+        block_ads: 'true',
+        cookies: 'true'
+      },
+      timeout: 30000,
+      responseType: 'arraybuffer'
+    })
+
+    if (response.status !== 200) {
+      throw new Error(`ScrapingBee returned status ${response.status}`)
+    }
+
+    const html = response.data.toString()
+    
+    // Use Readability to extract clean content from the scraped HTML
+    const dom = new JSDOM(html, { url })
+    const reader = new Readability(dom.window.document)
+    const article = reader.parse()
+
+    if (!article || !article.textContent || article.textContent.length < 100) {
+      throw new Error('Insufficient content extracted by ScrapingBee')
+    }
+
+    const cleanText = cleanContent(article.textContent)
+    const title = article.title || extractTitleFromHtml(html) || 'Untitled Article'
+
+    return {
+      title: cleanTitle(title),
+      text: cleanText,
+      url,
+      excerpt: cleanText.length > 300 ? cleanText.substring(0, 300) + '...' : cleanText
+    }
+  } catch (error) {
+    console.error('ScrapingBee error:', error)
+    return null
   }
 }
 
