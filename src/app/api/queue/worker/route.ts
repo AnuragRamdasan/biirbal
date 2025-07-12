@@ -33,8 +33,6 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('📊 Bull worker health check called')
-    
     const health = await workerHealthCheck()
     
     return NextResponse.json({
