@@ -56,12 +56,15 @@ if (!processorInitialized) {
       
       // Add timeout wrapper for long-running jobs
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Job timed out after 2 minutes')), 2 * 60 * 1000)
+        setTimeout(() => reject(new Error('Job timed out after 10 minutes')), 10 * 60 * 1000)
       })
       
-      // Process the link with timeout
+      // Process the link with timeout and progress updates
       const result = await Promise.race([
-        processLink(data),
+        processLink(data, async (progress) => {
+          await job.progress(progress)
+          console.log(`📊 Job ${job.id} progress: ${progress}%`)
+        }),
         timeoutPromise
       ])
       

@@ -17,11 +17,15 @@ export async function processLink({
   channelId,
   teamId,
   slackTeamId
-}: ProcessLinkParams): Promise<void> {
+}: ProcessLinkParams, updateProgress?: (progress: number) => Promise<void>): Promise<void> {
   console.log(`🚀 Processing: ${url}`)
   
   try {
+    console.log('💾 Getting database client...')
     const db = await getDbClient()
+    console.log('✅ Database client ready')
+    
+    if (updateProgress) await updateProgress(20)
     
     // Get team and setup channel
     const team = await db.team.findUnique({
@@ -64,19 +68,34 @@ export async function processLink({
       }
     })
 
+    if (updateProgress) await updateProgress(30)
+
     // 1. Extract content with ScrapingBee
+    console.log('📄 Extracting content...')
     const extractedContent = await extractContentFromUrl(url)
     
+    if (updateProgress) await updateProgress(50)
+    
     // 2. Summarize with OpenAI
+    console.log('🤖 Summarizing content...')
     const summary = await summarizeForAudio(extractedContent.text, 200)
     
+    if (updateProgress) await updateProgress(60)
+    
     // 3. Generate audio with OpenAI TTS
+    console.log('🎤 Generating audio...')
     const audioResult = await generateAudioSummary(summary, extractedContent.title, 90)
     
+    if (updateProgress) await updateProgress(80)
+    
     // 4. Upload to S3
+    console.log('☁️ Uploading audio...')
     const audioUrl = await uploadAudioToStorage(audioResult.audioBuffer, audioResult.fileName)
     
+    if (updateProgress) await updateProgress(90)
+    
     // 5. Update database
+    console.log('💾 Updating database...')
     await db.processedLink.update({
       where: { id: processedLink.id },
       data: {
@@ -90,6 +109,7 @@ export async function processLink({
     })
 
     // 6. Notify Slack
+    console.log('📱 Notifying Slack...')
     const slackClient = new WebClient(team.accessToken)
     await slackClient.chat.postMessage({
       channel: channelId,
@@ -97,6 +117,7 @@ export async function processLink({
       text: `🎧 Audio summary ready: https://biirbal.com/dashboard#${processedLink.id}`
     })
 
+    if (updateProgress) await updateProgress(100)
     console.log(`✅ Successfully processed: ${url}`)
 
   } catch (error) {
