@@ -54,9 +54,9 @@ if (!processorInitialized) {
       // Update job progress
       await job.progress(10)
       
-      // Add timeout wrapper for long-running jobs
+      // Add timeout wrapper for long-running jobs (shorter than Vercel timeout)
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Job timed out after 10 minutes')), 10 * 60 * 1000)
+        setTimeout(() => reject(new Error('Job timed out after 4 minutes')), 4 * 60 * 1000)
       })
       
       // Process the link with timeout and progress updates

@@ -4,7 +4,7 @@
       "maxDuration": 300
     },
     "src/app/api/queue/worker/route.ts": {
-      "maxDuration": 300
+      "maxDuration": 900
     },
     "src/app/api/queue/cleanup/route.ts": {
       "maxDuration": 60
