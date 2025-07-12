@@ -2,8 +2,6 @@ import { getDbClient } from './db'
 import { extractContentFromUrl, summarizeForAudio } from './content-extractor'
 import { generateAudioSummary, uploadAudioToStorage } from './text-to-speech'
 import { WebClient } from '@slack/web-api'
-import { Readable } from 'stream'
-import { PerformanceTimer, performanceMetrics, logMemoryUsage } from './performance'
 
 interface ProcessLinkParams {
   url: string
@@ -13,7 +11,6 @@ interface ProcessLinkParams {
   slackTeamId: string
 }
 
-
 export async function processLink({
   url,
   messageTs,
@@ -21,233 +18,90 @@ export async function processLink({
   teamId,
   slackTeamId
 }: ProcessLinkParams): Promise<void> {
-  const timer = new PerformanceTimer(`LinkProcessing:${url.split('/')[2] || 'unknown'}`)
-  let processedLink
+  console.log(`🚀 Processing: ${url}`)
   
   try {
-    logMemoryUsage('ProcessLink:Start')
-    console.log(`🚀 Starting lightning-fast processing for: ${url}`)
-    
-    // Get database client
     const db = await getDbClient()
     
-    // PARALLEL PHASE 1: Database setup and content extraction
-    const [channel, team, extractedContent] = await Promise.all([
-      // Database operation 1: Channel upsert
-      db.channel.upsert({
-        where: { slackChannelId: channelId },
-        update: { teamId, isActive: true },
-        create: {
-          slackChannelId: channelId,
-          teamId,
-          isActive: true
-        }
-      }),
-      
-      // Database operation 2: Team lookup with subscription
-      db.team.findUnique({
-        where: { id: teamId },
-        include: { subscription: true }
-      }),
-      
-      // Slow operation: Content extraction (run in parallel)
-      extractContentFromUrl(url)
-    ])
+    // Get team and setup channel
+    const team = await db.team.findUnique({
+      where: { id: teamId },
+      include: { subscription: true }
+    })
 
     if (!team) {
       throw new Error('Team not found')
     }
 
-    timer.mark('Phase1:DatabaseAndExtraction')
+    const channel = await db.channel.upsert({
+      where: { slackChannelId: channelId },
+      update: { teamId, isActive: true },
+      create: {
+        slackChannelId: channelId,
+        teamId,
+        isActive: true
+      }
+    })
 
-    // PARALLEL PHASE 2: Database record creation and audio text preparation
-    const audioText = await summarizeForAudio(extractedContent.text, 200)
-    
-    const [processedLinkRecord] = await Promise.all([
-      // Database operation: Create processed link record
-      db.processedLink.upsert({
-        where: {
-          url_messageTs_channelId: {
-            url,
-            messageTs,
-            channelId: channel.id
-          }
-        },
-        update: {
-          processingStatus: 'PROCESSING'
-        },
-        create: {
+    // Create processing record
+    const processedLink = await db.processedLink.upsert({
+      where: {
+        url_messageTs_channelId: {
           url,
           messageTs,
-          channelId: channel.id,
-          teamId,
-          processingStatus: 'PROCESSING'
+          channelId: channel.id
         }
-      }),
-      
-      // No await needed - audio text preparation is synchronous
-      Promise.resolve()
-    ])
-    
-    processedLink = processedLinkRecord
-    
-    timer.mark('Phase2:DatabaseRecord')
+      },
+      update: {
+        processingStatus: 'PROCESSING'
+      },
+      create: {
+        url,
+        messageTs,
+        channelId: channel.id,
+        teamId,
+        processingStatus: 'PROCESSING'
+      }
+    })
 
-    // PARALLEL PHASE 3: Audio generation and Slack client setup
-    const slackClient = new WebClient(team.accessToken)
+    // 1. Extract content with ScrapingBee
+    const extractedContent = await extractContentFromUrl(url)
     
-    console.log(`🎵 Starting turbo audio generation for: ${extractedContent.title}`)
+    // 2. Summarize with OpenAI
+    const summary = await summarizeForAudio(extractedContent.text, 200)
     
-    const [audioResult] = await Promise.all([
-      // Slow operation: Audio generation
-      generateAudioSummary(
-        audioText,
-        extractedContent.title,
-        parseInt(process.env.MAX_AUDIO_DURATION_SECONDS || '90')
-      ),
-      
-      // Fast operation: Slack client is already ready
-      Promise.resolve()
-    ])
+    // 3. Generate audio with OpenAI TTS
+    const audioResult = await generateAudioSummary(summary, extractedContent.title, 90)
     
-    timer.mark('Phase3:AudioGeneration')
-
-    // PARALLEL PHASE 4: File upload and database update preparation  
+    // 4. Upload to S3
     const audioUrl = await uploadAudioToStorage(audioResult.audioBuffer, audioResult.fileName)
     
-    timer.mark('Phase4:FileUpload')
-
-    // PARALLEL PHASE 5: Final database updates and Slack notification
-    await Promise.all([
-      // Database update: Mark as completed
-      db.processedLink.update({
-        where: { id: processedLink.id },
-        data: {
-          title: extractedContent.title,
-          extractedText: extractedContent.excerpt,
-          audioFileUrl: audioUrl,
-          audioFileKey: audioResult.fileName,
-          ttsScript: audioResult.ttsScript,
-          processingStatus: 'COMPLETED'
-        }
-      }),
-      
-      // Slack notification: Send dashboard link
-      replyWithDashboardLink({
-        slackClient,
-        channelId,
-        messageTs,
-        processedLinkId: processedLink.id,
+    // 5. Update database
+    await db.processedLink.update({
+      where: { id: processedLink.id },
+      data: {
         title: extractedContent.title,
-        excerpt: extractedContent.excerpt,
-        url
-      }),
-      
-      // Database update: Increment usage counter
-      team.subscription ? db.subscription.update({
-        where: { id: team.subscription.id },
-        data: {
-          linksProcessed: team.subscription.linksProcessed + 1
-        }
-      }) : Promise.resolve()
-    ])
-    
-    const totalTime = timer.end()
-    performanceMetrics.recordTiming('LinkProcessing', totalTime)
-    logMemoryUsage('ProcessLink:Complete')
-    
-    console.log(`🚀 LIGHTNING FAST! Processed ${url} in ${totalTime.toFixed(2)}ms`)
-
-  } catch (error) {
-    console.error('Link processing failed:', error)
-    
-    // Update database with error
-    if (processedLink) {
-      const db = await getDbClient()
-      await db.processedLink.update({
-        where: { id: processedLink.id },
-        data: {
-          processingStatus: 'FAILED',
-          errorMessage: error instanceof Error ? error.message : 'Unknown error'
-        }
-      })
-    }
-
-    // Optionally notify in Slack about the failure
-    try {
-      const db = await getDbClient()
-      const team = await db.team.findUnique({
-        where: { id: teamId }
-      })
-      
-      if (team) {
-        const slackClient = new WebClient(team.accessToken)
-        await slackClient.chat.postMessage({
-          channel: channelId,
-          thread_ts: messageTs,
-          text: `⚠️ Sorry, I couldn't process the link: ${url}. ${error instanceof Error ? error.message : 'Unknown error occurred.'}`
-        })
+        extractedText: summary,
+        audioFileUrl: audioUrl,
+        audioFileKey: audioResult.fileName,
+        ttsScript: audioResult.ttsScript,
+        processingStatus: 'COMPLETED'
       }
-    } catch (notifyError) {
-      console.error('Failed to notify about processing error:', notifyError)
-    }
-  }
-}
+    })
 
-interface ReplyWithDashboardLinkParams {
-  slackClient: WebClient
-  channelId: string
-  messageTs: string
-  processedLinkId: string
-  title: string
-  excerpt: string
-  url: string
-}
-
-async function replyWithDashboardLink({
-  slackClient,
-  channelId,
-  messageTs,
-  processedLinkId,
-  title,
-  excerpt,
-  url
-}: ReplyWithDashboardLinkParams): Promise<void> {
-  try {
-    const baseUrl = 'https://biirbal.com'
-    const dashboardUrl = `${baseUrl}/dashboard#${processedLinkId}`
-
+    // 6. Notify Slack
+    const slackClient = new WebClient(team.accessToken)
     await slackClient.chat.postMessage({
       channel: channelId,
       thread_ts: messageTs,
-      text: `🎧 Audio summary ready. Listen on your dashboard: ${dashboardUrl}.`
+      text: `🎧 Audio summary ready: https://biirbal.com/dashboard#${processedLink.id}`
     })
 
-    console.log('Dashboard link posted to Slack successfully')
-  } catch (error: any) {
-    console.error('Failed to post dashboard link to Slack:', {
-      error: error.data || error.message || error,
-      channel: channelId,
-      messageTs,
-      processedLinkId,
-      slackApiError: error.data
-    })
-    
-    // Fallback: Post basic completion message
-    try {
-      await slackClient.chat.postMessage({
-        channel: channelId,
-        thread_ts: messageTs,
-        text: `🎧 Audio summary ready. Link sharing failed but you can still listen on your dashboard.`
-      })
-      console.log('Fallback message posted successfully')
-    } catch (fallbackError: any) {
-      console.error('Fallback message failed:', {
-        error: fallbackError.data || fallbackError.message || fallbackError,
-        channel: channelId,
-        slackApiError: fallbackError.data
-      })
-      throw error
-    }
+    console.log(`✅ Successfully processed: ${url}`)
+
+  } catch (error) {
+    console.error('Link processing failed:', error)
+    throw error
   }
 }
+

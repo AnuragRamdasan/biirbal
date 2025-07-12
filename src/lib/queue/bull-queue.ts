@@ -56,7 +56,7 @@ if (!processorInitialized) {
       
       // Add timeout wrapper for long-running jobs
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Job timed out after 5 minutes')), 5 * 60 * 1000)
+        setTimeout(() => reject(new Error('Job timed out after 2 minutes')), 2 * 60 * 1000)
       })
       
       // Process the link with timeout
