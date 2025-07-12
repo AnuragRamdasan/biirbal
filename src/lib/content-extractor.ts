@@ -65,16 +65,13 @@ async function scrapeWithScrapingBee(url: string): Promise<ExtractedContent | nu
   }
 
   try {
-    // Use ScrapingBee API directly with axios
+    // Use ScrapingBee API directly with axios - try with basic parameters first
     const response = await axios.get('https://app.scrapingbee.com/api/v1/', {
       params: {
         api_key: process.env.SCRAPINGBEE_API_KEY,
         url: url,
-        render_js: 'true',
-        wait: '3000',
-        premium_proxy: 'true',
-        block_ads: 'true',
-        cookies: 'true'
+        render_js: '1',
+        wait: '2000'
       },
       timeout: 30000,
       responseType: 'arraybuffer'
@@ -104,8 +101,12 @@ async function scrapeWithScrapingBee(url: string): Promise<ExtractedContent | nu
       url,
       excerpt: cleanText.length > 300 ? cleanText.substring(0, 300) + '...' : cleanText
     }
-  } catch (error) {
-    console.error('ScrapingBee error:', error)
+  } catch (error: any) {
+    console.error('ScrapingBee error:', error.message)
+    if (error.response) {
+      console.error('ScrapingBee response status:', error.response.status)
+      console.error('ScrapingBee response data:', error.response.data?.toString())
+    }
     return null
   }
 }
