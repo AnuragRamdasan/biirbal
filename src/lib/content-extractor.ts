@@ -92,7 +92,7 @@ async function scrapeWithScrapingBee(url: string): Promise<ExtractedContent | nu
         render_js: '0', // Disable JS rendering for speed
         wait: '1000' // Shorter wait time
       },
-      timeout: 15000, // Much shorter timeout
+      timeout: 60000, // Allow more time for post-processing
       responseType: 'arraybuffer'
     })
 
