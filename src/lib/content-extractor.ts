@@ -13,10 +13,19 @@ export interface ExtractedContent {
 }
 
 export async function extractContentFromUrl(url: string): Promise<ExtractedContent> {
+  // Set overall timeout for entire extraction process
+  const overallTimeout = 30000 // 30 seconds total
+  const startTime = Date.now()
+  
   try {
     // Try ScrapingBee first if API key is available
     if (process.env.SCRAPINGBEE_API_KEY) {
       try {
+        // Check if we've exceeded overall timeout
+        if (Date.now() - startTime > overallTimeout) {
+          throw new Error('Content extraction timed out')
+        }
+        
         const content = await scrapeWithScrapingBee(url)
         if (content) {
           return content
@@ -24,6 +33,11 @@ export async function extractContentFromUrl(url: string): Promise<ExtractedConte
       } catch (apiError) {
         console.log('ScrapingBee failed, falling back to Readability API:', apiError)
       }
+    }
+
+    // Check timeout before Readability API
+    if (Date.now() - startTime > overallTimeout) {
+      throw new Error('Content extraction timed out')
     }
 
     // Try Readability API as fallback
@@ -34,7 +48,7 @@ export async function extractContentFromUrl(url: string): Promise<ExtractedConte
           headers: {
             'Authorization': `Bearer ${process.env.READABILITY_API_KEY}`
           },
-          timeout: 15000
+          timeout: 10000 // Shorter timeout
         })
 
         if (response.data && response.data.title) {
@@ -51,6 +65,11 @@ export async function extractContentFromUrl(url: string): Promise<ExtractedConte
       }
     }
 
+    // Check timeout before final fallback
+    if (Date.now() - startTime > overallTimeout) {
+      throw new Error('Content extraction timed out')
+    }
+
     // Final fallback to direct scraping with Readability library
     return await scrapeWithReadability(url)
   } catch (error: any) {
@@ -65,15 +84,15 @@ async function scrapeWithScrapingBee(url: string): Promise<ExtractedContent | nu
   }
 
   try {
-    // Use ScrapingBee API directly with axios - try with basic parameters first
+    // Use ScrapingBee API directly with axios - optimized for speed
     const response = await axios.get('https://app.scrapingbee.com/api/v1/', {
       params: {
         api_key: process.env.SCRAPINGBEE_API_KEY,
         url: url,
-        render_js: '1',
-        wait: '2000'
+        render_js: '0', // Disable JS rendering for speed
+        wait: '1000' // Shorter wait time
       },
-      timeout: 30000,
+      timeout: 15000, // Much shorter timeout
       responseType: 'arraybuffer'
     })
 
@@ -121,7 +140,7 @@ async function scrapeWithReadability(url: string): Promise<ExtractedContent> {
 
   // Simple request with standard headers
   const response = await axios.get(url, {
-    timeout: 15000,
+    timeout: 10000, // Shorter timeout
     headers: {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
