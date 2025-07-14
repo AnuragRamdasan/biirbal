@@ -28,22 +28,22 @@ biirbal.ai is a production-ready Slack application that automatically generates 
 ## Architecture Overview
 
 ### Architecture Guidelines
-- Given that we have web endpoints, queue setup and database, ensure that any new additions to the architecture is kept as minimal as possible. Ensure that the architecture design is done to be compatible with production which hosts web and worker on vercel, postgres on neon and redis on redis.io and managed via bull.
+- Given that we have web endpoints, queue setup and database, ensure that any new additions to the architecture is kept as minimal as possible. Ensure that the architecture design is done to be compatible with production which hosts web and worker on heroku, postgres on heroku postgres and redis on heroku redis and managed via bull.
 - when failure is hit, it is important to fix the root cause of failure instead of wrapping it in retries logic.
 
 ### Database Layer
 - **Primary Database**: PostgreSQL with Prisma ORM
-- **Neon Serverless**: Uses `@neondatabase/serverless` for edge runtime compatibility
-- **Hybrid Approach**: Prisma for migrations/schema, Neon serverless for queries
+- **Heroku Postgres**: Uses Heroku Postgres add-on for managed database
+- **Hybrid Approach**: Prisma for migrations/schema, direct queries for performance
 - **Models**: Team, User, Channel, ProcessedLink, Subscription, AudioListen, QueuedJob
-- **Connection**: Uses both `DATABASE_URL` and `DATABASE_UNPOOLED_URL` for optimal performance
+- **Connection**: Uses `DATABASE_URL` from Heroku Postgres add-on
 
 ### Queue System
-- **Redis Queue**: Bull.js for background job processing
+- **Redis Queue**: Bull.js for background job processing with Heroku Redis add-on
 - **Fallback Mode**: Direct processing when Redis unavailable
 - **Job Types**: PROCESS_LINK jobs for content extraction and TTS
-- **Worker**: Processes jobs with timeout and retry logic
-- **Cron Jobs**: Vercel cron triggers workers every 2 minutes
+- **Worker**: Dedicated worker dyno processes jobs with timeout and retry logic
+- **Cron Jobs**: Heroku Scheduler triggers workers every 2 minutes
 
 ### API Structure
 - **Next.js App Router**: Uses `src/app/api/` structure
@@ -160,10 +160,11 @@ const stats = await queueClient.getStats()
 
 ## Deployment
 
-### Vercel Configuration
-- Uses `vercel.json` for cron job configuration
-- Environment variables configured in Vercel dashboard
-- Serverless functions with extended timeouts for workers
+### Heroku Configuration
+- Uses `Procfile` for dyno configuration
+- Environment variables configured in Heroku dashboard
+- Web and worker dynos with appropriate resource allocation
+- Heroku Scheduler for cron jobs
 
 ### Docker Support
 - `Dockerfile` and `docker-compose.yml` included

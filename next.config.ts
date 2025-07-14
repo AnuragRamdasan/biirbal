@@ -1,13 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Stable configuration for Vercel deployment
+  // Configuration for Heroku deployment
   compiler: {
     // Keep console.log in production for debugging, only remove console.debug
     removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn', 'log'] } : false,
   },
   eslint: {
-    // Disable ESLint during builds to prevent Vercel failures
+    // Disable ESLint during builds to prevent Heroku failures
     ignoreDuringBuilds: true,
   },
   typescript: {
@@ -17,9 +17,7 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_SLACK_CLIENT_ID: process.env.SLACK_CLIENT_ID,
     NEXT_PUBLIC_APP_URL: process.env.NEXTAUTH_URL,
-    NEXT_PUBLIC_BASE_URL: process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}` 
-      : 'http://localhost:3000',
+    NEXT_PUBLIC_BASE_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
   },
   // Add headers for security
   async headers() {

@@ -1,0 +1,65 @@
+{
+  "name": "biirbal-ai",
+  "description": "A Slack application that generates audio summaries of shared links",
+  "repository": "https://github.com/your-repo/biirbal-ai",
+  "stack": "heroku-20",
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    }
+  ],
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    },
+    "worker": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
+  "addons": [
+    {
+      "plan": "heroku-postgresql:essential-0"
+    },
+    {
+      "plan": "heroku-redis:mini"
+    },
+    {
+      "plan": "scheduler:standard"
+    }
+  ],
+  "env": {
+    "NODE_ENV": {
+      "description": "Node environment",
+      "value": "production"
+    },
+    "SLACK_SIGNING_SECRET": {
+      "description": "Slack app signing secret",
+      "required": true
+    },
+    "SLACK_CLIENT_ID": {
+      "description": "Slack OAuth client ID",
+      "required": true
+    },
+    "SLACK_CLIENT_SECRET": {
+      "description": "Slack OAuth client secret",
+      "required": true
+    },
+    "GOOGLE_CLOUD_PROJECT_ID": {
+      "description": "Google Cloud project ID for TTS",
+      "required": false
+    },
+    "STRIPE_SECRET_KEY": {
+      "description": "Stripe secret key for payments",
+      "required": false
+    },
+    "NEXTAUTH_URL": {
+      "description": "Base URL for the application",
+      "required": true
+    }
+  },
+  "scripts": {
+    "postdeploy": "npm run db:push"
+  }
+}
