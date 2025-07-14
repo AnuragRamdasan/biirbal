@@ -5,7 +5,7 @@
  */
 
 import Bull from 'bull'
-import { processLink } from '@/lib/link-processor'
+import { processLink } from '../link-processor'
 
 // Job data interface
 export interface ProcessLinkJobData {
@@ -241,7 +241,7 @@ export const queueManager = {
     
     // Clean stalled jobs older than 2 hours
     const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000
-    await linkProcessingQueue.clean(twoHoursAgo, 'stalled')
+    await linkProcessingQueue.clean(twoHoursAgo, 'active')
     
     console.log('🧹 Bull queue cleaned (completed, failed, and stalled jobs)')
   },
@@ -285,13 +285,13 @@ export const queueManager = {
   async cleanStalledJobs() {
     try {
       // Get all stalled jobs
-      const stalled = await linkProcessingQueue.getJobs(['stalled'])
+      const stalled = await linkProcessingQueue.getJobs(['active'])
       
       console.log(`🔧 Found ${stalled.length} stalled jobs`)
       
       // Clean stalled jobs older than 30 minutes
       const thirtyMinutesAgo = Date.now() - 30 * 60 * 1000
-      await linkProcessingQueue.clean(thirtyMinutesAgo, 'stalled')
+      await linkProcessingQueue.clean(thirtyMinutesAgo, 'active')
       
       // Force retry stalled jobs that are recent
       let retriedCount = 0

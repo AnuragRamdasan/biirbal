@@ -10,7 +10,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.queueManager = exports.linkProcessingQueue = void 0;
 const bull_1 = __importDefault(require("bull"));
-const link_processor_1 = require("@/lib/link-processor");
+const link_processor_1 = require("../link-processor");
 // Create the queue instance
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 console.log('🐂 Initializing Bull queue with Redis:', redisUrl.replace(/:([^:/@]+)@/, ':***@'));
@@ -206,7 +206,7 @@ exports.queueManager = {
         await exports.linkProcessingQueue.clean(oneDayAgo, 'failed');
         // Clean stalled jobs older than 2 hours
         const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
-        await exports.linkProcessingQueue.clean(twoHoursAgo, 'stalled');
+        await exports.linkProcessingQueue.clean(twoHoursAgo, 'active');
         console.log('🧹 Bull queue cleaned (completed, failed, and stalled jobs)');
     },
     /**
@@ -244,11 +244,11 @@ exports.queueManager = {
     async cleanStalledJobs() {
         try {
             // Get all stalled jobs
-            const stalled = await exports.linkProcessingQueue.getJobs(['stalled']);
+            const stalled = await exports.linkProcessingQueue.getJobs(['active']);
             console.log(`🔧 Found ${stalled.length} stalled jobs`);
             // Clean stalled jobs older than 30 minutes
             const thirtyMinutesAgo = Date.now() - 30 * 60 * 1000;
-            await exports.linkProcessingQueue.clean(thirtyMinutesAgo, 'stalled');
+            await exports.linkProcessingQueue.clean(thirtyMinutesAgo, 'active');
             // Force retry stalled jobs that are recent
             let retriedCount = 0;
             for (const job of stalled) {
