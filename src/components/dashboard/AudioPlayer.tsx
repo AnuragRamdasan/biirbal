@@ -72,11 +72,11 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
               )}
             >
               {isCurrentTrack && isPlaying ? (
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
                 </svg>
               ) : (
-                <svg className="w-6 h-6 ml-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-8 h-8 ml-0.5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
                 </svg>
               )}
@@ -105,13 +105,13 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
                 <img 
                   src={link.ogImage} 
                   alt={link.title || 'Article'}
-                  className="w-18 h-18 object-cover rounded-xl border border-gray-200 shadow-sm"
+                  className="w-20 h-20 object-cover rounded-xl border border-gray-200 shadow-sm"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none'
                   }}
                 />
               ) : (
-                <div className="w-18 h-18 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center border border-gray-200">
+                <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center border border-gray-200">
                   <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                   </svg>
