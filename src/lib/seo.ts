@@ -16,7 +16,7 @@ const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://biirbal.com'
 
 const defaultSEO: SEOConfig = {
   title: 'biirbal.ai - AI-Powered Slack Content Intelligence',
-  description: 'Transform Slack links into 90-second audio summaries. Never miss important content again with AI-powered content intelligence for your team.',
+  description: 'Transform Slack links into 59-second audio summaries. Never miss important content again with AI-powered content intelligence for your team.',
   keywords: [
     'slack bot',
     'ai content summarization', 

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-biirbal.ai is a production-ready Slack application that automatically generates 90-second audio summaries of links shared in channels. The application uses AI-powered content extraction and text-to-speech technology to create audio summaries that are delivered back to Slack.
+biirbal.ai is a production-ready Slack application that automatically generates 59-second audio summaries of links shared in channels. The application uses AI-powered content extraction and text-to-speech technology to create audio summaries that are delivered back to Slack.
 
 ## Development Commands
 

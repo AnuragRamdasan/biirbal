@@ -78,14 +78,14 @@ export async function processLink({
     
     // 2. Summarize with OpenAI
     console.log('🤖 Summarizing content...')
-    const summary = await summarizeForAudio(extractedContent.text, 75)
+    const summary = await summarizeForAudio(extractedContent.text, 150)
     console.log('🖼️ OG Image extracted:', extractedContent.ogImage)
     
     if (updateProgress) await updateProgress(60)
     
     // 3. Generate audio with OpenAI TTS
     console.log('🎤 Generating audio...')
-    const audioResult = await generateAudioSummary(summary, extractedContent.title, 30)
+    const audioResult = await generateAudioSummary(summary, extractedContent.title, 59)
     
     if (updateProgress) await updateProgress(80)
     

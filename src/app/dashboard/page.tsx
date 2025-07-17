@@ -416,7 +416,7 @@ export default function Dashboard() {
                                 ></div>
                               </div>
                               <span className="text-xs text-gray-400 min-w-0">
-                                {formatTime(currentTime[link.id] || 0)} / {formatTime(duration[link.id] || 30)}
+                                {formatTime(currentTime[link.id] || 0)} / {formatTime(duration[link.id] || 59)}
                               </span>
                             </div>
                           )}
