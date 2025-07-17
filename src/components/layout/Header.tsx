@@ -1,5 +1,8 @@
-import React from 'react'
+'use client'
+
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
 
@@ -14,6 +17,37 @@ export const Header: React.FC<HeaderProps> = ({
   showNavigation = true,
   currentPage 
 }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const router = useRouter()
+
+  useEffect(() => {
+    // Check if user is authenticated by looking for team ID in localStorage
+    const teamId = localStorage.getItem('biirbal_team_id')
+    setIsAuthenticated(!!teamId)
+  }, [])
+
+  const handleLogout = async () => {
+    try {
+      // Clear all local storage items
+      localStorage.removeItem('biirbal_visited_dashboard')
+      localStorage.removeItem('biirbal_team_id')
+      localStorage.removeItem('biirbal_user_id')
+      
+      // Clear any other app-specific storage
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('biirbal_')) {
+          localStorage.removeItem(key)
+        }
+      })
+      
+      // Redirect to home page
+      router.push('/')
+    } catch (error) {
+      console.error('Logout error:', error)
+      // Even if there's an error, still redirect to home
+      router.push('/')
+    }
+  }
   return (
     <header className={cn(
       'bg-gradient-to-r from-blue-600 to-purple-600 text-white',
@@ -30,24 +64,28 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Navigation */}
           {showNavigation && (
             <nav className="flex items-center space-x-6">
-              <Link 
-                href="/dashboard" 
-                className={cn(
-                  'text-white/80 hover:text-white transition-colors text-sm font-medium',
-                  currentPage === 'dashboard' && 'text-white font-semibold'
-                )}
-              >
-                Dashboard
-              </Link>
-              <Link 
-                href="/profile" 
-                className={cn(
-                  'text-white/80 hover:text-white transition-colors text-sm font-medium',
-                  currentPage === 'profile' && 'text-white font-semibold'
-                )}
-              >
-                Profile
-              </Link>
+              {isAuthenticated && (
+                <>
+                  <Link 
+                    href="/dashboard" 
+                    className={cn(
+                      'text-white/80 hover:text-white transition-colors text-sm font-medium',
+                      currentPage === 'dashboard' && 'text-white font-semibold'
+                    )}
+                  >
+                    Dashboard
+                  </Link>
+                  <Link 
+                    href="/profile" 
+                    className={cn(
+                      'text-white/80 hover:text-white transition-colors text-sm font-medium',
+                      currentPage === 'profile' && 'text-white font-semibold'
+                    )}
+                  >
+                    Profile
+                  </Link>
+                </>
+              )}
               <Link 
                 href="/pricing" 
                 className={cn(
@@ -57,13 +95,24 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 Pricing
               </Link>
-              <Button 
-                variant="secondary" 
-                size="sm"
-                className="bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-sm"
-              >
-                Get Started
-              </Button>
+              {isAuthenticated ? (
+                <Button 
+                  onClick={handleLogout}
+                  variant="secondary" 
+                  size="sm"
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-sm"
+                >
+                  Logout
+                </Button>
+              ) : (
+                <Button 
+                  variant="secondary" 
+                  size="sm"
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-sm"
+                >
+                  Get Started
+                </Button>
+              )}
             </nav>
           )}
         </div>
