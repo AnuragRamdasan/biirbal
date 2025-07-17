@@ -11,7 +11,7 @@ export interface AudioResult {
 export async function generateAudioSummary(
   text: string, 
   title: string,
-  maxDurationSeconds: number = 90
+  maxDurationSeconds: number = 30
 ): Promise<AudioResult> {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error('OPENAI_API_KEY is required')

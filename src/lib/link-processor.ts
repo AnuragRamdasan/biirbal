@@ -84,7 +84,7 @@ export async function processLink({
     
     // 3. Generate audio with OpenAI TTS
     console.log('🎤 Generating audio...')
-    const audioResult = await generateAudioSummary(summary, extractedContent.title, 90)
+    const audioResult = await generateAudioSummary(summary, extractedContent.title, 30)
     
     if (updateProgress) await updateProgress(80)
     
