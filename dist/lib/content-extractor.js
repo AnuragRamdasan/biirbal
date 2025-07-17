@@ -37,9 +37,11 @@ async function extractContentFromUrl(url) {
         }
         const cleanText = cleanContent(article.textContent);
         const title = article.title || 'Untitled Article';
+        const ogImage = extractOgImage(dom.window.document, url);
         console.log(`✅ Extracted ${cleanText.length} characters from: ${title}`);
         return {
             title: cleanTitle(title),
+            ogImage,
             text: cleanText,
             url
         };
@@ -62,7 +64,7 @@ function cleanTitle(title) {
         .replace(/\s+/g, ' ')
         .trim();
 }
-async function summarizeForAudio(text, maxWords = 200) {
+async function summarizeForAudio(text, maxWords = 75) {
     if (!process.env.OPENAI_API_KEY) {
         throw new Error('OPENAI_API_KEY is required');
     }
@@ -90,6 +92,66 @@ ${text.substring(0, 12000)}`;
     if (!summary) {
         throw new Error('Failed to generate summary');
     }
-    console.log(`✅ Generated ${summary.split(/\s+/).length} word summary`);
     return summary;
+}
+function extractOgImage(document, baseUrl) {
+    console.log('🖼️ Extracting OG image...');
+    // Try og:image first
+    const ogImageMeta = document.querySelector('meta[property="og:image"]');
+    if (ogImageMeta) {
+        const content = ogImageMeta.getAttribute('content');
+        console.log('Found og:image:', content);
+        if (content) {
+            const resolvedUrl = resolveImageUrl(content, baseUrl);
+            if (isValidImageUrl(resolvedUrl)) {
+                console.log('✅ Using og:image:', resolvedUrl);
+                return resolvedUrl;
+            }
+        }
+    }
+    // Try twitter:image
+    const twitterImageMeta = document.querySelector('meta[name="twitter:image"]');
+    if (twitterImageMeta) {
+        const content = twitterImageMeta.getAttribute('content');
+        console.log('Found twitter:image:', content);
+        if (content) {
+            const resolvedUrl = resolveImageUrl(content, baseUrl);
+            if (isValidImageUrl(resolvedUrl)) {
+                console.log('✅ Using twitter:image:', resolvedUrl);
+                return resolvedUrl;
+            }
+        }
+    }
+    // Try link rel="image_src"
+    const linkImage = document.querySelector('link[rel="image_src"]');
+    if (linkImage) {
+        const href = linkImage.getAttribute('href');
+        console.log('Found image_src:', href);
+        if (href) {
+            const resolvedUrl = resolveImageUrl(href, baseUrl);
+            if (isValidImageUrl(resolvedUrl)) {
+                console.log('✅ Using image_src:', resolvedUrl);
+                return resolvedUrl;
+            }
+        }
+    }
+    console.log('❌ No OG image found');
+    return undefined;
+}
+function isValidImageUrl(url) {
+    try {
+        const parsed = new URL(url);
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    }
+    catch {
+        return false;
+    }
+}
+function resolveImageUrl(imageUrl, baseUrl) {
+    try {
+        return new URL(imageUrl, baseUrl).href;
+    }
+    catch {
+        return imageUrl;
+    }
 }

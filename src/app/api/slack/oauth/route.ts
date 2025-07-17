@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       console.log(request.url)
       console.log(error)
       return NextResponse.redirect(
-        new URL(`/?error=${encodeURIComponent(error)}`, 'https://biirbal.com')
+        new URL(`/?error=${encodeURIComponent(error)}`, 'https://www.biirbal.com')
       )
     }
 
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     const protocol = request.headers.get('x-forwarded-proto') || 'https'
     
     // Force custom domain for OAuth redirect - never use Vercel preview URLs
-    const fullRedirectUri = 'https://biirbal.com/api/slack/oauth'
+    const fullRedirectUri = 'https://www.biirbal.com/api/slack/oauth'
     
     console.log('Debug redirect URI info:', {
       host,
@@ -208,12 +208,12 @@ export async function GET(request: NextRequest) {
     }
     
     return NextResponse.redirect(
-      new URL(redirectUrl, 'https://biirbal.com')
+      new URL(redirectUrl, 'https://www.biirbal.com')
     )
   } catch (error) {
     console.error('OAuth error:', error)
     return NextResponse.redirect(
-      new URL(`/?error=${encodeURIComponent('Installation failed')}`, 'https://biirbal.com')
+      new URL(`/?error=${encodeURIComponent('Installation failed')}`, 'https://www.biirbal.com')
     )
   }
 }

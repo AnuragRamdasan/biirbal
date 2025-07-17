@@ -47,7 +47,7 @@ function HomeContent() {
 
   // Force custom domain for OAuth redirect - never use Vercel preview URLs
   const getRedirectUri = () => {
-    return 'https://biirbal.com/api/slack/oauth'
+    return 'https://www.biirbal.com/api/slack/oauth'
   }
 
   const slackInstallUrl = `https://slack.com/oauth/v2/authorize?client_id=${process.env.NEXT_PUBLIC_SLACK_CLIENT_ID}&scope=app_mentions:read,channels:history,channels:read,chat:write,files:write,groups:history,groups:read,im:history,im:read,mpim:history,mpim:read&user_scope=users:read&redirect_uri=${encodeURIComponent(getRedirectUri())}`

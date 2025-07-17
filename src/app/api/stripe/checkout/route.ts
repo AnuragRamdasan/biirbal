@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create checkout session
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://biirbal.com'
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.biirbal.com'
     const session = await createCheckoutSession(
       customerId,
       plan.stripePriceId,
