@@ -30,9 +30,9 @@ export async function GET(request: NextRequest) {
             listenedAt: 'desc'
           }
         } : {
-          where: {
-            // If no user ID provided, return empty listens array
-            id: 'never-matches'
+          // If no user ID provided, return all listens (for backwards compatibility)
+          orderBy: {
+            listenedAt: 'desc'
           }
         }
       },
