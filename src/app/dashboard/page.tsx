@@ -59,7 +59,24 @@ export default function Dashboard() {
 
   const fetchLinks = async () => {
     try {
-      const response = await fetch('/api/dashboard/links')
+      // Get team and user IDs from localStorage
+      const teamId = localStorage.getItem('biirbal_team_id')
+      const slackUserId = localStorage.getItem('biirbal_user_id')
+      
+      if (!teamId) {
+        throw new Error('No team found. Please install the bot first.')
+      }
+
+      // Build URL with query parameters for user-specific filtering
+      const params = new URLSearchParams({
+        teamId: teamId
+      })
+      
+      if (slackUserId) {
+        params.append('slackUserId', slackUserId)
+      }
+
+      const response = await fetch(`/api/dashboard/links?${params.toString()}`)
       if (!response.ok) {
         throw new Error('Failed to fetch links')
       }

@@ -3,14 +3,36 @@ import { getDbClient } from '@/lib/db'
 
 export async function GET(request: NextRequest) {
   try {
-    // For now, we'll return all links. In production, you'd want to add authentication
-    // and filter by the authenticated user's team
+    const searchParams = request.nextUrl.searchParams
+    const teamId = searchParams.get('teamId')
+    const slackUserId = searchParams.get('slackUserId')
+
+    if (!teamId) {
+      return NextResponse.json(
+        { error: 'Team ID is required' },
+        { status: 400 }
+      )
+    }
+
     const db = await getDbClient()
+    
+    // Get all links for the team, but filter listens by the current user
     const links = await db.processedLink.findMany({
+      where: {
+        teamId: teamId
+      },
       include: {
-        listens: {
+        listens: slackUserId ? {
+          where: {
+            slackUserId: slackUserId
+          },
           orderBy: {
             listenedAt: 'desc'
+          }
+        } : {
+          where: {
+            // If no user ID provided, return empty listens array
+            id: 'never-matches'
           }
         }
       },
