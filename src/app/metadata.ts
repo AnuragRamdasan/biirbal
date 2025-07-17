@@ -1,4 +1,5 @@
 import { generateMetadata } from '@/lib/seo'
+import { getBaseUrl } from '@/lib/config'
 
 export const metadata = generateMetadata({
   title: 'AI-Powered Slack Content Intelligence',
@@ -20,5 +21,5 @@ export const metadata = generateMetadata({
     'slack integration'
   ],
   ogType: 'website',
-  canonicalUrl: 'https://biirbal.ai'
+  canonicalUrl: getBaseUrl()
 })

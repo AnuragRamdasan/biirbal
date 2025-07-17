@@ -1,4 +1,5 @@
 import { generateMetadata } from '@/lib/seo'
+import { getBaseUrl } from '@/lib/config'
 
 export const metadata = generateMetadata({
   title: 'Pricing Plans - Choose Your Plan',
@@ -13,7 +14,7 @@ export const metadata = generateMetadata({
     'free trial',
     'enterprise pricing'
   ],
-  canonicalUrl: 'https://biirbal.ai/pricing'
+  canonicalUrl: `${getBaseUrl()}/pricing`
 })
 
 export default function PricingLayout({

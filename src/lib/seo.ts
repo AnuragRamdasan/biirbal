@@ -12,7 +12,9 @@ export interface SEOConfig {
   structuredData?: object
 }
 
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://biirbal.com'
+import { getBaseUrl } from './config'
+
+const baseUrl = getBaseUrl()
 
 const defaultSEO: SEOConfig = {
   title: 'biirbal.ai - AI-Powered Slack Content Intelligence',

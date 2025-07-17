@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createStripeCustomer, createCheckoutSession, PRICING_PLANS } from '@/lib/stripe'
+import { getBaseUrl } from '@/lib/config'
 
 export async function POST(request: NextRequest) {
   try {
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create checkout session
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.biirbal.com'
+    const baseUrl = getBaseUrl()
     const session = await createCheckoutSession(
       customerId,
       plan.stripePriceId,

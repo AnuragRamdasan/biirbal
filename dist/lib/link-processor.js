@@ -4,6 +4,7 @@ exports.processLink = processLink;
 const db_1 = require("./db");
 const content_extractor_1 = require("./content-extractor");
 const text_to_speech_1 = require("./text-to-speech");
+const config_1 = require("./config");
 const web_api_1 = require("@slack/web-api");
 async function processLink({ url, messageTs, channelId, teamId, slackTeamId }, updateProgress) {
     console.log(`🚀 Processing: ${url}`);
@@ -93,7 +94,7 @@ async function processLink({ url, messageTs, channelId, teamId, slackTeamId }, u
         await slackClient.chat.postMessage({
             channel: channelId,
             thread_ts: messageTs,
-            text: `🎧 Audio summary ready: https://biirbal.com/dashboard#${processedLink.id}`
+            text: `🎧 Audio summary ready: ${(0, config_1.getDashboardUrl)(processedLink.id)}`
         });
         if (updateProgress)
             await updateProgress(100);

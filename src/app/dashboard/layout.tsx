@@ -1,4 +1,5 @@
 import { generateMetadata } from '@/lib/seo'
+import { getBaseUrl } from '@/lib/config'
 
 export const metadata = generateMetadata({
   title: 'Audio Dashboard',
@@ -13,7 +14,7 @@ export const metadata = generateMetadata({
     'ai summaries'
   ],
   noIndex: true, // Dashboard is private
-  canonicalUrl: 'https://biirbal.ai/dashboard'
+  canonicalUrl: `${getBaseUrl()}/dashboard`
 })
 
 export default function DashboardLayout({

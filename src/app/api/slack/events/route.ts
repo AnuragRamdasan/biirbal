@@ -4,6 +4,7 @@ import { getDbClient } from '@/lib/db'
 import { extractLinksFromMessage, shouldProcessUrl } from '@/lib/slack'
 import { queueClient } from '@/lib/queue/client'
 import { WebClient } from '@slack/web-api'
+import { getBaseUrl } from '@/lib/config'
 
 function verifySlackRequest(body: string, signature: string, timestamp: string): boolean {
   const signingSecret = process.env.SLACK_SIGNING_SECRET
@@ -153,7 +154,7 @@ async function handleMessage(event: any, teamId: string) {
     
     // Trigger worker in background (separate from main response)
     setImmediate(async () => {
-      const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://biirbal.com'
+      const baseUrl = getBaseUrl()
       try {
         const workerUrl = `${baseUrl}/api/queue/worker`
         

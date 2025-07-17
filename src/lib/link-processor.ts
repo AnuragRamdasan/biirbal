@@ -1,6 +1,7 @@
 import { getDbClient } from './db'
 import { extractContentFromUrl, summarizeForAudio } from './content-extractor'
 import { generateAudioSummary, uploadAudioToStorage } from './text-to-speech'
+import { getDashboardUrl } from './config'
 import { WebClient } from '@slack/web-api'
 
 interface ProcessLinkParams {
@@ -116,7 +117,7 @@ export async function processLink({
     await slackClient.chat.postMessage({
       channel: channelId,
       thread_ts: messageTs,
-      text: `🎧 Audio summary ready: https://biirbal.com/dashboard#${processedLink.id}`
+      text: `🎧 Audio summary ready: ${getDashboardUrl(processedLink.id)}`
     })
 
     if (updateProgress) await updateProgress(100)

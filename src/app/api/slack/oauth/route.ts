@@ -3,6 +3,7 @@ import { WebClient } from '@slack/web-api'
 import { getDbClient } from '@/lib/db'
 import { logger } from '@/lib/logger'
 import { handleApiError, ValidationError } from '@/lib/error-handler'
+import { getBaseUrl, getOAuthRedirectUri } from '@/lib/config'
 
 // Create WebClient only when needed, not at module level
 
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
       console.log(request.url)
       console.log(error)
       return NextResponse.redirect(
-        new URL(`/?error=${encodeURIComponent(error)}`, 'https://www.biirbal.com')
+        new URL(`/?error=${encodeURIComponent(error)}`, getBaseUrl())
       )
     }
 
@@ -50,8 +51,8 @@ export async function GET(request: NextRequest) {
     const host = request.headers.get('host')
     const protocol = request.headers.get('x-forwarded-proto') || 'https'
     
-    // Force custom domain for OAuth redirect - never use Vercel preview URLs
-    const fullRedirectUri = 'https://www.biirbal.com/api/slack/oauth'
+    // Use configured domain for OAuth redirect
+    const fullRedirectUri = getOAuthRedirectUri()
     
     console.log('Debug redirect URI info:', {
       host,
@@ -208,12 +209,12 @@ export async function GET(request: NextRequest) {
     }
     
     return NextResponse.redirect(
-      new URL(redirectUrl, 'https://www.biirbal.com')
+      new URL(redirectUrl, getBaseUrl())
     )
   } catch (error) {
     console.error('OAuth error:', error)
     return NextResponse.redirect(
-      new URL(`/?error=${encodeURIComponent('Installation failed')}`, 'https://www.biirbal.com')
+      new URL(`/?error=${encodeURIComponent('Installation failed')}`, getBaseUrl())
     )
   }
 }
