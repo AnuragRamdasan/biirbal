@@ -134,10 +134,18 @@ export default function Dashboard() {
   }
 
   const getListenProgress = (link: ProcessedLink) => {
-    const completedListens = link.listens.filter(l => l.completed).length
-    const totalListens = link.listens.length
-    if (totalListens === 0) return 0
-    return completedListens / totalListens
+    // For the current playing track, show real-time progress
+    if (currentlyPlaying === link.id && duration[link.id]) {
+      return (currentTime[link.id] || 0) / duration[link.id]
+    }
+    
+    // For completed tracks, show 100%
+    if (link.listens.some(l => l.completed)) {
+      return 1
+    }
+    
+    // For unplayed tracks, show 0%
+    return 0
   }
 
   const hasBeenListened = (link: ProcessedLink) => {
@@ -319,20 +327,22 @@ export default function Dashboard() {
                     <div className="flex-shrink-0 w-16 h-16 bg-gray-50 flex items-center justify-center">
                       {link.audioFileUrl && link.processingStatus === 'COMPLETED' ? (
                         <button 
-                          className={`w-12 h-12 rounded-full flex items-center justify-center text-white transition-colors ${
+                          className={`w-12 h-12 rounded-full flex items-center justify-center text-white transition-all duration-300 transform hover:scale-105 active:scale-95 ${
                             isCurrentTrack && isPlaying ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'
                           }`}
                           onClick={() => playAudio(link.id, linkIndex)}
                         >
-                          {isCurrentTrack && isPlaying ? (
-                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                            </svg>
-                          ) : (
-                            <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                            </svg>
-                          )}
+                          <div className="transition-all duration-300">
+                            {isCurrentTrack && isPlaying ? (
+                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                              </svg>
+                            ) : (
+                              <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </div>
                         </button>
                       ) : (
                         <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
@@ -402,7 +412,7 @@ export default function Dashboard() {
                               <div className="flex-1 bg-gray-200 rounded-full h-1.5">
                                 <div 
                                   className="bg-green-500 h-1.5 rounded-full transition-all duration-300"
-                                  style={{ width: `${(currentTime[link.id] / (duration[link.id] || 1)) * 100}%` }}
+                                  style={{ width: `${getListenProgress(link) * 100}%` }}
                                 ></div>
                               </div>
                               <span className="text-xs text-gray-400 min-w-0">
@@ -414,6 +424,25 @@ export default function Dashboard() {
                       </div>
                     </div>
                   </div>
+                  
+                  {/* Summary Display - Only shown when playing */}
+                  {isCurrentTrack && isPlaying && link.ttsScript && (
+                    <div className="mx-4 mb-4 p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-lg border-l-4 border-green-500 animate-in slide-in-from-top duration-300">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 mt-1">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-sm font-medium text-green-900 mb-2 flex items-center gap-2">
+                            <span>🎧 Now Playing Summary</span>
+                          </h4>
+                          <p className="text-sm text-green-800 leading-relaxed">
+                            {link.ttsScript}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Hidden Audio Element */}
                   {link.audioFileUrl && link.processingStatus === 'COMPLETED' && (
