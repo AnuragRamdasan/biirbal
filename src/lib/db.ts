@@ -1,134 +1,52 @@
-// Runtime detection utilities
-function isEdgeRuntime(): boolean {
-  // Check for Edge Runtime environment
-  return (
-    typeof globalThis !== 'undefined' && 'EdgeRuntime' in globalThis ||
-    process.env.NEXT_RUNTIME === 'edge' ||
-    globalThis.navigator?.userAgent?.includes('Edge-Runtime')
-  )
+import { PrismaClient } from '@prisma/client'
+
+// Global client management for Heroku deployment
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
 }
 
-function isNodeRuntime(): boolean {
-  return typeof process !== 'undefined' && process.versions?.node !== undefined && !isEdgeRuntime()
-}
-
-function isVercelRuntime(): boolean {
-  return process.env.VERCEL === '1' || process.env.AWS_LAMBDA_FUNCTION_NAME !== undefined
-}
-
-// Client factory functions
-async function createNodeClient(): Promise<any> {
-  // Dynamic import to avoid browser bundle issues
-  const { PrismaClient } = await import('@prisma/client')
-  
-  // Use the same database URL logic as edge client for consistency
-  const connectionString = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL
-  
-  if (!connectionString) {
-    throw new Error('DATABASE_URL_UNPOOLED or DATABASE_URL is required')
+// Simple Prisma client factory for Heroku
+function createPrismaClient(): PrismaClient {
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL is required')
   }
+
+  console.log('🔗 Creating Prisma client for Heroku')
   
   return new PrismaClient({
     datasources: {
       db: {
-        url: connectionString
+        url: process.env.DATABASE_URL
       }
-    }
-  })
-}
-
-async function createEdgeClient(): Promise<any> {
-  // Dynamic imports for edge runtime
-  const [{ PrismaClient }, { PrismaNeon }, { neon, neonConfig }] = await Promise.all([
-    import('@prisma/client'),
-    import('@prisma/adapter-neon'),
-    import('@neondatabase/serverless')
-  ])
-  
-  // Configure WebSocket constructor for edge environments
-  if (typeof WebSocket === 'undefined') {
-    const { default: ws } = await import('ws')
-    neonConfig.webSocketConstructor = ws
-  }
-  
-  const connectionString = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL
-  
-  if (!connectionString) {
-    throw new Error('DATABASE_URL_UNPOOLED or DATABASE_URL is required for edge runtime')
-  }
-  
-  console.log('🔗 Creating edge client with Neon adapter')
-  
-  // Use neon adapter for edge compatibility
-  const sql = neon(connectionString)
-  const adapter = new PrismaNeon({ connectionString })
-  
-  return new PrismaClient({ 
-    adapter,
+    },
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error']
   })
 }
 
-// Global client management
-const globalForPrisma = globalThis as unknown as {
-  prisma: any | undefined
-  edgePrisma: any | undefined
-}
-
-// Unified client getter
-export async function getDbClient(): Promise<any> {
+// Unified client getter - simplified for Heroku
+export async function getDbClient(): Promise<PrismaClient> {
   try {
-    if (isEdgeRuntime() || isVercelRuntime()) {
-      // Edge runtime or Vercel serverless - use Neon adapter for better connection handling
-      if (!globalForPrisma.edgePrisma) {
-        console.log('🔗 Creating edge client with Neon adapter (Vercel/Edge)')
-        globalForPrisma.edgePrisma = await createEdgeClient()
-      }
-      return globalForPrisma.edgePrisma
-    } else if (isNodeRuntime()) {
-      // Local Node.js runtime - use standard client
-      if (!globalForPrisma.prisma) {
-        console.log('🔗 Creating Node.js client (local)')
-        globalForPrisma.prisma = await createNodeClient()
-      }
-      return globalForPrisma.prisma
-    } else {
-      // Fallback to edge client for unknown environments
-      console.warn('⚠️ Unknown runtime, trying edge client')
-      if (!globalForPrisma.edgePrisma) {
-        globalForPrisma.edgePrisma = await createEdgeClient()
-      }
-      return globalForPrisma.edgePrisma
+    if (!globalForPrisma.prisma) {
+      globalForPrisma.prisma = createPrismaClient()
     }
+    return globalForPrisma.prisma
   } catch (error) {
     console.error('❌ Failed to create database client:', error)
     throw error
   }
 }
 
-// Lazy-loaded synchronous client for backwards compatibility
-let _lazyPrisma: any | undefined
-
-export const prisma = new Proxy({} as any, {
+// Direct export for backwards compatibility
+export const prisma = new Proxy({} as PrismaClient, {
   get(target, prop) {
-    if (!_lazyPrisma) {
-      throw new Error('Prisma client not initialized. Use getDbClient() instead for edge compatibility.')
+    if (!globalForPrisma.prisma) {
+      globalForPrisma.prisma = createPrismaClient()
     }
-    return _lazyPrisma[prop]
+    return (globalForPrisma.prisma as any)[prop]
   }
 })
 
-// Initialize lazy client in local Node.js environment only (not in Vercel)
-if (typeof process !== 'undefined' && process.versions?.node && !isEdgeRuntime() && !isVercelRuntime()) {
-  createNodeClient().then(client => {
-    _lazyPrisma = client
-    if (process.env.NODE_ENV !== 'production') {
-      globalForPrisma.prisma = client
-    }
-  }).catch(console.error)
-}
-
-// Health check function that works in both environments
+// Health check function
 export async function dbHealthCheck(): Promise<boolean> {
   try {
     const client = await getDbClient()
@@ -154,4 +72,4 @@ export async function ensureDbConnection(): Promise<boolean> {
 }
 
 // Export types for convenience
-export type DbClient = any
+export type DbClient = PrismaClient
