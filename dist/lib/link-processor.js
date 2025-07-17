@@ -59,13 +59,13 @@ async function processLink({ url, messageTs, channelId, teamId, slackTeamId }, u
             await updateProgress(50);
         // 2. Summarize with OpenAI
         console.log('🤖 Summarizing content...');
-        const summary = await (0, content_extractor_1.summarizeForAudio)(extractedContent.text, 75);
+        const summary = await (0, content_extractor_1.summarizeForAudio)(extractedContent.text, 150);
         console.log('🖼️ OG Image extracted:', extractedContent.ogImage);
         if (updateProgress)
             await updateProgress(60);
         // 3. Generate audio with OpenAI TTS
         console.log('🎤 Generating audio...');
-        const audioResult = await (0, text_to_speech_1.generateAudioSummary)(summary, extractedContent.title, 30);
+        const audioResult = await (0, text_to_speech_1.generateAudioSummary)(summary, extractedContent.title, 59);
         if (updateProgress)
             await updateProgress(80);
         // 4. Upload to S3
@@ -93,7 +93,7 @@ async function processLink({ url, messageTs, channelId, teamId, slackTeamId }, u
         await slackClient.chat.postMessage({
             channel: channelId,
             thread_ts: messageTs,
-            text: `🎧 Audio summary ready: https://www.biirbal.com/dashboard#${processedLink.id}`
+            text: `🎧 Audio summary ready: https://biirbal.com/dashboard#${processedLink.id}`
         });
         if (updateProgress)
             await updateProgress(100);

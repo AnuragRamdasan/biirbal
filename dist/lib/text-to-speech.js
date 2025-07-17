@@ -7,7 +7,7 @@ exports.generateAudioSummary = generateAudioSummary;
 exports.uploadAudioToStorage = uploadAudioToStorage;
 const openai_1 = __importDefault(require("openai"));
 const client_s3_1 = require("@aws-sdk/client-s3");
-async function generateAudioSummary(text, title, maxDurationSeconds = 30) {
+async function generateAudioSummary(text, title, maxDurationSeconds = 59) {
     if (!process.env.OPENAI_API_KEY) {
         throw new Error('OPENAI_API_KEY is required');
     }

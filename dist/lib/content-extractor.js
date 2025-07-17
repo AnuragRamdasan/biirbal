@@ -64,7 +64,7 @@ function cleanTitle(title) {
         .replace(/\s+/g, ' ')
         .trim();
 }
-async function summarizeForAudio(text, maxWords = 75) {
+async function summarizeForAudio(text, maxWords = 150) {
     if (!process.env.OPENAI_API_KEY) {
         throw new Error('OPENAI_API_KEY is required');
     }

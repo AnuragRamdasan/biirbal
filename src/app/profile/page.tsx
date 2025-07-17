@@ -3,6 +3,12 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Layout from '@/components/layout/Layout'
+import { Button } from '@/components/ui/Button'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
+import { Badge } from '@/components/ui/Badge'
+import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import StatCard from '@/components/ui/StatCard'
 
 interface TeamData {
   team: {
@@ -124,91 +130,54 @@ export default function ProfilePage() {
     })
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusBadgeVariant = (status: string): 'success' | 'info' | 'error' | 'neutral' => {
     switch (status.toLowerCase()) {
       case 'active':
-        return 'text-green-600 bg-green-50'
+        return 'success'
       case 'trial':
-        return 'text-blue-600 bg-blue-50'
+        return 'info'
       case 'inactive':
-        return 'text-red-600 bg-red-50'
+        return 'error'
       default:
-        return 'text-gray-600 bg-gray-50'
+        return 'neutral'
     }
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-white to-gray-50">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
-          <div className="container mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <span className="text-xl font-bold">🧠 biirbal.ai</span>
-              </div>
-              <div className="flex items-center space-x-4">
-                <Link href="/dashboard" className="text-white/80 hover:text-white transition-colors text-sm">
-                  Dashboard
-                </Link>
-                <Link href="/" className="text-white/80 hover:text-white transition-colors text-sm">
-                  ← Home
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-        
+      <Layout currentPage="profile">
         <div className="container mx-auto px-6 py-12">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading your profile...</p>
+          <div className="text-center py-20">
+            <LoadingSpinner size="lg" message="Loading your profile..." />
           </div>
         </div>
-      </div>
+      </Layout>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-white to-gray-50">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
-          <div className="container mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <span className="text-xl font-bold">🧠 biirbal.ai</span>
-              </div>
-              <div className="flex items-center space-x-4">
-                <Link href="/dashboard" className="text-white/80 hover:text-white transition-colors text-sm">
-                  Dashboard
-                </Link>
-                <Link href="/" className="text-white/80 hover:text-white transition-colors text-sm">
-                  ← Home
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-        
+      <Layout currentPage="profile">
         <div className="container mx-auto px-6 py-12">
-          <div className="text-center py-12">
-            <div className="bg-red-50 border border-red-200 rounded-2xl p-8 max-w-md mx-auto shadow-sm">
-              <h2 className="text-xl font-semibold text-red-800 mb-2">Authentication Error</h2>
-              <p className="text-red-600 mb-4">{error}</p>
-              <p className="text-sm text-red-500 mb-6">
-                Please reinstall the Slack bot to fix this issue.
-              </p>
-              <Link 
-                href="/"
-                className="inline-flex items-center px-6 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-semibold"
-              >
-                Reinstall Bot
-              </Link>
-            </div>
+          <div className="text-center py-20">
+            <Card className="bg-red-50 border-red-200 max-w-md mx-auto" padding="lg">
+              <div className="text-center">
+                <div className="text-4xl mb-4">⚠️</div>
+                <h2 className="text-xl font-semibold text-red-800 mb-2">Authentication Error</h2>
+                <p className="text-red-600 mb-4">{error}</p>
+                <p className="text-sm text-red-500 mb-6">
+                  Please reinstall the Slack bot to fix this issue.
+                </p>
+                <Link href="/">
+                  <Button variant="danger">
+                    Reinstall Bot
+                  </Button>
+                </Link>
+              </div>
+            </Card>
           </div>
         </div>
-      </div>
+      </Layout>
     )
   }
 
@@ -221,91 +190,76 @@ export default function ProfilePage() {
     : 0
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white to-gray-50">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <span className="text-xl font-bold">🧠 biirbal.ai</span>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link
-                href="/dashboard"
-                className="text-white/80 hover:text-white transition-colors text-sm"
-              >
-                Dashboard
-              </Link>
-              <Link
-                href="/"
-                className="text-white/80 hover:text-white transition-colors text-sm"
-              >
-                ← Home
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <Layout currentPage="profile">
       <div className="container mx-auto px-6 py-8">
+        {/* Logout Button in Header */}
+        <div className="flex justify-end mb-6">
+          <Button
+            onClick={handleLogout}
+            variant="danger"
+            size="sm"
+          >
+            Logout
+          </Button>
+        </div>
         {/* Page Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Team Profile</h1>
-          <p className="text-gray-600">Manage your biirbal.ai settings and subscription</p>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+            👤 <span>Team Profile</span>
+          </h1>
+          <p className="text-gray-600 text-lg">Manage your biirbal.ai settings and subscription</p>
         </div>
 
         {/* Current User Information */}
         {teamData.currentUser && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 p-8 mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Current User</h2>
-            <div className="flex items-center space-x-4">
-              {teamData.currentUser.profile?.image_48 && (
-                <img 
-                  src={teamData.currentUser.profile.image_48} 
-                  alt={teamData.currentUser.name}
-                  className="w-16 h-16 rounded-full border border-gray-200"
-                />
-              )}
-              <div className="flex-1">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500 mb-1">Display Name</label>
-                    <p className="text-lg text-gray-900">
-                      {teamData.currentUser.profile?.display_name || teamData.currentUser.name}
-                    </p>
-                  </div>
-                  {teamData.currentUser.profile?.real_name && (
+          <Card className="mb-6" padding="lg">
+            <CardHeader>
+              <CardTitle>Current User</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center space-x-4">
+                {teamData.currentUser.profile?.image_48 && (
+                  <img 
+                    src={teamData.currentUser.profile.image_48} 
+                    alt={teamData.currentUser.name}
+                    className="w-16 h-16 rounded-full border border-gray-200"
+                  />
+                )}
+                <div className="flex-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-500 mb-1">Real Name</label>
-                      <p className="text-lg text-gray-900">{teamData.currentUser.profile.real_name}</p>
+                      <label className="block text-sm font-medium text-gray-500 mb-1">Display Name</label>
+                      <p className="text-lg text-gray-900">
+                        {teamData.currentUser.profile?.display_name || teamData.currentUser.name}
+                      </p>
                     </div>
-                  )}
-                  {teamData.currentUser.email && (
+                    {teamData.currentUser.profile?.real_name && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-500 mb-1">Real Name</label>
+                        <p className="text-lg text-gray-900">{teamData.currentUser.profile.real_name}</p>
+                      </div>
+                    )}
+                    {teamData.currentUser.email && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-500 mb-1">Email</label>
+                        <p className="text-sm text-gray-700">{teamData.currentUser.email}</p>
+                      </div>
+                    )}
+                    {teamData.currentUser.profile?.title && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-500 mb-1">Title</label>
+                        <p className="text-sm text-gray-700">{teamData.currentUser.profile.title}</p>
+                      </div>
+                    )}
                     <div>
-                      <label className="block text-sm font-medium text-gray-500 mb-1">Email</label>
-                      <p className="text-sm text-gray-700">{teamData.currentUser.email}</p>
+                      <label className="block text-sm font-medium text-gray-500 mb-1">User ID</label>
+                      <p className="text-sm text-gray-700 font-mono">{teamData.currentUser.id}</p>
                     </div>
-                  )}
-                  {teamData.currentUser.profile?.title && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-500 mb-1">Title</label>
-                      <p className="text-sm text-gray-700">{teamData.currentUser.profile.title}</p>
-                    </div>
-                  )}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500 mb-1">User ID</label>
-                    <p className="text-sm text-gray-700 font-mono">{teamData.currentUser.id}</p>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* User Listen Statistics */}
@@ -445,14 +399,13 @@ export default function ProfilePage() {
 
         {/* Actions */}
         <div className="mt-8 flex justify-center">
-          <Link
-            href="/pricing"
-            className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-indigo-500/25"
-          >
-            Upgrade Plan
+          <Link href="/pricing">
+            <Button size="lg" className="transform hover:scale-105">
+              Upgrade Plan
+            </Button>
           </Link>
         </div>
       </div>
-    </div>
+    </Layout>
   )
 }
