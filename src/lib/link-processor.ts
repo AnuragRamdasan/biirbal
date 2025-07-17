@@ -78,7 +78,7 @@ export async function processLink({
     
     // 2. Summarize with OpenAI
     console.log('🤖 Summarizing content...')
-    const summary = await summarizeForAudio(extractedContent.text, 200)
+    const summary = await summarizeForAudio(extractedContent.text, 75)
     
     if (updateProgress) await updateProgress(60)
     

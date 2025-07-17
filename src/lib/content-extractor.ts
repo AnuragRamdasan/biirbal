@@ -73,7 +73,7 @@ function cleanTitle(title: string): string {
     .trim()
 }
 
-export async function summarizeForAudio(text: string, maxWords: number = 200): Promise<string> {
+export async function summarizeForAudio(text: string, maxWords: number = 75): Promise<string> {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error('OPENAI_API_KEY is required')
   }
