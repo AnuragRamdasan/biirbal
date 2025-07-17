@@ -44,7 +44,7 @@ export async function extractContentFromUrl(url: string): Promise<ExtractedConte
 
     const cleanText = cleanContent(article.textContent)
     const title = article.title || 'Untitled Article'
-    const ogImage = extractOgImage(dom.window.document)
+    const ogImage = extractOgImage(dom.window.document, url)
 
     console.log(`✅ Extracted ${cleanText.length} characters from: ${title}`)
 
@@ -115,13 +115,20 @@ ${text.substring(0, 12000)}`
   return summary
 }
 
-function extractOgImage(document: Document): string | undefined {
+function extractOgImage(document: Document, baseUrl: string): string | undefined {
+  console.log('🖼️ Extracting OG image...')
+  
   // Try og:image first
   const ogImageMeta = document.querySelector('meta[property="og:image"]')
   if (ogImageMeta) {
     const content = ogImageMeta.getAttribute('content')
-    if (content && isValidImageUrl(content)) {
-      return content
+    console.log('Found og:image:', content)
+    if (content) {
+      const resolvedUrl = resolveImageUrl(content, baseUrl)
+      if (isValidImageUrl(resolvedUrl)) {
+        console.log('✅ Using og:image:', resolvedUrl)
+        return resolvedUrl
+      }
     }
   }
 
@@ -129,8 +136,13 @@ function extractOgImage(document: Document): string | undefined {
   const twitterImageMeta = document.querySelector('meta[name="twitter:image"]')
   if (twitterImageMeta) {
     const content = twitterImageMeta.getAttribute('content')
-    if (content && isValidImageUrl(content)) {
-      return content
+    console.log('Found twitter:image:', content)
+    if (content) {
+      const resolvedUrl = resolveImageUrl(content, baseUrl)
+      if (isValidImageUrl(resolvedUrl)) {
+        console.log('✅ Using twitter:image:', resolvedUrl)
+        return resolvedUrl
+      }
     }
   }
 
@@ -138,11 +150,17 @@ function extractOgImage(document: Document): string | undefined {
   const linkImage = document.querySelector('link[rel="image_src"]')
   if (linkImage) {
     const href = linkImage.getAttribute('href')
-    if (href && isValidImageUrl(href)) {
-      return href
+    console.log('Found image_src:', href)
+    if (href) {
+      const resolvedUrl = resolveImageUrl(href, baseUrl)
+      if (isValidImageUrl(resolvedUrl)) {
+        console.log('✅ Using image_src:', resolvedUrl)
+        return resolvedUrl
+      }
     }
   }
 
+  console.log('❌ No OG image found')
   return undefined
 }
 
@@ -152,6 +170,14 @@ function isValidImageUrl(url: string): boolean {
     return parsed.protocol === 'http:' || parsed.protocol === 'https:'
   } catch {
     return false
+  }
+}
+
+function resolveImageUrl(imageUrl: string, baseUrl: string): string {
+  try {
+    return new URL(imageUrl, baseUrl).href
+  } catch {
+    return imageUrl
   }
 }
 

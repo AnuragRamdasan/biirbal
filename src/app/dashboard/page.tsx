@@ -217,10 +217,10 @@ export default function Dashboard() {
               <div key={link.id} id={`link-${link.id}`} className="bg-white rounded-lg border border-gray-200 hover:shadow-sm transition-all duration-200 overflow-hidden">
                 <div className="flex items-center">
                   {/* Left Column - Play Button */}
-                  <div className="flex-shrink-0 w-16 h-16 bg-gray-50 flex items-center justify-center">
+                  <div className="flex-shrink-0 w-20 h-20 bg-gray-50 flex items-center justify-center">
                     {link.audioFileUrl && link.processingStatus === 'COMPLETED' ? (
                       <button 
-                        className="w-10 h-10 bg-orange-500 hover:bg-orange-600 rounded-full flex items-center justify-center text-white transition-colors"
+                        className="w-14 h-14 bg-orange-500 hover:bg-orange-600 rounded-lg flex items-center justify-center text-white transition-colors"
                         onClick={() => {
                           const audio = document.getElementById(`audio-${link.id}`) as HTMLAudioElement
                           if (audio) {
@@ -233,16 +233,16 @@ export default function Dashboard() {
                           }
                         }}
                       >
-                        <svg className="w-4 h-4 ml-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-6 h-6 ml-0.5" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
                         </svg>
                       </button>
                     ) : (
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      <div className={`w-14 h-14 rounded-lg flex items-center justify-center ${
                         link.processingStatus === 'PROCESSING' ? 'bg-yellow-200 animate-pulse' :
                         link.processingStatus === 'FAILED' ? 'bg-red-200' : 'bg-gray-200'
                       }`}>
-                        <div className={`w-3 h-3 rounded-full ${
+                        <div className={`w-4 h-4 rounded-sm ${
                           link.processingStatus === 'PROCESSING' ? 'bg-yellow-500' :
                           link.processingStatus === 'FAILED' ? 'bg-red-500' : 'bg-gray-400'
                         }`}></div>
@@ -251,22 +251,22 @@ export default function Dashboard() {
                   </div>
                   
                   {/* Right Column - Content */}
-                  <div className="flex-1 min-w-0 p-4">
-                    <div className="flex items-start gap-4">
+                  <div className="flex-1 min-w-0 p-6">
+                    <div className="flex items-center gap-6">
                       {/* Article Image */}
                       <div className="flex-shrink-0 hidden sm:block">
                         {link.ogImage ? (
                           <img 
                             src={link.ogImage} 
                             alt={link.title || 'Article'}
-                            className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                            className="w-24 h-24 object-cover rounded-lg border border-gray-200"
                             onError={(e) => {
                               e.currentTarget.style.display = 'none'
                             }}
                           />
                         ) : (
-                          <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center">
-                            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center">
+                            <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                             </svg>
                           </div>
@@ -275,33 +275,27 @@ export default function Dashboard() {
                       
                       {/* Article Info */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between">
+                        <div className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate mb-1">
+                            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 truncate mb-2">
                               {link.title || 'Untitled'}
                             </h3>
                             <a 
                               href={link.url} 
                               target="_blank" 
                               rel="noopener noreferrer"
-                              className="text-xs sm:text-sm text-gray-500 hover:text-indigo-600 transition-colors truncate block mb-2"
+                              className="text-sm sm:text-base text-gray-500 hover:text-indigo-600 transition-colors truncate block mb-3"
                             >
                               {link.url}
                             </a>
-                            <div className="flex items-center gap-2 sm:gap-3 text-xs text-gray-400">
+                            <div className="flex items-center gap-3 sm:gap-4 text-sm text-gray-400">
                               <span>{new Date(link.createdAt).toLocaleDateString()}</span>
                               <span>•</span>
                               <span>{link.listens.length} listen{link.listens.length !== 1 ? 's' : ''}</span>
-                              {link.listens.some(l => l.completed) && (
-                                <>
-                                  <span>•</span>
-                                  <span className="text-green-600">✓ Completed</span>
-                                </>
-                              )}
                             </div>
                           </div>
-                          <div className="flex-shrink-0 ml-2 sm:ml-4">
-                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          <div className="flex-shrink-0 ml-4 sm:ml-6">
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
                               link.processingStatus === 'COMPLETED' 
                                 ? 'bg-green-100 text-green-800' 
                                 : link.processingStatus === 'PROCESSING'
