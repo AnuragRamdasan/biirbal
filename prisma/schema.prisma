@@ -76,6 +76,7 @@ model ProcessedLink {
   audioFileUrl    String?
   audioFileKey    String?
   ttsScript       String?
+  ogImage         String?
   processingStatus ProcessingStatus @default(PENDING)
   errorMessage    String?
   createdAt       DateTime @default(now())

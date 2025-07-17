@@ -104,6 +104,7 @@ export async function processLink({
         audioFileUrl: audioUrl,
         audioFileKey: audioResult.fileName,
         ttsScript: audioResult.ttsScript,
+        ogImage: extractedContent.ogImage,
         processingStatus: 'COMPLETED'
       }
     })

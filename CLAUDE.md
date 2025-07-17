@@ -17,8 +17,14 @@ biirbal.ai is a production-ready Slack application that automatically generates 
 
 ### Database Commands
 - `npm run db:generate` - Generate Prisma client
-- `npm run db:push` - Push schema changes to database
-- `npm run db:migrate` - Run database migrations
+- `npm run db:migrate` - Run database migrations (ALWAYS use this for schema changes)
+- `npm run db:push` - Push schema changes to database (NEVER use for production - prototyping only)
+
+### CRITICAL DATABASE RULES
+- **NEVER use `npm run db:push` for schema changes** - This bypasses the migration system
+- **ALWAYS use `npx prisma migrate dev --name <description>`** for schema changes
+- **Migrations are required for production safety, team collaboration, and rollback capability**
+- **`db:push` is only for prototyping - never use in production codebase**
 
 ### Testing
 - `npm test` - Run all tests

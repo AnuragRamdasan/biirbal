@@ -7,6 +7,7 @@ export interface ExtractedContent {
   title: string
   text: string
   url: string
+  ogImage?: string
 }
 
 export async function extractContentFromUrl(url: string): Promise<ExtractedContent> {
@@ -43,11 +44,13 @@ export async function extractContentFromUrl(url: string): Promise<ExtractedConte
 
     const cleanText = cleanContent(article.textContent)
     const title = article.title || 'Untitled Article'
+    const ogImage = extractOgImage(dom.window.document)
 
     console.log(`✅ Extracted ${cleanText.length} characters from: ${title}`)
 
     return {
       title: cleanTitle(title),
+      ogImage,
       text: cleanText,
       url
     }
@@ -104,12 +107,51 @@ ${text.substring(0, 12000)}`
   })
 
   const summary = response.choices[0]?.message?.content?.trim()
-  
+
   if (!summary) {
     throw new Error('Failed to generate summary')
   }
 
-  console.log(`✅ Generated ${summary.split(/\s+/).length} word summary`)
   return summary
+}
+
+function extractOgImage(document: Document): string | undefined {
+  // Try og:image first
+  const ogImageMeta = document.querySelector('meta[property="og:image"]')
+  if (ogImageMeta) {
+    const content = ogImageMeta.getAttribute('content')
+    if (content && isValidImageUrl(content)) {
+      return content
+    }
+  }
+
+  // Try twitter:image
+  const twitterImageMeta = document.querySelector('meta[name="twitter:image"]')
+  if (twitterImageMeta) {
+    const content = twitterImageMeta.getAttribute('content')
+    if (content && isValidImageUrl(content)) {
+      return content
+    }
+  }
+
+  // Try link rel="image_src"
+  const linkImage = document.querySelector('link[rel="image_src"]')
+  if (linkImage) {
+    const href = linkImage.getAttribute('href')
+    if (href && isValidImageUrl(href)) {
+      return href
+    }
+  }
+
+  return undefined
+}
+
+function isValidImageUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return false
+  }
 }
 
