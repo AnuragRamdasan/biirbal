@@ -1,11 +1,39 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { 
+  Card, 
+  Row, 
+  Col, 
+  Button, 
+  Typography, 
+  Space, 
+  Spin, 
+  Alert, 
+  Switch, 
+  Tag, 
+  Avatar, 
+  List,
+  Tooltip,
+  Empty,
+  Badge
+} from 'antd'
+import {
+  PlayCircleOutlined,
+  PauseCircleOutlined,
+  LinkOutlined,
+  SoundOutlined,
+  EyeOutlined,
+  EyeInvisibleOutlined,
+  ClockCircleOutlined,
+  CheckCircleOutlined,
+  LoadingOutlined,
+  ExclamationCircleOutlined
+} from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
-import { Button } from '@/components/ui/Button'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
-import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import AudioPlayer from '@/components/dashboard/AudioPlayer'
+
+const { Title, Text, Paragraph } = Typography
 
 interface ProcessedLink {
   id: string
@@ -99,103 +127,71 @@ export default function Dashboard() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          linkId,
-          slackUserId 
+        body: JSON.stringify({
+          linkId: linkId,
+          slackUserId: slackUserId
         }),
       })
-      fetchLinks()
-    } catch (err) {
-      console.error('Failed to track listen:', err)
+    } catch (error) {
+      console.error('Failed to track listen:', error)
     }
   }
 
-  const playAudio = (linkId: string, index: number) => {
-    // Pause current audio if any
-    if (currentlyPlaying && currentlyPlaying !== linkId) {
-      const currentAudio = document.getElementById(`audio-${currentlyPlaying}`) as HTMLAudioElement
-      if (currentAudio) {
-        currentAudio.pause()
-      }
-    }
-
-    const audio = document.getElementById(`audio-${linkId}`) as HTMLAudioElement
-    if (audio) {
-      if (audio.paused) {
-        audio.play()
-        setCurrentlyPlaying(linkId)
-        setCurrentIndex(index)
-        setIsPlaying(true)
-        trackListen(linkId)
-      } else {
-        audio.pause()
-        setIsPlaying(false)
-      }
+  const getStatusIcon = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return <CheckCircleOutlined style={{ color: '#52c41a' }} />
+      case 'processing':
+        return <LoadingOutlined style={{ color: '#1890ff' }} />
+      case 'failed':
+        return <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />
+      default:
+        return <ClockCircleOutlined style={{ color: '#faad14' }} />
     }
   }
 
-  const playNext = () => {
-    const availableLinks = links.filter(link => link.audioFileUrl && link.processingStatus === 'COMPLETED')
-    if (currentIndex < availableLinks.length - 1) {
-      const nextLink = availableLinks[currentIndex + 1]
-      playAudio(nextLink.id, currentIndex + 1)
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return 'success'
+      case 'processing':
+        return 'processing'
+      case 'failed':
+        return 'error'
+      default:
+        return 'warning'
     }
   }
 
-  const playPrevious = () => {
-    const availableLinks = links.filter(link => link.audioFileUrl && link.processingStatus === 'COMPLETED')
-    if (currentIndex > 0) {
-      const prevLink = availableLinks[currentIndex - 1]
-      playAudio(prevLink.id, currentIndex - 1)
-    }
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
   }
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = Math.floor(seconds % 60)
-    return `${mins}:${secs.toString().padStart(2, '0')}`
+  const getListenCount = (link: ProcessedLink) => {
+    return link.listens?.length || 0
   }
 
-  const getListenProgress = (link: ProcessedLink) => {
-    // For the current playing track, show real-time progress
-    if (currentlyPlaying === link.id && duration[link.id]) {
-      return (currentTime[link.id] || 0) / duration[link.id]
-    }
-    
-    // For completed tracks, show 100%
-    if (link.listens.some(l => l.completed)) {
-      return 1
-    }
-    
-    // For unplayed tracks, show 0%
-    return 0
+  const hasUserListened = (link: ProcessedLink) => {
+    return link.listens && link.listens.length > 0
   }
 
-  const hasBeenListened = (link: ProcessedLink) => {
-    return link.listens.some(l => l.completed)
-  }
-
-  const markAsCompleted = async (linkId: string, listenId: string) => {
-    try {
-      await fetch('/api/dashboard/complete-listen', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ linkId, listenId }),
-      })
-      fetchLinks()
-    } catch (err) {
-      console.error('Failed to mark as completed:', err)
-    }
-  }
+  // Filter links based on the toggle
+  const filteredLinks = showListened 
+    ? links.filter(link => hasUserListened(link))
+    : links
 
   if (loading) {
     return (
       <Layout currentPage="dashboard">
-        <div className="container mx-auto px-6 py-12">
-          <div className="text-center py-20">
-            <LoadingSpinner size="lg" message="Loading your podcast library..." />
+        <div style={{ textAlign: 'center', padding: '100px 0' }}>
+          <Spin size="large" />
+          <div style={{ marginTop: 16 }}>
+            <Text>Loading your audio summaries...</Text>
           </div>
         </div>
       </Layout>
@@ -205,16 +201,18 @@ export default function Dashboard() {
   if (error) {
     return (
       <Layout currentPage="dashboard">
-        <div className="container mx-auto px-6 py-12">
-          <div className="text-center py-20">
-            <Card className="bg-red-50 border-red-200 text-red-800 max-w-md mx-auto" padding="lg">
-              <div className="text-center">
-                <div className="text-4xl mb-4">⚠️</div>
-                <h3 className="text-lg font-semibold mb-2">Something went wrong</h3>
-                <p className="text-sm">{error}</p>
-              </div>
-            </Card>
-          </div>
+        <div style={{ maxWidth: 600, margin: '100px auto', padding: '0 24px' }}>
+          <Alert
+            message="Error Loading Dashboard"
+            description={error}
+            type="error"
+            showIcon
+            action={
+              <Button type="primary" onClick={fetchLinks}>
+                Retry
+              </Button>
+            }
+          />
         </div>
       </Layout>
     )
@@ -222,108 +220,207 @@ export default function Dashboard() {
 
   return (
     <Layout currentPage="dashboard">
-      <div className="container mx-auto px-6 py-8">
-        {/* Dashboard Header */}
-        <div className="mb-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-                🎧 <span>Audio Library</span>
-              </h1>
-              <p className="text-gray-600 text-lg">Your personalized podcast-style content collection</p>
-            </div>
-            
-            {/* Filter Controls */}
-            <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200" padding="base">
-              <div className="flex items-center gap-3">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showListened}
-                    onChange={(e) => setShowListened(e.target.checked)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
-                  />
-                  <span className="text-sm font-medium text-gray-700">Show listened episodes</span>
-                </label>
-              </div>
-            </Card>
-          </div>
+      <div style={{ padding: '24px' }}>
+        {/* Header */}
+        <div style={{ marginBottom: 24 }}>
+          <Row justify="space-between" align="middle">
+            <Col>
+              <Title level={2} style={{ margin: 0 }}>
+                <Space>
+                  <SoundOutlined />
+                  Audio Summaries
+                </Space>
+              </Title>
+              <Text type="secondary">Listen to AI-generated summaries of your shared links</Text>
+            </Col>
+            <Col>
+              <Space>
+                <Text>Show listened only</Text>
+                <Switch
+                  checked={showListened}
+                  onChange={setShowListened}
+                  checkedChildren={<EyeOutlined />}
+                  unCheckedChildren={<EyeInvisibleOutlined />}
+                />
+              </Space>
+            </Col>
+          </Row>
         </div>
-        
-        {links.length === 0 ? (
-          <div className="text-center py-20">
-            <Card className="max-w-lg mx-auto text-center" padding="lg">
-              <div className="bg-gradient-to-r from-blue-500 to-purple-500 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                </svg>
+
+        {/* Stats Cards */}
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+          <Col xs={24} sm={8}>
+            <Card>
+              <div style={{ textAlign: 'center' }}>
+                <LinkOutlined style={{ fontSize: 24, color: '#1890ff', marginBottom: 8 }} />
+                <div style={{ fontSize: 20, fontWeight: 'bold' }}>{links.length}</div>
+                <Text type="secondary">Total Links</Text>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">No episodes yet</h3>
-              <p className="text-gray-600 mb-6">Share some links in Slack to get started with your audio library!</p>
-              <Button className="mx-auto">
-                Learn How It Works
-              </Button>
             </Card>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {links
-              .filter(link => showListened || !hasBeenListened(link))
-              .map((link, index) => {
-              const progress = getListenProgress(link)
-              const availableLinks = links.filter(l => l.audioFileUrl && l.processingStatus === 'COMPLETED')
-              const linkIndex = availableLinks.findIndex(l => l.id === link.id)
-              const isCurrentTrack = currentlyPlaying === link.id
-              
-              return (
-                <div key={link.id} id={`link-${link.id}`}>
-                  <AudioPlayer
-                    link={link}
-                    isCurrentTrack={isCurrentTrack}
-                    isPlaying={isPlaying}
-                    currentTime={currentTime[link.id] || 0}
-                    duration={duration[link.id] || 59}
-                    progress={progress}
-                    onPlay={() => playAudio(link.id, linkIndex)}
-                  />
-                  
-                  {/* Hidden Audio Element */}
-                  {link.audioFileUrl && link.processingStatus === 'COMPLETED' && (
-                    <audio 
-                      id={`audio-${link.id}`}
-                      onLoadedMetadata={(e) => {
-                        const audio = e.target as HTMLAudioElement
-                        setDuration(prev => ({ ...prev, [link.id]: audio.duration }))
-                      }}
-                      onTimeUpdate={(e) => {
-                        const audio = e.target as HTMLAudioElement
-                        setCurrentTime(prev => ({ ...prev, [link.id]: audio.currentTime }))
-                      }}
-                      onEnded={() => {
-                        const latestListen = link.listens[link.listens.length - 1]
-                        if (latestListen && !latestListen.completed) {
-                          markAsCompleted(link.id, latestListen.id)
-                        }
-                        setIsPlaying(false)
-                        setCurrentlyPlaying(null)
-                        // Auto-play next
-                        playNext()
-                      }}
-                      onPause={() => {
-                        setIsPlaying(false)
-                      }}
-                      onPlay={() => {
-                        setIsPlaying(true)
-                        setCurrentlyPlaying(link.id)
-                      }}
-                    >
-                      <source src={link.audioFileUrl} type="audio/mpeg" />
-                    </audio>
-                  )}
+          </Col>
+          <Col xs={24} sm={8}>
+            <Card>
+              <div style={{ textAlign: 'center' }}>
+                <SoundOutlined style={{ fontSize: 24, color: '#52c41a', marginBottom: 8 }} />
+                <div style={{ fontSize: 20, fontWeight: 'bold' }}>
+                  {links.filter(link => link.processingStatus === 'completed').length}
                 </div>
-              )
-            })}
-          </div>
+                <Text type="secondary">Ready to Listen</Text>
+              </div>
+            </Card>
+          </Col>
+          <Col xs={24} sm={8}>
+            <Card>
+              <div style={{ textAlign: 'center' }}>
+                <PlayCircleOutlined style={{ fontSize: 24, color: '#722ed1', marginBottom: 8 }} />
+                <div style={{ fontSize: 20, fontWeight: 'bold' }}>
+                  {links.reduce((total, link) => total + getListenCount(link), 0)}
+                </div>
+                <Text type="secondary">Total Listens</Text>
+              </div>
+            </Card>
+          </Col>
+        </Row>
+
+        {/* Links List */}
+        {filteredLinks.length === 0 ? (
+          <Card>
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={
+                showListened 
+                  ? "You haven't listened to any summaries yet"
+                  : "No links found. Share some links in your Slack channels to get started!"
+              }
+            />
+          </Card>
+        ) : (
+          <List
+            grid={{
+              gutter: 16,
+              xs: 1,
+              sm: 1,
+              md: 2,
+              lg: 2,
+              xl: 3,
+              xxl: 3,
+            }}
+            dataSource={filteredLinks}
+            renderItem={(link) => (
+              <List.Item>
+                <Card
+                  id={`link-${link.id}`}
+                  hoverable
+                  style={{ height: '100%' }}
+                  cover={
+                    link.ogImage && (
+                      <div style={{ height: 200, overflow: 'hidden' }}>
+                        <img
+                          alt={link.title || 'Link preview'}
+                          src={link.ogImage}
+                          style={{ 
+                            width: '100%', 
+                            height: '100%', 
+                            objectFit: 'cover' 
+                          }}
+                        />
+                      </div>
+                    )
+                  }
+                  actions={[
+                    <Tooltip title="Processing Status" key="status">
+                      <Badge 
+                        count={getStatusIcon(link.processingStatus)} 
+                        showZero={false}
+                      />
+                    </Tooltip>,
+                    <Tooltip title="Listen Count" key="listens">
+                      <Space>
+                        <PlayCircleOutlined />
+                        {getListenCount(link)}
+                      </Space>
+                    </Tooltip>,
+                    <Tooltip title="Created" key="date">
+                      <Space>
+                        <ClockCircleOutlined />
+                        {formatDate(link.createdAt)}
+                      </Space>
+                    </Tooltip>
+                  ]}
+                >
+                  <Card.Meta
+                    title={
+                      <Space direction="vertical" style={{ width: '100%' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <Text strong style={{ fontSize: 16 }}>
+                            {link.title || 'Untitled Link'}
+                          </Text>
+                          <Tag color={getStatusColor(link.processingStatus)}>
+                            {link.processingStatus}
+                          </Tag>
+                        </div>
+                        {hasUserListened(link) && (
+                          <Badge 
+                            count="Listened" 
+                            style={{ backgroundColor: '#52c41a' }}
+                          />
+                        )}
+                      </Space>
+                    }
+                    description={
+                      <Space direction="vertical" style={{ width: '100%' }}>
+                        <Paragraph 
+                          ellipsis={{ rows: 2, expandable: false }}
+                          type="secondary"
+                          style={{ marginBottom: 12 }}
+                        >
+                          {link.extractedText || 'No description available'}
+                        </Paragraph>
+                        
+                        <div style={{ marginBottom: 12 }}>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            <LinkOutlined /> {new URL(link.url).hostname}
+                          </Text>
+                        </div>
+
+                        {link.processingStatus === 'completed' && link.audioFileUrl && (
+                          <AudioPlayer
+                            src={link.audioFileUrl}
+                            linkId={link.id}
+                            onPlay={() => {
+                              setCurrentlyPlaying(link.id)
+                              trackListen(link.id)
+                            }}
+                            onPause={() => setCurrentlyPlaying(null)}
+                            isCurrentlyPlaying={currentlyPlaying === link.id}
+                          />
+                        )}
+
+                        {link.processingStatus === 'processing' && (
+                          <div style={{ textAlign: 'center', padding: 16 }}>
+                            <Spin />
+                            <div style={{ marginTop: 8 }}>
+                              <Text type="secondary">Processing audio summary...</Text>
+                            </div>
+                          </div>
+                        )}
+
+                        {link.processingStatus === 'failed' && (
+                          <Alert
+                            message="Processing Failed"
+                            description="Unable to process this link. Please try again."
+                            type="error"
+                            showIcon
+                            size="small"
+                          />
+                        )}
+                      </Space>
+                    }
+                  />
+                </Card>
+              </List.Item>
+            )}
+          />
         )}
       </div>
     </Layout>

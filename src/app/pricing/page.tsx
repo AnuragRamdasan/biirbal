@@ -3,13 +3,50 @@
 import { useState } from 'react'
 import { PRICING_PLANS } from '@/lib/stripe'
 import Script from 'next/script'
+import { 
+  Row, 
+  Col, 
+  Button, 
+  Card, 
+  Typography, 
+  Space, 
+  Badge, 
+  List, 
+  Divider,
+  Switch,
+  Alert,
+  Tooltip,
+  Statistic
+} from 'antd'
+import {
+  CheckOutlined,
+  CrownOutlined,
+  RocketOutlined,
+  StarOutlined,
+  TeamOutlined,
+  SoundOutlined,
+  SlackOutlined,
+  SafetyCertificateOutlined,
+  SupportOutlined,
+  LoadingOutlined
+} from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
-import { Button } from '@/components/ui/Button'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
-import { Badge } from '@/components/ui/Badge'
+
+const { Title, Text, Paragraph } = Typography
+
+interface PricingPlan {
+  id: string
+  name: string
+  description: string
+  price: number
+  features: string[]
+  isPopular?: boolean
+  stripePriceId?: string
+}
 
 export default function PricingPage() {
   const [loading, setLoading] = useState<string | null>(null)
+  const [isAnnual, setIsAnnual] = useState(false)
 
   const handleSubscribe = async (planId: string) => {
     setLoading(planId)
@@ -34,8 +71,354 @@ export default function PricingPage() {
     }
   }
 
+  const plans: PricingPlan[] = [
+    {
+      id: 'trial',
+      name: 'Free Trial',
+      description: 'Perfect for trying out biirbal.ai',
+      price: 0,
+      features: [
+        '50 audio summaries per month',
+        'Basic Slack integration',
+        'Standard processing speed',
+        'Community support',
+        '7-day free trial'
+      ]
+    },
+    {
+      id: 'pro',
+      name: 'Pro',
+      description: 'For growing teams',
+      price: isAnnual ? 99 : 10,
+      isPopular: true,
+      stripePriceId: 'price_pro',
+      features: [
+        '500 audio summaries per month',
+        'Advanced Slack integration',
+        'Priority processing',
+        'Team analytics dashboard',
+        'Email support',
+        'Custom voice options'
+      ]
+    },
+    {
+      id: 'enterprise',
+      name: 'Enterprise',
+      description: 'For large organizations',
+      price: isAnnual ? 299 : 30,
+      stripePriceId: 'price_enterprise',
+      features: [
+        'Unlimited audio summaries',
+        'Advanced analytics & reporting',
+        'Custom integrations',
+        'Dedicated account manager',
+        'Priority support (SLA)',
+        'Custom voice training',
+        'SSO & security features',
+        'On-premise deployment option'
+      ]
+    }
+  ]
+
+  const faqItems = [
+    {
+      question: 'How does the free trial work?',
+      answer: 'You get 50 audio summaries completely free for 7 days. No credit card required to start.'
+    },
+    {
+      question: 'Can I change plans later?',
+      answer: 'Yes, you can upgrade or downgrade your plan at any time from your dashboard.'
+    },
+    {
+      question: 'What happens to my summaries if I cancel?',
+      answer: 'Your summaries remain accessible for 30 days after cancellation to allow for data export.'
+    },
+    {
+      question: 'Do you offer refunds?',
+      answer: 'Yes, we offer a 30-day money-back guarantee for all paid plans.'
+    }
+  ]
+
   return (
     <Layout currentPage="pricing">
+      <div style={{ padding: '24px 0' }}>
+        {/* Hero Section */}
+        <div style={{ textAlign: 'center', padding: '60px 0', background: '#f8f9fa' }}>
+          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
+            <Space direction="vertical" size="large" style={{ width: '100%' }}>
+              <Badge count="Simple Pricing" style={{ backgroundColor: '#52c41a' }}>
+                <Title level={1} style={{ margin: 0 }}>
+                  <Space>
+                    <CrownOutlined />
+                    Choose Your Plan
+                  </Space>
+                </Title>
+              </Badge>
+              
+              <Paragraph style={{ fontSize: 18, color: '#666', maxWidth: 600, margin: '0 auto' }}>
+                Start with our free trial and scale as your team grows. 
+                All plans include core AI summarization features.
+              </Paragraph>
+
+              <div style={{ marginTop: 32 }}>
+                <Space align="center">
+                  <Text>Monthly</Text>
+                  <Switch 
+                    checked={isAnnual}
+                    onChange={setIsAnnual}
+                    checkedChildren="Annual"
+                    unCheckedChildren="Monthly"
+                  />
+                  <Text>Annual</Text>
+                  {isAnnual && (
+                    <Badge count="Save 20%" style={{ backgroundColor: '#52c41a', marginLeft: 8 }} />
+                  )}
+                </Space>
+              </div>
+            </Space>
+          </div>
+        </div>
+
+        {/* Pricing Cards */}
+        <div style={{ padding: '60px 0' }}>
+          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
+            <Row gutter={[24, 24]} justify="center">
+              {plans.map((plan) => (
+                <Col xs={24} md={8} key={plan.id}>
+                  <Card
+                    style={{ 
+                      height: '100%',
+                      position: 'relative',
+                      ...(plan.isPopular && {
+                        border: '2px solid #1890ff',
+                        transform: 'scale(1.05)',
+                        zIndex: 1
+                      })
+                    }}
+                    hoverable
+                  >
+                    {plan.isPopular && (
+                      <div style={{
+                        position: 'absolute',
+                        top: -10,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        zIndex: 2
+                      }}>
+                        <Badge count="Most Popular" style={{ backgroundColor: '#1890ff' }} />
+                      </div>
+                    )}
+
+                    <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                      <Space direction="vertical" size="small">
+                        <Title level={3} style={{ margin: 0 }}>
+                          {plan.name}
+                          {plan.name === 'Enterprise' && <CrownOutlined style={{ marginLeft: 8, color: '#faad14' }} />}
+                        </Title>
+                        
+                        <Text type="secondary">{plan.description}</Text>
+                        
+                        <div style={{ margin: '16px 0' }}>
+                          <Statistic
+                            value={plan.price}
+                            prefix="$"
+                            suffix={plan.price > 0 ? (isAnnual ? '/year' : '/month') : ''}
+                            valueStyle={{ 
+                              fontSize: 36, 
+                              fontWeight: 'bold',
+                              color: plan.isPopular ? '#1890ff' : '#262626'
+                            }}
+                          />
+                          {isAnnual && plan.price > 0 && (
+                            <Text type="secondary">
+                              {Math.round((plan.price / 12) * 100) / 100}/month billed annually
+                            </Text>
+                          )}
+                        </div>
+                      </Space>
+                    </div>
+
+                    <List
+                      dataSource={plan.features}
+                      renderItem={(feature) => (
+                        <List.Item style={{ border: 'none', padding: '4px 0' }}>
+                          <Space>
+                            <CheckOutlined style={{ color: '#52c41a' }} />
+                            <Text>{feature}</Text>
+                          </Space>
+                        </List.Item>
+                      )}
+                      style={{ marginBottom: 24 }}
+                    />
+
+                    <div style={{ textAlign: 'center' }}>
+                      {plan.id === 'trial' ? (
+                        <Button 
+                          type="default" 
+                          size="large" 
+                          icon={<RocketOutlined />}
+                          href="/"
+                          style={{ width: '100%', height: 48 }}
+                        >
+                          Start Free Trial
+                        </Button>
+                      ) : (
+                        <Button 
+                          type={plan.isPopular ? 'primary' : 'default'}
+                          size="large" 
+                          icon={loading === plan.id ? <LoadingOutlined /> : <CrownOutlined />}
+                          loading={loading === plan.id}
+                          onClick={() => handleSubscribe(plan.id)}
+                          style={{ 
+                            width: '100%', 
+                            height: 48,
+                            ...(plan.isPopular && { 
+                              background: '#1890ff',
+                              borderColor: '#1890ff'
+                            })
+                          }}
+                        >
+                          {plan.id === 'enterprise' ? 'Contact Sales' : 'Get Started'}
+                        </Button>
+                      )}
+                    </div>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          </div>
+        </div>
+
+        {/* Features Comparison */}
+        <div style={{ padding: '60px 0', background: '#f8f9fa' }}>
+          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
+            <div style={{ textAlign: 'center', marginBottom: 48 }}>
+              <Title level={2}>
+                <Space>
+                  <StarOutlined />
+                  What's Included
+                </Space>
+              </Title>
+            </div>
+
+            <Row gutter={[32, 32]}>
+              <Col xs={24} md={8}>
+                <Card bordered={false} style={{ textAlign: 'center', height: '100%' }}>
+                  <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                    <SoundOutlined style={{ fontSize: 48, color: '#1890ff' }} />
+                    <Title level={4}>AI-Powered Summaries</Title>
+                    <Text type="secondary">
+                      Advanced AI creates accurate 59-second audio summaries from any web content
+                    </Text>
+                  </Space>
+                </Card>
+              </Col>
+              
+              <Col xs={24} md={8}>
+                <Card bordered={false} style={{ textAlign: 'center', height: '100%' }}>
+                  <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                    <SlackOutlined style={{ fontSize: 48, color: '#52c41a' }} />
+                    <Title level={4}>Slack Integration</Title>
+                    <Text type="secondary">
+                      Seamlessly integrates with your existing Slack workspace and workflows
+                    </Text>
+                  </Space>
+                </Card>
+              </Col>
+              
+              <Col xs={24} md={8}>
+                <Card bordered={false} style={{ textAlign: 'center', height: '100%' }}>
+                  <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                    <TeamOutlined style={{ fontSize: 48, color: '#722ed1' }} />
+                    <Title level={4}>Team Analytics</Title>
+                    <Text type="secondary">
+                      Track team engagement and understand content consumption patterns
+                    </Text>
+                  </Space>
+                </Card>
+              </Col>
+            </Row>
+          </div>
+        </div>
+
+        {/* FAQ Section */}
+        <div style={{ padding: '60px 0' }}>
+          <div style={{ maxWidth: 800, margin: '0 auto', padding: '0 24px' }}>
+            <div style={{ textAlign: 'center', marginBottom: 48 }}>
+              <Title level={2}>
+                <Space>
+                  <SupportOutlined />
+                  Frequently Asked Questions
+                </Space>
+              </Title>
+            </div>
+
+            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+              {faqItems.map((faq, index) => (
+                <Card key={index} style={{ width: '100%' }}>
+                  <Title level={4} style={{ marginBottom: 8 }}>
+                    {faq.question}
+                  </Title>
+                  <Text type="secondary">{faq.answer}</Text>
+                </Card>
+              ))}
+            </Space>
+          </div>
+        </div>
+
+        {/* Enterprise CTA */}
+        <div style={{ padding: '60px 0', background: '#001529', color: 'white' }}>
+          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
+            <Space direction="vertical" size="large" style={{ width: '100%' }}>
+              <Title level={2} style={{ color: 'white' }}>
+                <Space>
+                  <SafetyCertificateOutlined />
+                  Enterprise Ready
+                </Space>
+              </Title>
+              
+              <Paragraph style={{ color: 'rgba(255,255,255,0.8)', fontSize: 18 }}>
+                Need custom features, on-premise deployment, or enterprise-grade security? 
+                Let's discuss a custom solution for your organization.
+              </Paragraph>
+
+              <Space size="large">
+                <Button 
+                  type="primary" 
+                  size="large"
+                  icon={<TeamOutlined />}
+                  style={{ height: 48, fontSize: 16 }}
+                >
+                  Contact Sales
+                </Button>
+                
+                <Button 
+                  size="large" 
+                  ghost
+                  href="/"
+                  style={{ 
+                    borderColor: 'white',
+                    color: 'white',
+                    height: 48,
+                    fontSize: 16
+                  }}
+                >
+                  Start Free Trial
+                </Button>
+              </Space>
+
+              <div style={{ marginTop: 40 }}>
+                <Space split={<Divider type="vertical" />}>
+                  <Text style={{ color: 'rgba(255,255,255,0.8)' }}>SOC 2 Compliant</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.8)' }}>GDPR Ready</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.8)' }}>99.9% SLA</Text>
+                </Space>
+              </div>
+            </Space>
+          </div>
+        </div>
+      </div>
+
       {/* Pricing-specific structured data */}
       <Script
         id="pricing-structured-data"
@@ -46,183 +429,20 @@ export default function PricingPage() {
             "@type": "ItemList",
             "name": "biirbal.ai Pricing Plans",
             "description": "Pricing plans for biirbal.ai AI-powered Slack content intelligence",
-            "itemListElement": [
-              {
-                "@type": "Product",
-                "position": 1,
-                "name": "Starter Plan",
-                "description": "Perfect for small teams",
-                "offers": {
-                  "@type": "Offer",
-                  "price": "9.99",
-                  "priceCurrency": "USD",
-                  "priceValidUntil": "2025-12-31",
-                  "availability": "https://schema.org/InStock"
-                }
-              },
-              {
-                "@type": "Product",
-                "position": 2,
-                "name": "Pro Plan",
-                "description": "Most popular choice for growing teams",
-                "offers": {
-                  "@type": "Offer",
-                  "price": "29.99",
-                  "priceCurrency": "USD",
-                  "priceValidUntil": "2025-12-31",
-                  "availability": "https://schema.org/InStock"
-                }
-              },
-              {
-                "@type": "Product",
-                "position": 3,
-                "name": "Enterprise Plan",
-                "description": "For large organizations",
-                "offers": {
-                  "@type": "Offer",
-                  "price": "99.99",
-                  "priceCurrency": "USD",
-                  "priceValidUntil": "2025-12-31",
-                  "availability": "https://schema.org/InStock"
-                }
+            "itemListElement": plans.map((plan, index) => ({
+              "@type": "Product",
+              "position": index + 1,
+              "name": `biirbal.ai ${plan.name}`,
+              "description": plan.description,
+              "offers": {
+                "@type": "Offer",
+                "price": plan.price,
+                "priceCurrency": "USD"
               }
-            ]
+            }))
           }),
         }}
       />
-      
-      <div className="container mx-auto px-6 py-20">
-        <div className="text-center mb-20">
-          <h1 className="text-5xl font-bold text-gray-900 mb-6 flex items-center justify-center gap-3">
-            💳 <span>Choose Your Plan</span>
-          </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-            Start with our free trial, then choose the plan that fits your team's needs.
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-4 gap-8 max-w-6xl mx-auto">
-          {/* Free Trial */}
-          <Card className="text-center" padding="lg">
-            <CardHeader>
-              <CardTitle>Free Trial</CardTitle>
-              <div className="text-4xl font-bold mb-2 text-gray-900">$0</div>
-              <p className="text-gray-500 text-sm mb-6">Perfect for testing</p>
-            </CardHeader>
-            <CardContent>
-              <ul className="text-left space-y-3 mb-8">
-                <li className="flex items-center">
-                  <span className="text-blue-500 mr-3">✓</span>
-                  <span className="text-gray-700">50 links per month</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-blue-500 mr-3">✓</span>
-                  <span className="text-gray-700">All core features</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-blue-500 mr-3">✓</span>
-                  <span className="text-gray-700">7-day trial</span>
-                </li>
-              </ul>
-
-              <a href="/">
-                <Button variant="secondary" className="w-full">
-                  Start Free Trial
-                </Button>
-              </a>
-            </CardContent>
-          </Card>
-
-          {/* Paid Plans */}
-          {Object.values(PRICING_PLANS).map((plan) => (
-            <Card 
-              key={plan.id}
-              className={`text-center relative ${
-                plan.id === 'pro' ? 'border-2 border-blue-200 shadow-lg' : ''
-              }`}
-              padding="lg"
-            >
-              {plan.id === 'pro' && (
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <Badge className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 text-sm font-semibold">
-                    🔥 POPULAR
-                  </Badge>
-                </div>
-              )}
-              
-              <CardHeader>
-                <CardTitle>{plan.name}</CardTitle>
-                <div className="text-4xl font-bold mb-2 text-gray-900">${plan.price}</div>
-                <p className="text-gray-500 text-sm mb-6">per month</p>
-              </CardHeader>
-              <CardContent>
-                <ul className="text-left space-y-3 mb-8">
-                  <li className="flex items-center">
-                    <span className="text-blue-500 mr-3">✓</span>
-                    <span className="text-gray-700">{plan.monthlyLimit} links per month</span>
-                  </li>
-                  <li className="flex items-center">
-                    <span className="text-blue-500 mr-3">✓</span>
-                    <span className="text-gray-700">All core features</span>
-                  </li>
-                  <li className="flex items-center">
-                    <span className="text-blue-500 mr-3">✓</span>
-                    <span className="text-gray-700">Priority support</span>
-                  </li>
-                  {plan.id === 'enterprise' && (
-                    <>
-                      <li className="flex items-center">
-                        <span className="text-blue-500 mr-3">✓</span>
-                        <span className="text-gray-700">Custom integrations</span>
-                      </li>
-                      <li className="flex items-center">
-                        <span className="text-blue-500 mr-3">✓</span>
-                        <span className="text-gray-700">Dedicated support</span>
-                      </li>
-                    </>
-                  )}
-                </ul>
-
-                <Button
-                  onClick={() => handleSubscribe(plan.id)}
-                  loading={loading === plan.id}
-                  variant={plan.id === 'pro' ? 'primary' : 'secondary'}
-                  className="w-full"
-                >
-                  {loading === plan.id ? 'Processing...' : `Choose ${plan.name}`}
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <div className="text-center mt-20">
-          <h2 className="text-3xl font-bold mb-12 text-gray-900">Frequently Asked Questions</h2>
-          
-          <div className="max-w-3xl mx-auto text-left space-y-6">
-            <Card padding="lg">
-              <h3 className="font-semibold mb-3 text-gray-900">How does the free trial work?</h3>
-              <p className="text-gray-600 leading-relaxed">
-                You get 50 free link summaries to test the service. No credit card required.
-              </p>
-            </Card>
-            
-            <Card padding="lg">
-              <h3 className="font-semibold mb-3 text-gray-900">Can I cancel anytime?</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Yes, you can cancel your subscription at any time through the billing portal.
-              </p>
-            </Card>
-            
-            <Card padding="lg">
-              <h3 className="font-semibold mb-3 text-gray-900">What happens if I exceed my limit?</h3>
-              <p className="text-gray-600 leading-relaxed">
-                The bot will notify you when you approach your limit. Links shared after the limit won't be processed until the next billing cycle.
-              </p>
-            </Card>
-          </div>
-        </div>
-      </div>
     </Layout>
   )
 }
