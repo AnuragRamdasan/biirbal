@@ -2,6 +2,7 @@ import axios from 'axios'
 import { Readability } from '@mozilla/readability'
 import { JSDOM } from 'jsdom'
 import OpenAI from 'openai'
+import { PROMPTS } from './prompts'
 
 export interface ExtractedContent {
   title: string
@@ -92,9 +93,7 @@ export async function summarizeForAudio(text: string, maxWords: number = 150): P
     apiKey: process.env.OPENAI_API_KEY
   })
 
-  const prompt = `Create a concise summary of this article for audio narration. Keep it under ${maxWords} words:
-
-${text.substring(0, 12000)}`
+  const prompt = PROMPTS.summarizeForAudio(maxWords).replace('{text}', text.substring(0, 12000))
 
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",
