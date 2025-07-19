@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getDbClient } from '@/lib/db'
 import { createStripeCustomer, createCheckoutSession, PRICING_PLANS } from '@/lib/stripe'
 import { getBaseUrl } from '@/lib/config'
 
@@ -30,8 +30,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Free plan doesn't need Stripe checkout
+    if (plan.id === 'free') {
+      return NextResponse.json(
+        { error: 'Free plan does not require checkout' },
+        { status: 400 }
+      )
+    }
+
+    if (!plan.stripePriceId) {
+      return NextResponse.json(
+        { error: 'Plan is not configured for checkout' },
+        { status: 400 }
+      )
+    }
+
     // Get team and subscription info
-    const team = await prisma.team.findUnique({
+    const db = await getDbClient()
+    const team = await db.team.findUnique({
       where: { id: teamId },
       include: { subscription: true }
     })
@@ -54,14 +70,17 @@ export async function POST(request: NextRequest) {
       customerId = customer.id
 
       // Update subscription with customer ID
-      await prisma.subscription.upsert({
+      await db.subscription.upsert({
         where: { teamId: team.id },
         update: { stripeCustomerId: customerId },
         create: {
           teamId: team.id,
           stripeCustomerId: customerId,
           status: 'TRIAL',
+          planId: 'free',
           monthlyLimit: 50,
+          monthlyLinkLimit: 30,
+          userLimit: 2,
           linksProcessed: 0
         }
       })

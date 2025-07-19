@@ -49,20 +49,36 @@ export default function PricingPage() {
     setLoading(planId)
     
     try {
+      // Get team ID from localStorage
+      const teamId = localStorage.getItem('biirbal_team_id')
+      
+      if (!teamId) {
+        alert('Please install the biirbal.ai Slack app first to access subscription plans.')
+        window.location.href = '/'
+        return
+      }
+
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId, teamId: 'demo' }) // In real app, get from auth
+        body: JSON.stringify({ planId, teamId })
       })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Checkout failed')
+      }
 
       const { url } = await response.json()
       
       if (url) {
         window.location.href = url
+      } else {
+        throw new Error('No checkout URL received')
       }
     } catch (error) {
       console.error('Checkout failed:', error)
-      alert('Failed to start checkout. Please try again.')
+      alert(`Failed to start checkout: ${error instanceof Error ? error.message : 'Please try again.'}`)
     } finally {
       setLoading(null)
     }
@@ -249,7 +265,7 @@ export default function PricingPage() {
                     />
 
                     <div style={{ textAlign: 'center' }}>
-                      {plan.id === 'trial' ? (
+                      {plan.id === 'free' ? (
                         <Button 
                           type="default" 
                           size="large" 
@@ -257,7 +273,7 @@ export default function PricingPage() {
                           href="/"
                           style={{ width: '100%', height: 48 }}
                         >
-                          Start Free Trial
+                          Start Free
                         </Button>
                       ) : (
                         <Button 
