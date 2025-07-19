@@ -62,6 +62,7 @@ export default function Dashboard() {
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [progress, setProgress] = useState(0)
+  const [audioDurations, setAudioDurations] = useState<Record<string, number>>({})
 
   useEffect(() => {
     fetchLinks()
@@ -88,6 +89,36 @@ export default function Dashboard() {
     
     return () => window.removeEventListener('resize', checkIfMobile)
   }, [])
+
+  // Load audio durations for completed links
+  useEffect(() => {
+    const loadAudioDurations = async () => {
+      const completedLinks = links.filter(link => 
+        link.processingStatus === 'COMPLETED' && 
+        link.audioFileUrl &&
+        !audioDurations[link.id]
+      )
+      
+      for (const link of completedLinks) {
+        try {
+          const audio = new Audio(link.audioFileUrl)
+          audio.addEventListener('loadedmetadata', () => {
+            setAudioDurations(prev => ({
+              ...prev,
+              [link.id]: audio.duration
+            }))
+          })
+          audio.load()
+        } catch (error) {
+          console.error('Failed to load audio metadata for link', link.id, error)
+        }
+      }
+    }
+    
+    if (links.length > 0) {
+      loadAudioDurations()
+    }
+  }, [links, audioDurations])
 
   const fetchLinks = async () => {
     try {
@@ -248,10 +279,29 @@ export default function Dashboard() {
     return link.listens && link.listens.length > 0
   }
 
+  const getMinutesCurated = () => {
+    return Math.round(
+      links
+        .filter(link => link.processingStatus === 'COMPLETED')
+        .reduce((total, link) => total + (audioDurations[link.id] || 59), 0) / 60
+    )
+  }
+
+  const getMinutesListened = () => {
+    return Math.round(
+      links.reduce((total, link) => {
+        const totalListenDuration = link.listens.reduce((sum, listen) => {
+          return sum + (listen.listenDuration || 0)
+        }, 0)
+        return total + totalListenDuration
+      }, 0) / 60
+    )
+  }
+
   // Filter links based on the toggle
   const filteredLinks = showListened 
-    ? links.filter(link => hasUserListened(link))
-    : links
+    ? links  // Show all links when toggle is on
+    : links.filter(link => !hasUserListened(link))  // Show only unlistened links by default
 
 
 
@@ -308,7 +358,7 @@ export default function Dashboard() {
             </Col>
             <Col xs={24} sm={24} md={16} lg={18}>
               <Row gutter={[8, 8]} align="middle">
-                <Col xs={12} sm={6}>
+                <Col xs={6} sm={4}>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: 16, fontWeight: 'bold', color: '#1890ff' }}>
                       {links.length}
@@ -316,7 +366,7 @@ export default function Dashboard() {
                     <Text type="secondary" style={{ fontSize: 10 }}>Total</Text>
                   </div>
                 </Col>
-                <Col xs={12} sm={8}>
+                <Col xs={6} sm={4}>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: 16, fontWeight: 'bold', color: '#722ed1' }}>
                       {links.reduce((total, link) => total + getListenCount(link), 0)}
@@ -324,9 +374,25 @@ export default function Dashboard() {
                     <Text type="secondary" style={{ fontSize: 10 }}>Listens</Text>
                   </div>
                 </Col>
-                <Col xs={12} sm={4}>
+                <Col xs={6} sm={4}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 16, fontWeight: 'bold', color: '#52c41a' }}>
+                      {getMinutesCurated()}
+                    </div>
+                    <Text type="secondary" style={{ fontSize: 10 }}>Min Curated</Text>
+                  </div>
+                </Col>
+                <Col xs={6} sm={4}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 16, fontWeight: 'bold', color: '#fa8c16' }}>
+                      {getMinutesListened()}
+                    </div>
+                    <Text type="secondary" style={{ fontSize: 10 }}>Min Listened</Text>
+                  </div>
+                </Col>
+                <Col xs={12} sm={8}>
                   <Space size="small">
-                    <Text style={{ fontSize: 12 }}>Listened</Text>
+                    <Text style={{ fontSize: 12 }}>Show All</Text>
                     <Switch
                       size="small"
                       checked={showListened}
@@ -349,8 +415,8 @@ export default function Dashboard() {
               description={
                 <span style={{ fontSize: 12 }}>
                   {showListened 
-                    ? "Showing all links including listened ones"
-                    : "No new links. Toggle 'Show All' to see listened links too."
+                    ? "No audio summaries available yet."
+                    : "No unlistened links. Toggle 'Show All' to see all links including listened ones."
                   }
                 </span>
               }
@@ -500,7 +566,7 @@ export default function Dashboard() {
                         {/* Progress Info */}
                         <div style={{ textAlign: 'center', minWidth: 80 }}>
                           <div style={{ fontSize: 12, color: '#8c8c8c' }}>
-                            {currentlyPlaying === record.id ? formatTime(currentTime) : '0:00'} / {currentlyPlaying === record.id && duration > 0 ? formatTime(duration) : '0:59'}
+                            {currentlyPlaying === record.id ? formatTime(currentTime) : '0:00'} / {currentlyPlaying === record.id && duration > 0 ? formatTime(duration) : formatTime(audioDurations[record.id] || 59)}
                           </div>
                           <div style={{ 
                             width: '100%', 
