@@ -283,17 +283,23 @@ export default function Dashboard() {
     return Math.round(
       links
         .filter(link => link.processingStatus === 'COMPLETED')
-        .reduce((total, link) => total + (audioDurations[link.id] || 59), 0) / 60
+        .reduce((total, link) => {
+          const trackDuration = audioDurations[link.id]
+          return trackDuration ? total + trackDuration : total
+        }, 0) / 60
     )
   }
 
   const getMinutesListened = () => {
     return Math.round(
       links.reduce((total, link) => {
-        const totalListenDuration = link.listens.reduce((sum, listen) => {
-          return sum + (listen.listenDuration || 0)
-        }, 0)
-        return total + totalListenDuration
+        // Only calculate for tracks where we have the actual duration
+        const trackDuration = audioDurations[link.id]
+        if (trackDuration) {
+          const listenCount = link.listens.length
+          return total + (trackDuration * listenCount)
+        }
+        return total
       }, 0) / 60
     )
   }
@@ -566,7 +572,7 @@ export default function Dashboard() {
                         {/* Progress Info */}
                         <div style={{ textAlign: 'center', minWidth: 80 }}>
                           <div style={{ fontSize: 12, color: '#8c8c8c' }}>
-                            {currentlyPlaying === record.id ? formatTime(currentTime) : '0:00'} / {currentlyPlaying === record.id && duration > 0 ? formatTime(duration) : formatTime(audioDurations[record.id] || 59)}
+                            {currentlyPlaying === record.id ? formatTime(currentTime) : '0:00'} / {currentlyPlaying === record.id && duration > 0 ? formatTime(duration) : (audioDurations[record.id] ? formatTime(audioDurations[record.id]) : '--:--')}
                           </div>
                           <div style={{ 
                             width: '100%', 
