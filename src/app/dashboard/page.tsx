@@ -11,8 +11,6 @@ import {
   Spin, 
   Alert, 
   Switch, 
-  Tag, 
-  Table,
   Empty,
   Badge
 } from 'antd'
@@ -30,7 +28,6 @@ import {
   CalendarOutlined
 } from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
-import { AudioPlayer } from '@/components/dashboard/AudioPlayer'
 
 const { Title, Text } = Typography
 
@@ -62,6 +59,9 @@ export default function Dashboard() {
   const [showListened, setShowListened] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
+  const [progress, setProgress] = useState(0)
 
   useEffect(() => {
     fetchLinks()
@@ -148,17 +148,41 @@ export default function Dashboard() {
       audioElement.currentTime = 0
     }
 
+    // Reset progress state
+    setCurrentTime(0)
+    setProgress(0)
+    setDuration(0)
+
     // Create new audio element
     const audio = new Audio(audioUrl)
+    
+    // Add event listeners for progress tracking
+    audio.addEventListener('loadedmetadata', () => {
+      setDuration(audio.duration)
+    })
+    
+    audio.addEventListener('timeupdate', () => {
+      setCurrentTime(audio.currentTime)
+      if (audio.duration > 0) {
+        setProgress(audio.currentTime / audio.duration)
+      }
+    })
+    
     audio.addEventListener('ended', () => {
       setCurrentlyPlaying(null)
       setAudioElement(null)
+      setCurrentTime(0)
+      setProgress(0)
+      setDuration(0)
     })
     
     audio.addEventListener('error', () => {
       console.error('Audio playback failed')
       setCurrentlyPlaying(null)
       setAudioElement(null)
+      setCurrentTime(0)
+      setProgress(0)
+      setDuration(0)
     })
 
     // Start playing
@@ -170,6 +194,9 @@ export default function Dashboard() {
       console.error('Failed to play audio:', error)
       setCurrentlyPlaying(null)
       setAudioElement(null)
+      setCurrentTime(0)
+      setProgress(0)
+      setDuration(0)
     })
   }
 
@@ -178,7 +205,16 @@ export default function Dashboard() {
       audioElement.pause()
       setCurrentlyPlaying(null)
       setAudioElement(null)
+      setCurrentTime(0)
+      setProgress(0)
+      setDuration(0)
     }
+  }
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
   const getStatusIcon = (status: string) => {
@@ -194,18 +230,6 @@ export default function Dashboard() {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'COMPLETED':
-        return 'success'
-      case 'PROCESSING':
-        return 'processing'
-      case 'FAILED':
-        return 'error'
-      default:
-        return 'warning'
-    }
-  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -476,7 +500,7 @@ export default function Dashboard() {
                         {/* Progress Info */}
                         <div style={{ textAlign: 'center', minWidth: 80 }}>
                           <div style={{ fontSize: 12, color: '#8c8c8c' }}>
-                            0:00 / 0:59
+                            {currentlyPlaying === record.id ? formatTime(currentTime) : '0:00'} / {currentlyPlaying === record.id && duration > 0 ? formatTime(duration) : '0:59'}
                           </div>
                           <div style={{ 
                             width: '100%', 
@@ -486,10 +510,11 @@ export default function Dashboard() {
                             marginTop: 4
                           }}>
                             <div style={{ 
-                              width: '0%', 
+                              width: currentlyPlaying === record.id ? `${progress * 100}%` : '0%', 
                               height: '100%', 
                               backgroundColor: '#1890ff', 
-                              borderRadius: 2 
+                              borderRadius: 2,
+                              transition: 'width 0.1s ease'
                             }} />
                           </div>
                         </div>
