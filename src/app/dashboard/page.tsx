@@ -5,7 +5,6 @@ import Layout from '@/components/layout/Layout'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
-import StatCard from '@/components/ui/StatCard'
 import AudioPlayer from '@/components/dashboard/AudioPlayer'
 
 interface ProcessedLink {
@@ -37,6 +36,7 @@ export default function Dashboard() {
   const [duration, setDuration] = useState<{[key: string]: number}>({})
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [showListened, setShowListened] = useState(false)
 
   useEffect(() => {
     fetchLinks()
@@ -233,85 +233,22 @@ export default function Dashboard() {
               <p className="text-gray-600 text-lg">Your personalized podcast-style content collection</p>
             </div>
             
-            {/* Global Player Controls */}
+            {/* Filter Controls */}
             <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200" padding="base">
-              <div className="flex items-center gap-4">
-                <Button 
-                  onClick={playPrevious}
-                  disabled={currentIndex === 0}
-                  variant="ghost"
-                  size="sm"
-                  className="text-blue-600 hover:bg-blue-100"
-                >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M15.707 15.707a1 1 0 01-1.414 0l-5-5a1 1 0 010-1.414l5-5a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 010 1.414zm-6 0a1 1 0 01-1.414 0l-5-5a1 1 0 010-1.414l5-5a1 1 0 011.414 1.414L5.414 10l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
-                  </svg>
-                </Button>
-                <Button 
-                  onClick={playNext}
-                  disabled={currentIndex >= links.filter(l => l.audioFileUrl && l.processingStatus === 'COMPLETED').length - 1}
-                  variant="ghost"
-                  size="sm"
-                  className="text-blue-600 hover:bg-blue-100"
-                >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414zm6 0a1 1 0 011.414 0l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414-1.414L14.586 10l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                </Button>
-                <div className="text-center">
-                  <div className="text-xs text-gray-500 font-medium">Total Episodes</div>
-                  <div className="text-xl font-bold text-blue-600">{links.length}</div>
-                </div>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showListened}
+                    onChange={(e) => setShowListened(e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
+                  />
+                  <span className="text-sm font-medium text-gray-700">Show listened episodes</span>
+                </label>
               </div>
             </Card>
           </div>
         </div>
-        
-        {/* Stats Overview */}
-        {links.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <StatCard
-              title="Total Episodes"
-              value={links.length}
-              icon={
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                </svg>
-              }
-              gradient="blue"
-            />
-            <StatCard
-              title="Completed"
-              value={links.filter(l => l.listens.some(listen => listen.completed)).length}
-              icon={
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              }
-              gradient="green"
-            />
-            <StatCard
-              title="Total Listens"
-              value={links.reduce((sum, link) => sum + link.listens.length, 0)}
-              icon={
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                </svg>
-              }
-              gradient="purple"
-            />
-            <StatCard
-              title="Processing"
-              value={links.filter(l => l.processingStatus === 'PROCESSING').length}
-              icon={
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              }
-              gradient="orange"
-            />
-          </div>
-        )}
         
         {links.length === 0 ? (
           <div className="text-center py-20">
@@ -330,7 +267,9 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="space-y-4">
-            {links.map((link, index) => {
+            {links
+              .filter(link => showListened || !hasBeenListened(link))
+              .map((link, index) => {
               const progress = getListenProgress(link)
               const availableLinks = links.filter(l => l.audioFileUrl && l.processingStatus === 'COMPLETED')
               const linkIndex = availableLinks.findIndex(l => l.id === link.id)
