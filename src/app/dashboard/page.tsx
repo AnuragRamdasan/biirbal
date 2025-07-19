@@ -277,7 +277,7 @@ export default function Dashboard() {
       render: (_, record: ProcessedLink) => {
         if (record.processingStatus === 'completed' && record.audioFileUrl) {
           return (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Button
                 type="primary"
                 shape="circle"
@@ -287,32 +287,39 @@ export default function Dashboard() {
                   e.stopPropagation()
                   if (currentlyPlaying === record.id) {
                     setCurrentlyPlaying(null)
-                    // Pause audio
-                    const audio = document.getElementById(`audio-${record.id}`) as HTMLAudioElement
-                    if (audio) audio.pause()
                   } else {
                     setCurrentlyPlaying(record.id)
                     trackListen(record.id)
-                    // Play audio
-                    const audio = document.getElementById(`audio-${record.id}`) as HTMLAudioElement
-                    if (audio) audio.play()
                   }
                 }}
                 style={{ 
                   backgroundColor: currentlyPlaying === record.id ? '#ff4d4f' : '#52c41a',
                   borderColor: currentlyPlaying === record.id ? '#ff4d4f' : '#52c41a',
                   width: 40,
-                  height: 40
+                  height: 40,
+                  flexShrink: 0
                 }}
               />
-              <audio
-                id={`audio-${record.id}`}
-                src={record.audioFileUrl}
-                style={{ display: 'none' }}
-                onEnded={() => setCurrentlyPlaying(null)}
-              />
-              <div style={{ fontSize: 11, color: '#666' }}>
-                ~59s
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <audio
+                  src={record.audioFileUrl}
+                  controls
+                  style={{ 
+                    width: '100%', 
+                    height: 32,
+                    maxWidth: '180px',
+                    borderRadius: '4px'
+                  }}
+                  onPlay={() => {
+                    setCurrentlyPlaying(record.id)
+                    trackListen(record.id)
+                  }}
+                  onPause={() => setCurrentlyPlaying(null)}
+                  onEnded={() => setCurrentlyPlaying(null)}
+                />
+                <div style={{ fontSize: 10, color: '#999', whiteSpace: 'nowrap' }}>
+                  59s
+                </div>
               </div>
             </div>
           )
