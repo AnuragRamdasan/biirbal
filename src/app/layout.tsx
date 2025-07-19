@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "antd/dist/reset.css";
 import { generateMetadata, jsonLd } from '@/lib/seo';
 import Script from 'next/script';
 

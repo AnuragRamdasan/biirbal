@@ -221,22 +221,28 @@ export default function ProfilePage() {
     <Layout currentPage="profile">
       <div style={{ padding: '24px' }}>
         {/* Header with Logout */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <div>
-            <Title level={2} style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <UserOutlined />
-              Team Profile
-            </Title>
-            <Text type="secondary">Manage your biirbal.ai settings and subscription</Text>
-          </div>
-          <Button 
-            type="primary" 
-            danger 
-            icon={<LogoutOutlined />} 
-            onClick={handleLogout}
-          >
-            Logout
-          </Button>
+        <div style={{ marginBottom: 24 }}>
+          <Row justify="space-between" align="middle">
+            <Col>
+              <Title level={2} style={{ margin: 0 }}>
+                <Space>
+                  <UserOutlined />
+                  Team Profile
+                </Space>
+              </Title>
+              <Text type="secondary">Manage your biirbal.ai settings and subscription</Text>
+            </Col>
+            <Col>
+              <Button 
+                type="primary" 
+                danger 
+                icon={<LogoutOutlined />} 
+                onClick={handleLogout}
+              >
+                Logout
+              </Button>
+            </Col>
+          </Row>
         </div>
 
         <Row gutter={[24, 24]}>
@@ -482,9 +488,11 @@ export default function ProfilePage() {
                             style={{ marginBottom: 8 }}
                           />
                           <div>
-                            <Text strong style={{ display: 'block' }}>
-                              {member.profile?.display_name || member.name}
-                            </Text>
+                            <div>
+                              <Text strong>
+                                {member.profile?.display_name || member.name}
+                              </Text>
+                            </div>
                             {member.profile?.real_name && member.profile.real_name !== member.name && (
                               <Text type="secondary" style={{ fontSize: 12 }}>
                                 {member.profile.real_name}
