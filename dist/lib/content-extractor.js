@@ -9,6 +9,7 @@ const axios_1 = __importDefault(require("axios"));
 const readability_1 = require("@mozilla/readability");
 const jsdom_1 = require("jsdom");
 const openai_1 = __importDefault(require("openai"));
+const prompts_1 = require("./prompts");
 async function extractContentFromUrl(url) {
     if (!process.env.SCRAPINGBEE_API_KEY) {
         throw new Error('SCRAPINGBEE_API_KEY is required');
@@ -76,9 +77,7 @@ async function summarizeForAudio(text, maxWords = 150) {
     const openai = new openai_1.default({
         apiKey: process.env.OPENAI_API_KEY
     });
-    const prompt = `Create a concise summary of this article for audio narration. Keep it under ${maxWords} words:
-
-${text.substring(0, 12000)}`;
+    const prompt = prompts_1.PROMPTS.summarizeForAudio(maxWords).replace('{text}', text.substring(0, 12000));
     const response = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{
