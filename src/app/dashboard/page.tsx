@@ -228,15 +228,6 @@ export default function Dashboard() {
               <Text strong style={{ fontSize: 14 }}>
                 {title || 'Untitled Link'}
               </Text>
-              {record.processingStatus !== 'completed' && (
-                <Tag 
-                  color={getStatusColor(record.processingStatus)} 
-                  size="small"
-                  icon={getStatusIcon(record.processingStatus)}
-                >
-                  {record.processingStatus}
-                </Tag>
-              )}
               {hasUserListened(record) && (
                 <Badge 
                   count="✓" 
