@@ -30,6 +30,7 @@ import {
   CalendarOutlined
 } from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
+import { AudioPlayer } from '@/components/dashboard/AudioPlayer'
 
 const { Title, Text } = Typography
 
@@ -265,54 +266,31 @@ export default function Dashboard() {
       title: 'Audio',
       key: 'audio',
       width: '25%',
-      render: (_, record: ProcessedLink) => {
+      render: (_: any, record: ProcessedLink) => {
         if (record.processingStatus === 'completed' && record.audioFileUrl) {
           return (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Button
-                type="primary"
-                shape="circle"
-                size="large"
-                icon={currentlyPlaying === record.id ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  if (currentlyPlaying === record.id) {
-                    setCurrentlyPlaying(null)
-                  } else {
-                    setCurrentlyPlaying(record.id)
-                    trackListen(record.id)
-                  }
-                }}
-                style={{ 
-                  backgroundColor: currentlyPlaying === record.id ? '#ff4d4f' : '#52c41a',
-                  borderColor: currentlyPlaying === record.id ? '#ff4d4f' : '#52c41a',
-                  width: 40,
-                  height: 40,
-                  flexShrink: 0
-                }}
-              />
-              <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <audio
-                  src={record.audioFileUrl}
-                  controls
-                  style={{ 
-                    width: '100%', 
-                    height: 32,
-                    maxWidth: '180px',
-                    borderRadius: '4px'
-                  }}
-                  onPlay={() => {
-                    setCurrentlyPlaying(record.id)
-                    trackListen(record.id)
-                  }}
-                  onPause={() => setCurrentlyPlaying(null)}
-                  onEnded={() => setCurrentlyPlaying(null)}
-                />
-                <div style={{ fontSize: 10, color: '#999', whiteSpace: 'nowrap' }}>
-                  59s
-                </div>
-              </div>
-            </div>
+            <AudioPlayer
+              link={{
+                id: record.id,
+                url: record.url,
+                title: record.title,
+                audioFileUrl: record.audioFileUrl,
+                ttsScript: record.ttsScript,
+                createdAt: record.createdAt,
+                processingStatus: record.processingStatus,
+                listens: record.listens || [],
+                ogImage: record.ogImage
+              }}
+              isCurrentTrack={currentlyPlaying === record.id}
+              isPlaying={currentlyPlaying === record.id}
+              currentTime={0}
+              duration={59}
+              progress={0}
+              onPlay={() => {
+                setCurrentlyPlaying(record.id)
+                trackListen(record.id)
+              }}
+            />
           )
         }
         
@@ -344,7 +322,7 @@ export default function Dashboard() {
       title: 'Stats',
       key: 'stats',
       width: '15%',
-      render: (_, record: ProcessedLink) => (
+      render: (_: any, record: ProcessedLink) => (
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 16, fontWeight: 'bold', color: '#1890ff' }}>
             {getListenCount(record)}
@@ -504,15 +482,7 @@ export default function Dashboard() {
                 }
                 return className.trim()
               }}
-              style={{
-                '.ant-table-thead > tr > th': {
-                  padding: '8px 12px',
-                  fontSize: '12px'
-                },
-                '.ant-table-tbody > tr > td': {
-                  padding: '8px 12px'
-                }
-              }}
+
             />
           )}
         </Card>
