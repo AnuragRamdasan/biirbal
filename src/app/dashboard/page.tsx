@@ -188,165 +188,7 @@ export default function Dashboard() {
     ? links.filter(link => hasUserListened(link))
     : links
 
-  const columns = [
-    {
-      title: 'Link',
-      dataIndex: 'title',
-      key: 'title',
-      width: '40%',
-      render: (title: string, record: ProcessedLink) => (
-        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-          {/* OG Image */}
-          <div style={{ 
-            width: 60, 
-            height: 45, 
-            flexShrink: 0,
-            borderRadius: 6,
-            overflow: 'hidden',
-            backgroundColor: '#f5f5f5',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            {record.ogImage ? (
-              <img 
-                src={record.ogImage} 
-                alt={title || 'Link preview'}
-                style={{ 
-                  width: '100%', 
-                  height: '100%', 
-                  objectFit: 'cover' 
-                }}
-              />
-            ) : (
-              <LinkOutlined style={{ color: '#bfbfbf', fontSize: 16 }} />
-            )}
-          </div>
-          
-          {/* Content */}
-          <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
-              <Text strong style={{ fontSize: 14 }}>
-                {title || 'Untitled Link'}
-              </Text>
-              {hasUserListened(record) && (
-                <Badge 
-                  count="✓" 
-                  style={{ backgroundColor: '#52c41a', fontSize: 10 }}
-                />
-              )}
-            </div>
-            <Text type="secondary" style={{ fontSize: 12, marginBottom: 4, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              <LinkOutlined /> {new URL(record.url).hostname}
-            </Text>
-            {record.extractedText && (
-              <div style={{ marginTop: 4, overflow: 'hidden' }}>
-                <Text 
-                  type="secondary" 
-                  style={{ 
-                    fontSize: 11, 
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    wordBreak: 'break-word',
-                    lineHeight: '1.4'
-                  }}
-                >
-                  {record.extractedText}
-                </Text>
-              </div>
-            )}
-          </div>
-        </div>
-      ),
-    },
-    {
-      title: 'Audio',
-      key: 'audio',
-      width: '25%',
-      render: (_: any, record: ProcessedLink) => {
-        if (record.processingStatus === 'completed' && record.audioFileUrl) {
-          return (
-            <AudioPlayer
-              link={{
-                id: record.id,
-                url: record.url,
-                title: record.title,
-                audioFileUrl: record.audioFileUrl,
-                ttsScript: record.ttsScript,
-                createdAt: record.createdAt,
-                processingStatus: record.processingStatus,
-                listens: record.listens || [],
-                ogImage: record.ogImage
-              }}
-              isCurrentTrack={currentlyPlaying === record.id}
-              isPlaying={currentlyPlaying === record.id}
-              currentTime={0}
-              duration={59}
-              progress={0}
-              onPlay={() => {
-                setCurrentlyPlaying(record.id)
-                trackListen(record.id)
-              }}
-            />
-          )
-        }
-        
-        if (record.processingStatus === 'processing') {
-          return (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Spin size="small" />
-              <Text type="secondary" style={{ fontSize: 12 }}>Processing...</Text>
-            </div>
-          )
-        }
-        
-        if (record.processingStatus === 'failed') {
-          return (
-            <Text type="danger" style={{ fontSize: 12 }}>
-              <ExclamationCircleOutlined /> Failed
-            </Text>
-          )
-        }
-        
-        return (
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            <ClockCircleOutlined /> Pending
-          </Text>
-        )
-      },
-    },
-    {
-      title: 'Stats',
-      key: 'stats',
-      width: '15%',
-      render: (_: any, record: ProcessedLink) => (
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 16, fontWeight: 'bold', color: '#1890ff' }}>
-            {getListenCount(record)}
-          </div>
-          <Text type="secondary" style={{ fontSize: 10 }}>
-            listens
-          </Text>
-        </div>
-      ),
-    },
-    {
-      title: 'Created',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      width: '20%',
-      render: (date: string) => (
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 12 }}>
-            <CalendarOutlined /> {formatDate(date)}
-          </div>
-        </div>
-      ),
-    },
-  ]
+
 
   if (loading) {
     return (
@@ -434,16 +276,8 @@ export default function Dashboard() {
           </Row>
         </Card>
 
-        {/* Compact Table */}
-        <Card size="small">
-          <style jsx>{`
-            .listened-link {
-              opacity: 0.6;
-            }
-            .listened-link:hover {
-              opacity: 0.8;
-            }
-          `}</style>
+        {/* Card-based Layout */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {filteredLinks.length === 0 ? (
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -458,34 +292,178 @@ export default function Dashboard() {
               style={{ padding: '20px 0' }}
             />
           ) : (
-            <Table
-              columns={columns}
-              dataSource={filteredLinks}
-              rowKey="id"
-              size="small"
-              pagination={{
-                pageSize: 10,
-                size: 'small',
-                showSizeChanger: false,
-                showTotal: (total, range) => 
-                  `${range[0]}-${range[1]} of ${total} summaries`,
-                responsive: true
-              }}
-              scroll={{ x: 800 }}
-              rowClassName={(record) => {
-                let className = ''
-                if (currentlyPlaying === record.id) {
-                  className += 'ant-table-row-selected '
-                }
-                if (hasUserListened(record)) {
-                  className += 'listened-link '
-                }
-                return className.trim()
-              }}
-
-            />
+            filteredLinks.map((record) => (
+              <Card 
+                key={record.id}
+                size="small" 
+                style={{ 
+                  border: currentlyPlaying === record.id ? '2px solid #1890ff' : '1px solid #f0f0f0',
+                  borderRadius: 8,
+                  opacity: hasUserListened(record) ? 0.7 : 1,
+                  transition: 'all 0.2s ease',
+                  cursor: 'pointer'
+                }}
+                bodyStyle={{ padding: '16px' }}
+                onClick={() => {
+                  if (record.processingStatus === 'completed' && record.audioFileUrl) {
+                    setCurrentlyPlaying(record.id)
+                    trackListen(record.id)
+                  }
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+                  {/* Left Column - Image and Info */}
+                  <div style={{ flex: 1, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                    {/* OG Image */}
+                    <div style={{ 
+                      width: 60, 
+                      height: 60, 
+                      backgroundColor: '#f5f5f5', 
+                      borderRadius: 8,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                      flexShrink: 0
+                    }}>
+                      {record.ogImage ? (
+                        <img 
+                          src={record.ogImage} 
+                          alt={record.title || 'Article'}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none'
+                          }}
+                        />
+                      ) : (
+                        <LinkOutlined style={{ fontSize: 24, color: '#d9d9d9' }} />
+                      )}
+                    </div>
+                    
+                    {/* Title and URL */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                        <div style={{ 
+                          fontSize: 16, 
+                          fontWeight: 600, 
+                          color: '#262626',
+                          lineHeight: 1.4,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical'
+                        }}>
+                          {record.title || 'Untitled'}
+                        </div>
+                        {hasUserListened(record) && (
+                          <Badge 
+                            count="✓" 
+                            style={{ backgroundColor: '#52c41a', fontSize: 10 }}
+                          />
+                        )}
+                      </div>
+                      <div style={{ 
+                        fontSize: 12, 
+                        color: '#8c8c8c',
+                        marginBottom: 8,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {record.url}
+                      </div>
+                      
+                      {/* Status and Stats Row */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                        {/* Status */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {getStatusIcon(record.processingStatus)}
+                          <Text style={{ fontSize: 12, color: getStatusColor(record.processingStatus) === 'success' ? '#52c41a' : '#8c8c8c' }}>
+                            {record.processingStatus === 'completed' ? 'Completed' : 
+                             record.processingStatus === 'processing' ? 'Processing...' :
+                             record.processingStatus === 'failed' ? 'Failed' : 'Pending'}
+                          </Text>
+                        </div>
+                        
+                        {/* Listen Count */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <EyeOutlined style={{ fontSize: 12, color: '#8c8c8c' }} />
+                          <Text style={{ fontSize: 12, color: '#8c8c8c' }}>
+                            {getListenCount(record)} listens
+                          </Text>
+                        </div>
+                        
+                        {/* Created Date */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <CalendarOutlined style={{ fontSize: 12, color: '#8c8c8c' }} />
+                          <Text style={{ fontSize: 12, color: '#8c8c8c' }}>
+                            {formatDate(record.createdAt)}
+                          </Text>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Right Column - Audio Player */}
+                  <div style={{ flexShrink: 0, minWidth: 200 }}>
+                    {record.processingStatus === 'completed' && record.audioFileUrl ? (
+                      <AudioPlayer
+                        link={{
+                          id: record.id,
+                          url: record.url,
+                          title: record.title,
+                          audioFileUrl: record.audioFileUrl,
+                          ttsScript: record.ttsScript,
+                          createdAt: record.createdAt,
+                          processingStatus: record.processingStatus,
+                          listens: record.listens || [],
+                          ogImage: record.ogImage
+                        }}
+                        isCurrentTrack={currentlyPlaying === record.id}
+                        isPlaying={currentlyPlaying === record.id}
+                        currentTime={0}
+                        duration={59}
+                        progress={0}
+                        onPlay={() => {
+                          setCurrentlyPlaying(record.id)
+                          trackListen(record.id)
+                        }}
+                      />
+                    ) : (
+                      <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        height: 80,
+                        backgroundColor: '#fafafa',
+                        borderRadius: 8,
+                        border: '1px dashed #d9d9d9'
+                      }}>
+                        {record.processingStatus === 'processing' ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <Spin size="small" />
+                            <Text type="secondary" style={{ fontSize: 12 }}>Processing...</Text>
+                          </div>
+                        ) : record.processingStatus === 'failed' ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />
+                            <Text type="danger" style={{ fontSize: 12 }}>Failed</Text>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <ClockCircleOutlined style={{ color: '#faad14' }} />
+                            <Text type="secondary" style={{ fontSize: 12 }}>Pending</Text>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            ))
           )}
-        </Card>
+        </div>
       </div>
     </Layout>
   )

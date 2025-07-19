@@ -222,7 +222,7 @@ export default function ProfilePage() {
       title: 'Member',
       key: 'member',
       width: '35%',
-      render: (_, member: TeamMember) => (
+      render: (_: any, member: TeamMember) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Avatar 
             size={32} 
@@ -246,7 +246,7 @@ export default function ProfilePage() {
       title: 'Total',
       key: 'total',
       width: '15%',
-      render: (_, member: TeamMember) => (
+      render: (_: any, member: TeamMember) => (
         <div style={{ textAlign: 'center', fontSize: 14, fontWeight: 'bold', color: '#52c41a' }}>
           {member.listenStats.totalListens}
         </div>
@@ -256,7 +256,7 @@ export default function ProfilePage() {
       title: 'Monthly',
       key: 'monthly',
       width: '15%',
-      render: (_, member: TeamMember) => (
+      render: (_: any, member: TeamMember) => (
         <div style={{ textAlign: 'center', fontSize: 14, fontWeight: 'bold', color: '#1890ff' }}>
           {member.listenStats.monthlyListens}
         </div>
@@ -266,7 +266,7 @@ export default function ProfilePage() {
       title: 'Completed',
       key: 'completed',
       width: '15%',
-      render: (_, member: TeamMember) => (
+      render: (_: any, member: TeamMember) => (
         <div style={{ textAlign: 'center', fontSize: 14, fontWeight: 'bold', color: '#722ed1' }}>
           {member.listenStats.completedListens}
         </div>
@@ -276,7 +276,7 @@ export default function ProfilePage() {
       title: 'Joined',
       key: 'joined',
       width: '20%',
-      render: (_, member: TeamMember) => (
+      render: (_: any, member: TeamMember) => (
         <Text type="secondary" style={{ fontSize: 11 }}>
           {formatDate(member.joinedAt)}
         </Text>
