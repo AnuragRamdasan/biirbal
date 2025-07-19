@@ -405,31 +405,48 @@ export default function Dashboard() {
                     </div>
                   </div>
                   
-                  {/* Right Column - Audio Player */}
-                  <div style={{ flexShrink: 0, minWidth: 200 }}>
+                  {/* Right Column - Audio Controls */}
+                  <div style={{ flexShrink: 0, minWidth: 120 }}>
                     {record.processingStatus === 'COMPLETED' && record.audioFileUrl ? (
-                      <AudioPlayer
-                        link={{
-                          id: record.id,
-                          url: record.url,
-                          title: record.title,
-                          audioFileUrl: record.audioFileUrl,
-                          ttsScript: record.ttsScript,
-                          createdAt: record.createdAt,
-                          processingStatus: record.processingStatus,
-                          listens: record.listens || [],
-                          ogImage: record.ogImage
-                        }}
-                        isCurrentTrack={currentlyPlaying === record.id}
-                        isPlaying={currentlyPlaying === record.id}
-                        currentTime={0}
-                        duration={59}
-                        progress={0}
-                        onPlay={() => {
-                          setCurrentlyPlaying(record.id)
-                          trackListen(record.id)
-                        }}
-                      />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        {/* Play Button */}
+                        <Button
+                          type="primary"
+                          shape="circle"
+                          size="large"
+                          icon={currentlyPlaying === record.id ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setCurrentlyPlaying(record.id)
+                            trackListen(record.id)
+                          }}
+                          style={{
+                            background: currentlyPlaying === record.id ? '#ff4d4f' : '#52c41a',
+                            borderColor: currentlyPlaying === record.id ? '#ff4d4f' : '#52c41a'
+                          }}
+                        />
+                        
+                        {/* Progress Info */}
+                        <div style={{ textAlign: 'center', minWidth: 80 }}>
+                          <div style={{ fontSize: 12, color: '#8c8c8c' }}>
+                            0:00 / 0:59
+                          </div>
+                          <div style={{ 
+                            width: '100%', 
+                            height: 4, 
+                            backgroundColor: '#f0f0f0', 
+                            borderRadius: 2,
+                            marginTop: 4
+                          }}>
+                            <div style={{ 
+                              width: '0%', 
+                              height: '100%', 
+                              backgroundColor: '#1890ff', 
+                              borderRadius: 2 
+                            }} />
+                          </div>
+                        </div>
+                      </div>
                     ) : (
                       <div style={{ 
                         display: 'flex', 
