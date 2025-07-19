@@ -14,8 +14,6 @@ import {
   List, 
   Divider,
   Switch,
-  Alert,
-  Tooltip,
   Statistic
 } from 'antd'
 import {
@@ -27,7 +25,7 @@ import {
   SoundOutlined,
   SlackOutlined,
   SafetyCertificateOutlined,
-  SupportOutlined,
+  QuestionCircleOutlined,
   LoadingOutlined
 } from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
@@ -347,7 +345,7 @@ export default function PricingPage() {
             <div style={{ textAlign: 'center', marginBottom: 48 }}>
               <Title level={2}>
                 <Space>
-                  <SupportOutlined />
+                  <QuestionCircleOutlined />
                   Frequently Asked Questions
                 </Space>
               </Title>

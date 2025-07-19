@@ -28,7 +28,7 @@ import {
   CalendarOutlined,
   CrownOutlined,
   LogoutOutlined,
-  UpgradeOutlined,
+  ArrowUpOutlined,
   LinkOutlined,
   PlayCircleOutlined,
   CheckCircleOutlined,
@@ -552,7 +552,7 @@ export default function ProfilePage() {
                 <Button 
                   type="primary" 
                   size="large" 
-                  icon={<UpgradeOutlined />}
+                  icon={<ArrowUpOutlined />}
                   style={{ minWidth: 160 }}
                 >
                   Upgrade Plan
