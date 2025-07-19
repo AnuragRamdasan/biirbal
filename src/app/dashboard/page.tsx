@@ -223,7 +223,7 @@ export default function Dashboard() {
           </div>
           
           {/* Content */}
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
               <Text strong style={{ fontSize: 14 }}>
                 {title || 'Untitled Link'}
@@ -244,17 +244,27 @@ export default function Dashboard() {
                 />
               )}
             </div>
-            <Text type="secondary" style={{ fontSize: 12, marginBottom: 4, display: 'block' }}>
+            <Text type="secondary" style={{ fontSize: 12, marginBottom: 4, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               <LinkOutlined /> {new URL(record.url).hostname}
             </Text>
             {record.extractedText && (
-              <Text 
-                type="secondary" 
-                style={{ fontSize: 11, display: 'block' }}
-                ellipsis={{ rows: 2 }}
-              >
-                {record.extractedText}
-              </Text>
+              <div style={{ marginTop: 4, overflow: 'hidden' }}>
+                <Text 
+                  type="secondary" 
+                  style={{ 
+                    fontSize: 11, 
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    wordBreak: 'break-word',
+                    lineHeight: '1.4'
+                  }}
+                >
+                  {record.extractedText}
+                </Text>
+              </div>
             )}
           </div>
         </div>
@@ -450,14 +460,22 @@ export default function Dashboard() {
 
         {/* Compact Table */}
         <Card size="small">
+          <style jsx>{`
+            .listened-link {
+              opacity: 0.6;
+            }
+            .listened-link:hover {
+              opacity: 0.8;
+            }
+          `}</style>
           {filteredLinks.length === 0 ? (
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description={
                 <span style={{ fontSize: 12 }}>
                   {showListened 
-                    ? "You haven't listened to any summaries yet"
-                    : "No links found. Share some links in your Slack channels to get started!"
+                    ? "Showing all links including listened ones"
+                    : "No new links. Toggle 'Show All' to see listened links too."
                   }
                 </span>
               }
@@ -478,9 +496,16 @@ export default function Dashboard() {
                 responsive: true
               }}
               scroll={{ x: 800 }}
-              rowClassName={(record) => 
-                currentlyPlaying === record.id ? 'ant-table-row-selected' : ''
-              }
+              rowClassName={(record) => {
+                let className = ''
+                if (currentlyPlaying === record.id) {
+                  className += 'ant-table-row-selected '
+                }
+                if (hasUserListened(record)) {
+                  className += 'listened-link '
+                }
+                return className.trim()
+              }}
               style={{
                 '.ant-table-thead > tr > th': {
                   padding: '8px 12px',
