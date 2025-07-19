@@ -19,7 +19,8 @@ import {
   Alert,
   Tag,
   List,
-  Descriptions
+  Descriptions,
+  Table
 } from 'antd'
 import {
   UserOutlined,
@@ -32,12 +33,11 @@ import {
   LinkOutlined,
   PlayCircleOutlined,
   CheckCircleOutlined,
-  MailOutlined,
-  IdcardOutlined
+  MailOutlined
 } from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
 
-const { Title, Text, Paragraph } = Typography
+const { Title, Text } = Typography
 
 interface TeamMember {
   id: string
@@ -158,7 +158,7 @@ export default function ProfilePage() {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
-      month: 'long',
+      month: 'short',
       day: 'numeric'
     })
   }
@@ -179,7 +179,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <Layout currentPage="profile">
-        <div style={{ textAlign: 'center', padding: '100px 0' }}>
+        <div style={{ textAlign: 'center', padding: '60px 0' }}>
           <Spin size="large" />
           <div style={{ marginTop: 16 }}>Loading your profile...</div>
         </div>
@@ -190,7 +190,7 @@ export default function ProfilePage() {
   if (error) {
     return (
       <Layout currentPage="profile">
-        <div style={{ maxWidth: 600, margin: '100px auto', padding: '0 24px' }}>
+        <div style={{ maxWidth: 600, margin: '50px auto', padding: '0 16px' }}>
           <Alert
             message="Authentication Error"
             description={error}
@@ -198,7 +198,7 @@ export default function ProfilePage() {
             showIcon
             action={
               <Link href="/">
-                <Button type="primary" danger>
+                <Button type="primary" danger size="small">
                   Reinstall Bot
                 </Button>
               </Link>
@@ -217,25 +217,93 @@ export default function ProfilePage() {
     ? Math.round((teamData.usage.monthlyUsage / teamData.usage.monthlyLimit) * 100)
     : 0
 
+  // Team members table columns
+  const memberColumns = [
+    {
+      title: 'Member',
+      key: 'member',
+      width: '35%',
+      render: (_, member: TeamMember) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Avatar 
+            size={32} 
+            src={member.profile?.image_48}
+            icon={<UserOutlined />}
+          />
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 500 }}>
+              {member.profile?.display_name || member.name}
+            </div>
+            {member.profile?.title && (
+              <Text type="secondary" style={{ fontSize: 11 }}>
+                {member.profile.title}
+              </Text>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: 'Total',
+      key: 'total',
+      width: '15%',
+      render: (_, member: TeamMember) => (
+        <div style={{ textAlign: 'center', fontSize: 14, fontWeight: 'bold', color: '#52c41a' }}>
+          {member.listenStats.totalListens}
+        </div>
+      ),
+    },
+    {
+      title: 'Monthly',
+      key: 'monthly',
+      width: '15%',
+      render: (_, member: TeamMember) => (
+        <div style={{ textAlign: 'center', fontSize: 14, fontWeight: 'bold', color: '#1890ff' }}>
+          {member.listenStats.monthlyListens}
+        </div>
+      ),
+    },
+    {
+      title: 'Completed',
+      key: 'completed',
+      width: '15%',
+      render: (_, member: TeamMember) => (
+        <div style={{ textAlign: 'center', fontSize: 14, fontWeight: 'bold', color: '#722ed1' }}>
+          {member.listenStats.completedListens}
+        </div>
+      ),
+    },
+    {
+      title: 'Joined',
+      key: 'joined',
+      width: '20%',
+      render: (_, member: TeamMember) => (
+        <Text type="secondary" style={{ fontSize: 11 }}>
+          {formatDate(member.joinedAt)}
+        </Text>
+      ),
+    },
+  ]
+
   return (
     <Layout currentPage="profile">
-      <div style={{ padding: '24px' }}>
-        {/* Header with Logout */}
-        <div style={{ marginBottom: 24 }}>
+      <div style={{ padding: '16px' }}>
+        {/* Compact Header */}
+        <Card size="small" style={{ marginBottom: 16 }}>
           <Row justify="space-between" align="middle">
             <Col>
-              <Title level={2} style={{ margin: 0 }}>
-                <Space>
+              <Title level={3} style={{ margin: 0, fontSize: 18 }}>
+                <Space size="small">
                   <UserOutlined />
                   Team Profile
                 </Space>
               </Title>
-              <Text type="secondary">Manage your biirbal.ai settings and subscription</Text>
             </Col>
             <Col>
               <Button 
                 type="primary" 
                 danger 
+                size="small"
                 icon={<LogoutOutlined />} 
                 onClick={handleLogout}
               >
@@ -243,317 +311,178 @@ export default function ProfilePage() {
               </Button>
             </Col>
           </Row>
-        </div>
+        </Card>
 
-        <Row gutter={[24, 24]}>
-          {/* Current User Card */}
-          {teamData.currentUser && (
-            <Col span={24}>
-              <Card 
-                title={
-                  <Space>
-                    <UserOutlined />
-                    Current User
-                  </Space>
-                }
-                bordered={false}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                  <Avatar 
-                    size={64} 
-                    src={teamData.currentUser.profile?.image_48}
-                    icon={<UserOutlined />}
-                  />
-                  <div style={{ flex: 1 }}>
-                    <Descriptions column={2} size="small">
-                      <Descriptions.Item label="Display Name">
+        <Row gutter={[16, 16]}>
+          {/* Current User & Team Info */}
+          <Col xs={24} lg={12}>
+            <Card size="small" style={{ height: '100%' }}>
+              <div style={{ marginBottom: 12 }}>
+                <Text strong style={{ fontSize: 14 }}>Current User & Team</Text>
+              </div>
+              
+              {teamData.currentUser && (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                    <Avatar 
+                      size={40} 
+                      src={teamData.currentUser.profile?.image_48}
+                      icon={<UserOutlined />}
+                    />
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 500 }}>
                         {teamData.currentUser.profile?.display_name || teamData.currentUser.name}
-                      </Descriptions.Item>
-                      {teamData.currentUser.profile?.real_name && (
-                        <Descriptions.Item label="Real Name">
-                          {teamData.currentUser.profile.real_name}
-                        </Descriptions.Item>
-                      )}
-                      {teamData.currentUser.email && (
-                        <Descriptions.Item label="Email">
-                          <Space>
-                            <MailOutlined />
-                            {teamData.currentUser.email}
-                          </Space>
-                        </Descriptions.Item>
-                      )}
+                      </div>
                       {teamData.currentUser.profile?.title && (
-                        <Descriptions.Item label="Title">
+                        <Text type="secondary" style={{ fontSize: 11 }}>
                           {teamData.currentUser.profile.title}
-                        </Descriptions.Item>
+                        </Text>
                       )}
-                      <Descriptions.Item label="User ID">
-                        <Text code>{teamData.currentUser.id}</Text>
-                      </Descriptions.Item>
-                    </Descriptions>
+                    </div>
                   </div>
                 </div>
-              </Card>
-            </Col>
-          )}
+              )}
 
-          {/* User Listen Statistics */}
+              <Descriptions size="small" column={1} colon={false}>
+                <Descriptions.Item 
+                  label={<Text style={{ fontSize: 11 }}>Team</Text>}
+                >
+                  <Text strong style={{ fontSize: 12 }}>{teamData.team?.teamName}</Text>
+                  <Badge 
+                    status={teamData.team?.isActive ? 'success' : 'error'} 
+                    text={teamData.team?.isActive ? 'Active' : 'Inactive'}
+                    style={{ marginLeft: 8, fontSize: 10 }}
+                  />
+                </Descriptions.Item>
+                <Descriptions.Item 
+                  label={<Text style={{ fontSize: 11 }}>Team ID</Text>}
+                >
+                  <Text code style={{ fontSize: 10 }}>{teamData.team?.slackTeamId}</Text>
+                </Descriptions.Item>
+                <Descriptions.Item 
+                  label={<Text style={{ fontSize: 11 }}>Member Since</Text>}
+                >
+                  <Text style={{ fontSize: 12 }}>{formatDate(teamData.team?.createdAt || '')}</Text>
+                </Descriptions.Item>
+              </Descriptions>
+            </Card>
+          </Col>
+
+          {/* Subscription & Usage */}
+          <Col xs={24} lg={12}>
+            <Card size="small" style={{ height: '100%' }}>
+              <div style={{ marginBottom: 12 }}>
+                <Text strong style={{ fontSize: 14 }}>Subscription & Usage</Text>
+              </div>
+              
+              {teamData.subscription && (
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <Tag color={getStatusColor(teamData.subscription.status)}>
+                      <CrownOutlined /> {teamData.subscription.status}
+                    </Tag>
+                    <Text style={{ fontSize: 12 }}>
+                      {teamData.subscription.monthlyLimit} links/month
+                    </Text>
+                  </div>
+                  <Progress 
+                    percent={usagePercentage} 
+                    size="small"
+                    status={usagePercentage > 90 ? 'exception' : usagePercentage > 70 ? 'active' : 'success'}
+                    format={() => `${teamData.usage?.monthlyUsage}/${teamData.subscription?.monthlyLimit}`}
+                  />
+                </div>
+              )}
+
+              <Row gutter={8}>
+                <Col span={8} style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 16, fontWeight: 'bold', color: '#1890ff' }}>
+                    {teamData.team?.totalLinks || 0}
+                  </div>
+                  <Text type="secondary" style={{ fontSize: 10 }}>Total Links</Text>
+                </Col>
+                <Col span={8} style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 16, fontWeight: 'bold', color: '#722ed1' }}>
+                    {teamData.usage?.totalListens || 0}
+                  </div>
+                  <Text type="secondary" style={{ fontSize: 10 }}>Total Listens</Text>
+                </Col>
+                <Col span={8} style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 16, fontWeight: 'bold', color: '#52c41a' }}>
+                    {teamData.usage?.monthlyUsage || 0}
+                  </div>
+                  <Text type="secondary" style={{ fontSize: 10 }}>This Month</Text>
+                </Col>
+              </Row>
+            </Card>
+          </Col>
+
+          {/* User Stats */}
           {teamData.userListenStats && (
             <Col span={24}>
-              <Card 
-                title={
-                  <Space>
-                    <SoundOutlined />
-                    Your Listen Statistics
-                  </Space>
-                }
-                bordered={false}
-              >
-                <Row gutter={24}>
-                  <Col xs={24} sm={8}>
-                    <Statistic
-                      title="Total Listens"
-                      value={teamData.userListenStats.totalListens}
-                      prefix={<PlayCircleOutlined style={{ color: '#52c41a' }} />}
-                      valueStyle={{ color: '#52c41a' }}
-                    />
+              <Card size="small">
+                <div style={{ marginBottom: 12 }}>
+                  <Text strong style={{ fontSize: 14 }}>Your Listen Statistics</Text>
+                </div>
+                <Row gutter={16}>
+                  <Col xs={8}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 20, fontWeight: 'bold', color: '#52c41a' }}>
+                        {teamData.userListenStats.totalListens}
+                      </div>
+                      <Text type="secondary" style={{ fontSize: 10 }}>Total Listens</Text>
+                    </div>
                   </Col>
-                  <Col xs={24} sm={8}>
-                    <Statistic
-                      title="This Month's Listens"
-                      value={teamData.userListenStats.monthlyListens}
-                      prefix={<CalendarOutlined style={{ color: '#1890ff' }} />}
-                      valueStyle={{ color: '#1890ff' }}
-                    />
+                  <Col xs={8}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 20, fontWeight: 'bold', color: '#1890ff' }}>
+                        {teamData.userListenStats.monthlyListens}
+                      </div>
+                      <Text type="secondary" style={{ fontSize: 10 }}>Monthly Listens</Text>
+                    </div>
                   </Col>
-                  <Col xs={24} sm={8}>
-                    <Statistic
-                      title="Completed Listens"
-                      value={teamData.userListenStats.completedListens}
-                      prefix={<CheckCircleOutlined style={{ color: '#722ed1' }} />}
-                      valueStyle={{ color: '#722ed1' }}
-                    />
+                  <Col xs={8}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 20, fontWeight: 'bold', color: '#722ed1' }}>
+                        {teamData.userListenStats.completedListens}
+                      </div>
+                      <Text type="secondary" style={{ fontSize: 10 }}>Completed</Text>
+                    </div>
                   </Col>
                 </Row>
               </Card>
             </Col>
           )}
 
-          {/* Team Information */}
-          <Col xs={24} lg={12}>
-            <Card 
-              title={
-                <Space>
-                  <TeamOutlined />
-                  Team Information
-                </Space>
-              }
-              bordered={false}
-            >
-              <Descriptions column={1} size="middle">
-                <Descriptions.Item label="Team Name">
-                  <Text strong>{teamData.team?.teamName || 'Unknown Team'}</Text>
-                </Descriptions.Item>
-                <Descriptions.Item label="Status">
-                  <Badge 
-                    status={teamData.team?.isActive ? 'success' : 'error'} 
-                    text={teamData.team?.isActive ? 'Active' : 'Inactive'} 
-                  />
-                </Descriptions.Item>
-                <Descriptions.Item label="Slack Team ID">
-                  <Text code>{teamData.team?.slackTeamId || 'N/A'}</Text>
-                </Descriptions.Item>
-                <Descriptions.Item label="Joined">
-                  {teamData.team?.createdAt ? formatDate(teamData.team.createdAt) : 'N/A'}
-                </Descriptions.Item>
-              </Descriptions>
-            </Card>
-          </Col>
-
-          {/* Subscription Info */}
-          <Col xs={24} lg={12}>
-            {teamData.subscription && (
-              <Card 
-                title={
-                  <Space>
-                    <CrownOutlined />
-                    Subscription
-                  </Space>
-                }
-                bordered={false}
-              >
-                <Space direction="vertical" style={{ width: '100%' }}>
-                  <div>
-                    <Text strong>Plan: </Text>
-                    <Tag color={getStatusColor(teamData.subscription?.status || 'inactive')}>
-                      {teamData.subscription?.status || 'No Plan'}
-                    </Tag>
-                  </div>
-                  <div>
-                    <Text strong>Monthly Limit: </Text>
-                    <Text>{teamData.subscription?.monthlyLimit || 0} links</Text>
-                  </div>
-                  <div>
-                    <Text strong>Used This Month: </Text>
-                    <Text>{teamData.subscription?.linksProcessed || 0} links</Text>
-                  </div>
-                  <div>
-                    <Text strong>Monthly Usage: </Text>
-                    <Progress 
-                      percent={usagePercentage} 
-                      status={usagePercentage > 90 ? 'exception' : usagePercentage > 70 ? 'active' : 'success'}
-                      strokeColor={usagePercentage > 90 ? '#ff4d4f' : usagePercentage > 70 ? '#faad14' : '#52c41a'}
-                    />
-                  </div>
-                </Space>
-              </Card>
-            )}
-          </Col>
-
-          {/* Usage Statistics */}
-          <Col span={24}>
-            <Card 
-              title={
-                <Space>
-                  <LinkOutlined />
-                  Usage Statistics
-                </Space>
-              }
-              bordered={false}
-            >
-              <Row gutter={24}>
-                <Col xs={24} sm={8}>
-                  <Statistic
-                    title="Total Links Processed"
-                    value={teamData.team?.totalLinks || 0}
-                    prefix={<LinkOutlined style={{ color: '#1890ff' }} />}
-                    valueStyle={{ color: '#1890ff' }}
-                  />
-                </Col>
-                <Col xs={24} sm={8}>
-                  <Statistic
-                    title="Total Audio Listens"
-                    value={teamData.usage?.totalListens || 0}
-                    prefix={<SoundOutlined style={{ color: '#722ed1' }} />}
-                    valueStyle={{ color: '#722ed1' }}
-                  />
-                </Col>
-                <Col xs={24} sm={8}>
-                  <Statistic
-                    title="This Month's Usage"
-                    value={teamData.usage?.monthlyUsage || 0}
-                    prefix={<CalendarOutlined style={{ color: '#52c41a' }} />}
-                    valueStyle={{ color: '#52c41a' }}
-                  />
-                </Col>
-              </Row>
-            </Card>
-          </Col>
-
-          {/* Team Members */}
+          {/* Team Members Table */}
           {teamData.teamMembers && teamData.teamMembers.length > 0 && (
             <Col span={24}>
-              <Card 
-                title={
-                  <Space>
-                    <TeamOutlined />
-                    Team Members ({teamData.teamMembers.length})
-                  </Space>
-                }
-                bordered={false}
-              >
-                <List
-                  grid={{
-                    gutter: 16,
-                    xs: 1,
-                    sm: 2,
-                    md: 2,
-                    lg: 3,
-                    xl: 3,
-                    xxl: 4,
-                  }}
+              <Card size="small">
+                <div style={{ marginBottom: 12 }}>
+                  <Text strong style={{ fontSize: 14 }}>
+                    <TeamOutlined /> Team Members ({teamData.teamMembers.length})
+                  </Text>
+                </div>
+                <Table
+                  columns={memberColumns}
                   dataSource={teamData.teamMembers}
-                  renderItem={(member) => (
-                    <List.Item>
-                      <Card 
-                        size="small"
-                        style={{ height: '100%' }}
-                        bodyStyle={{ padding: 16 }}
-                      >
-                        <div style={{ textAlign: 'center', marginBottom: 16 }}>
-                          <Avatar 
-                            size={48} 
-                            src={member.profile?.image_48}
-                            icon={<UserOutlined />}
-                            style={{ marginBottom: 8 }}
-                          />
-                          <div>
-                            <div>
-                              <Text strong>
-                                {member.profile?.display_name || member.name}
-                              </Text>
-                            </div>
-                            {member.profile?.real_name && member.profile.real_name !== member.name && (
-                              <Text type="secondary" style={{ fontSize: 12 }}>
-                                {member.profile.real_name}
-                              </Text>
-                            )}
-                            {member.profile?.title && (
-                              <div>
-                                <Tag size="small" color="blue" style={{ marginTop: 4 }}>
-                                  {member.profile.title}
-                                </Tag>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <Row gutter={8} style={{ marginBottom: 12 }}>
-                          <Col span={8} style={{ textAlign: 'center' }}>
-                            <Statistic
-                              title="Total"
-                              value={member.listenStats.totalListens}
-                              valueStyle={{ fontSize: 16, color: '#52c41a' }}
-                            />
-                          </Col>
-                          <Col span={8} style={{ textAlign: 'center' }}>
-                            <Statistic
-                              title="Monthly"
-                              value={member.listenStats.monthlyListens}
-                              valueStyle={{ fontSize: 16, color: '#1890ff' }}
-                            />
-                          </Col>
-                          <Col span={8} style={{ textAlign: 'center' }}>
-                            <Statistic
-                              title="Completed"
-                              value={member.listenStats.completedListens}
-                              valueStyle={{ fontSize: 16, color: '#722ed1' }}
-                            />
-                          </Col>
-                        </Row>
-                        
-                        <div style={{ textAlign: 'center' }}>
-                          <Text type="secondary" style={{ fontSize: 11 }}>
-                            Joined {formatDate(member.joinedAt)}
-                          </Text>
-                        </div>
-                      </Card>
-                    </List.Item>
-                  )}
+                  rowKey="id"
+                  size="small"
+                  pagination={false}
+                  showHeader={true}
                 />
               </Card>
             </Col>
           )}
 
-          {/* Actions */}
+          {/* Compact Actions */}
           <Col span={24}>
-            <div style={{ textAlign: 'center', marginTop: 24 }}>
+            <div style={{ textAlign: 'center' }}>
               <Link href="/pricing">
                 <Button 
                   type="primary" 
-                  size="large" 
                   icon={<ArrowUpOutlined />}
-                  style={{ minWidth: 160 }}
+                  size="small"
                 >
                   Upgrade Plan
                 </Button>

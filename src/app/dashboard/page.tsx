@@ -12,11 +12,12 @@ import {
   Alert, 
   Switch, 
   Tag, 
-  Avatar, 
-  List,
+  Table,
   Tooltip,
   Empty,
-  Badge
+  Badge,
+  Progress,
+  Divider
 } from 'antd'
 import {
   PlayCircleOutlined,
@@ -28,12 +29,13 @@ import {
   ClockCircleOutlined,
   CheckCircleOutlined,
   LoadingOutlined,
-  ExclamationCircleOutlined
+  ExclamationCircleOutlined,
+  CalendarOutlined
 } from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
 import AudioPlayer from '@/components/dashboard/AudioPlayer'
 
-const { Title, Text, Paragraph } = Typography
+const { Title, Text } = Typography
 
 interface ProcessedLink {
   id: string
@@ -185,10 +187,127 @@ export default function Dashboard() {
     ? links.filter(link => hasUserListened(link))
     : links
 
+  const columns = [
+    {
+      title: 'Link',
+      dataIndex: 'title',
+      key: 'title',
+      width: '35%',
+      render: (title: string, record: ProcessedLink) => (
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <Text strong style={{ fontSize: 14 }}>
+              {title || 'Untitled Link'}
+            </Text>
+            <Tag 
+              color={getStatusColor(record.processingStatus)} 
+              size="small"
+              icon={getStatusIcon(record.processingStatus)}
+            >
+              {record.processingStatus}
+            </Tag>
+            {hasUserListened(record) && (
+              <Badge 
+                count="✓" 
+                style={{ backgroundColor: '#52c41a', fontSize: 10 }}
+              />
+            )}
+          </div>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            <LinkOutlined /> {new URL(record.url).hostname}
+          </Text>
+          {record.extractedText && (
+            <div style={{ marginTop: 4 }}>
+              <Text 
+                type="secondary" 
+                style={{ fontSize: 11, display: 'block' }}
+                ellipsis={{ rows: 2 }}
+              >
+                {record.extractedText}
+              </Text>
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: 'Audio',
+      key: 'audio',
+      width: '30%',
+      render: (_, record: ProcessedLink) => {
+        if (record.processingStatus === 'completed' && record.audioFileUrl) {
+          return (
+            <AudioPlayer
+              src={record.audioFileUrl}
+              linkId={record.id}
+              onPlay={() => {
+                setCurrentlyPlaying(record.id)
+                trackListen(record.id)
+              }}
+              onPause={() => setCurrentlyPlaying(null)}
+              isCurrentlyPlaying={currentlyPlaying === record.id}
+            />
+          )
+        }
+        
+        if (record.processingStatus === 'processing') {
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Spin size="small" />
+              <Text type="secondary" style={{ fontSize: 12 }}>Processing...</Text>
+            </div>
+          )
+        }
+        
+        if (record.processingStatus === 'failed') {
+          return (
+            <Text type="danger" style={{ fontSize: 12 }}>
+              <ExclamationCircleOutlined /> Failed
+            </Text>
+          )
+        }
+        
+        return (
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            <ClockCircleOutlined /> Pending
+          </Text>
+        )
+      },
+    },
+    {
+      title: 'Stats',
+      key: 'stats',
+      width: '15%',
+      render: (_, record: ProcessedLink) => (
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 16, fontWeight: 'bold', color: '#1890ff' }}>
+            {getListenCount(record)}
+          </div>
+          <Text type="secondary" style={{ fontSize: 10 }}>
+            listens
+          </Text>
+        </div>
+      ),
+    },
+    {
+      title: 'Created',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      width: '20%',
+      render: (date: string) => (
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 12 }}>
+            <CalendarOutlined /> {formatDate(date)}
+          </div>
+        </div>
+      ),
+    },
+  ]
+
   if (loading) {
     return (
       <Layout currentPage="dashboard">
-        <div style={{ textAlign: 'center', padding: '100px 0' }}>
+        <div style={{ textAlign: 'center', padding: '60px 0' }}>
           <Spin size="large" />
           <div style={{ marginTop: 16 }}>
             <Text>Loading your audio summaries...</Text>
@@ -201,14 +320,14 @@ export default function Dashboard() {
   if (error) {
     return (
       <Layout currentPage="dashboard">
-        <div style={{ maxWidth: 600, margin: '100px auto', padding: '0 24px' }}>
+        <div style={{ maxWidth: 600, margin: '50px auto', padding: '0 16px' }}>
           <Alert
             message="Error Loading Dashboard"
             description={error}
             type="error"
             showIcon
             action={
-              <Button type="primary" onClick={fetchLinks}>
+              <Button type="primary" size="small" onClick={fetchLinks}>
                 Retry
               </Button>
             }
@@ -220,208 +339,100 @@ export default function Dashboard() {
 
   return (
     <Layout currentPage="dashboard">
-      <div style={{ padding: '24px' }}>
-        {/* Header */}
-        <div style={{ marginBottom: 24 }}>
+      <div style={{ padding: '16px' }}>
+        {/* Compact Header */}
+        <Card size="small" style={{ marginBottom: 16 }}>
           <Row justify="space-between" align="middle">
             <Col>
-              <Title level={2} style={{ margin: 0 }}>
-                <Space>
+              <Title level={3} style={{ margin: 0, fontSize: 18 }}>
+                <Space size="small">
                   <SoundOutlined />
                   Audio Summaries
                 </Space>
               </Title>
-              <Text type="secondary">Listen to AI-generated summaries of your shared links</Text>
             </Col>
             <Col>
-              <Space>
-                <Text>Show listened only</Text>
-                <Switch
-                  checked={showListened}
-                  onChange={setShowListened}
-                  checkedChildren={<EyeOutlined />}
-                  unCheckedChildren={<EyeInvisibleOutlined />}
-                />
+              <Space size="middle">
+                {/* Compact Stats */}
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 16, fontWeight: 'bold', color: '#1890ff' }}>
+                    {links.length}
+                  </div>
+                  <Text type="secondary" style={{ fontSize: 10 }}>Total</Text>
+                </div>
+                <Divider type="vertical" style={{ height: 30 }} />
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 16, fontWeight: 'bold', color: '#52c41a' }}>
+                    {links.filter(link => link.processingStatus === 'completed').length}
+                  </div>
+                  <Text type="secondary" style={{ fontSize: 10 }}>Ready</Text>
+                </div>
+                <Divider type="vertical" style={{ height: 30 }} />
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 16, fontWeight: 'bold', color: '#722ed1' }}>
+                    {links.reduce((total, link) => total + getListenCount(link), 0)}
+                  </div>
+                  <Text type="secondary" style={{ fontSize: 10 }}>Listens</Text>
+                </div>
+                <Divider type="vertical" style={{ height: 30 }} />
+                <Space size="small">
+                  <Text style={{ fontSize: 12 }}>Listened only</Text>
+                  <Switch
+                    size="small"
+                    checked={showListened}
+                    onChange={setShowListened}
+                    checkedChildren={<EyeOutlined />}
+                    unCheckedChildren={<EyeInvisibleOutlined />}
+                  />
+                </Space>
               </Space>
             </Col>
           </Row>
-        </div>
+        </Card>
 
-        {/* Stats Cards */}
-        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-          <Col xs={24} sm={8}>
-            <Card>
-              <div style={{ textAlign: 'center' }}>
-                <LinkOutlined style={{ fontSize: 24, color: '#1890ff', marginBottom: 8 }} />
-                <div style={{ fontSize: 20, fontWeight: 'bold' }}>{links.length}</div>
-                <Text type="secondary">Total Links</Text>
-              </div>
-            </Card>
-          </Col>
-          <Col xs={24} sm={8}>
-            <Card>
-              <div style={{ textAlign: 'center' }}>
-                <SoundOutlined style={{ fontSize: 24, color: '#52c41a', marginBottom: 8 }} />
-                <div style={{ fontSize: 20, fontWeight: 'bold' }}>
-                  {links.filter(link => link.processingStatus === 'completed').length}
-                </div>
-                <Text type="secondary">Ready to Listen</Text>
-              </div>
-            </Card>
-          </Col>
-          <Col xs={24} sm={8}>
-            <Card>
-              <div style={{ textAlign: 'center' }}>
-                <PlayCircleOutlined style={{ fontSize: 24, color: '#722ed1', marginBottom: 8 }} />
-                <div style={{ fontSize: 20, fontWeight: 'bold' }}>
-                  {links.reduce((total, link) => total + getListenCount(link), 0)}
-                </div>
-                <Text type="secondary">Total Listens</Text>
-              </div>
-            </Card>
-          </Col>
-        </Row>
-
-        {/* Links List */}
-        {filteredLinks.length === 0 ? (
-          <Card>
+        {/* Compact Table */}
+        <Card size="small">
+          {filteredLinks.length === 0 ? (
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description={
-                showListened 
-                  ? "You haven't listened to any summaries yet"
-                  : "No links found. Share some links in your Slack channels to get started!"
-              }
-            />
-          </Card>
-        ) : (
-          <List
-            grid={{
-              gutter: 16,
-              xs: 1,
-              sm: 1,
-              md: 2,
-              lg: 2,
-              xl: 3,
-              xxl: 3,
-            }}
-            dataSource={filteredLinks}
-            renderItem={(link) => (
-              <List.Item>
-                <Card
-                  id={`link-${link.id}`}
-                  hoverable
-                  style={{ height: '100%' }}
-                  cover={
-                    link.ogImage && (
-                      <div style={{ height: 200, overflow: 'hidden' }}>
-                        <img
-                          alt={link.title || 'Link preview'}
-                          src={link.ogImage}
-                          style={{ 
-                            width: '100%', 
-                            height: '100%', 
-                            objectFit: 'cover' 
-                          }}
-                        />
-                      </div>
-                    )
+                <span style={{ fontSize: 12 }}>
+                  {showListened 
+                    ? "You haven't listened to any summaries yet"
+                    : "No links found. Share some links in your Slack channels to get started!"
                   }
-                  actions={[
-                    <Tooltip title="Processing Status" key="status">
-                      <Badge 
-                        count={getStatusIcon(link.processingStatus)} 
-                        showZero={false}
-                      />
-                    </Tooltip>,
-                    <Tooltip title="Listen Count" key="listens">
-                      <Space>
-                        <PlayCircleOutlined />
-                        {getListenCount(link)}
-                      </Space>
-                    </Tooltip>,
-                    <Tooltip title="Created" key="date">
-                      <Space>
-                        <ClockCircleOutlined />
-                        {formatDate(link.createdAt)}
-                      </Space>
-                    </Tooltip>
-                  ]}
-                >
-                  <Card.Meta
-                    title={
-                      <Space direction="vertical" style={{ width: '100%' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <Text strong style={{ fontSize: 16 }}>
-                            {link.title || 'Untitled Link'}
-                          </Text>
-                          <Tag color={getStatusColor(link.processingStatus)}>
-                            {link.processingStatus}
-                          </Tag>
-                        </div>
-                        {hasUserListened(link) && (
-                          <Badge 
-                            count="Listened" 
-                            style={{ backgroundColor: '#52c41a' }}
-                          />
-                        )}
-                      </Space>
-                    }
-                    description={
-                      <Space direction="vertical" style={{ width: '100%' }}>
-                        <Paragraph 
-                          ellipsis={{ rows: 2, expandable: false }}
-                          type="secondary"
-                          style={{ marginBottom: 12 }}
-                        >
-                          {link.extractedText || 'No description available'}
-                        </Paragraph>
-                        
-                        <div style={{ marginBottom: 12 }}>
-                          <Text type="secondary" style={{ fontSize: 12 }}>
-                            <LinkOutlined /> {new URL(link.url).hostname}
-                          </Text>
-                        </div>
-
-                        {link.processingStatus === 'completed' && link.audioFileUrl && (
-                          <AudioPlayer
-                            src={link.audioFileUrl}
-                            linkId={link.id}
-                            onPlay={() => {
-                              setCurrentlyPlaying(link.id)
-                              trackListen(link.id)
-                            }}
-                            onPause={() => setCurrentlyPlaying(null)}
-                            isCurrentlyPlaying={currentlyPlaying === link.id}
-                          />
-                        )}
-
-                        {link.processingStatus === 'processing' && (
-                          <div style={{ textAlign: 'center', padding: 16 }}>
-                            <Spin />
-                            <div style={{ marginTop: 8 }}>
-                              <Text type="secondary">Processing audio summary...</Text>
-                            </div>
-                          </div>
-                        )}
-
-                        {link.processingStatus === 'failed' && (
-                          <Alert
-                            message="Processing Failed"
-                            description="Unable to process this link. Please try again."
-                            type="error"
-                            showIcon
-                            size="small"
-                          />
-                        )}
-                      </Space>
-                    }
-                  />
-                </Card>
-              </List.Item>
-            )}
-          />
-        )}
+                </span>
+              }
+              style={{ padding: '20px 0' }}
+            />
+          ) : (
+            <Table
+              columns={columns}
+              dataSource={filteredLinks}
+              rowKey="id"
+              size="small"
+              pagination={{
+                pageSize: 10,
+                size: 'small',
+                showSizeChanger: false,
+                showTotal: (total, range) => 
+                  `${range[0]}-${range[1]} of ${total} summaries`
+              }}
+              rowClassName={(record) => 
+                currentlyPlaying === record.id ? 'ant-table-row-selected' : ''
+              }
+              style={{
+                '.ant-table-thead > tr > th': {
+                  padding: '8px 12px',
+                  fontSize: '12px'
+                },
+                '.ant-table-tbody > tr > td': {
+                  padding: '8px 12px'
+                }
+              }}
+            />
+          )}
+        </Card>
       </div>
     </Layout>
   )
