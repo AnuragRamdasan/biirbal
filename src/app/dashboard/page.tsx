@@ -141,12 +141,12 @@ export default function Dashboard() {
   }
 
   const getStatusIcon = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'completed':
+    switch (status) {
+      case 'COMPLETED':
         return <CheckCircleOutlined style={{ color: '#52c41a' }} />
-      case 'processing':
+      case 'PROCESSING':
         return <LoadingOutlined style={{ color: '#1890ff' }} />
-      case 'failed':
+      case 'FAILED':
         return <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />
       default:
         return <ClockCircleOutlined style={{ color: '#faad14' }} />
@@ -154,12 +154,12 @@ export default function Dashboard() {
   }
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'completed':
+    switch (status) {
+      case 'COMPLETED':
         return 'success'
-      case 'processing':
+      case 'PROCESSING':
         return 'processing'
-      case 'failed':
+      case 'FAILED':
         return 'error'
       default:
         return 'warning'
@@ -305,7 +305,7 @@ export default function Dashboard() {
                 }}
                 bodyStyle={{ padding: '16px' }}
                 onClick={() => {
-                  if (record.processingStatus === 'completed' && record.audioFileUrl) {
+                  if (record.processingStatus === 'COMPLETED' && record.audioFileUrl) {
                     setCurrentlyPlaying(record.id)
                     trackListen(record.id)
                   }
@@ -376,15 +376,15 @@ export default function Dashboard() {
                       
                       {/* Status and Stats Row */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-                        {/* Status */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          {getStatusIcon(record.processingStatus)}
-                          <Text style={{ fontSize: 12, color: getStatusColor(record.processingStatus) === 'success' ? '#52c41a' : '#8c8c8c' }}>
-                            {record.processingStatus === 'completed' ? 'Completed' : 
-                             record.processingStatus === 'processing' ? 'Processing...' :
-                             record.processingStatus === 'failed' ? 'Failed' : 'Pending'}
-                          </Text>
-                        </div>
+                        {/* Status - Only show when processing */}
+                        {record.processingStatus === 'PROCESSING' && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            {getStatusIcon(record.processingStatus)}
+                            <Text style={{ fontSize: 12, color: '#1890ff' }}>
+                              Processing...
+                            </Text>
+                          </div>
+                        )}
                         
                         {/* Listen Count */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -407,7 +407,7 @@ export default function Dashboard() {
                   
                   {/* Right Column - Audio Player */}
                   <div style={{ flexShrink: 0, minWidth: 200 }}>
-                    {record.processingStatus === 'completed' && record.audioFileUrl ? (
+                    {record.processingStatus === 'COMPLETED' && record.audioFileUrl ? (
                       <AudioPlayer
                         link={{
                           id: record.id,
@@ -440,12 +440,12 @@ export default function Dashboard() {
                         borderRadius: 8,
                         border: '1px dashed #d9d9d9'
                       }}>
-                        {record.processingStatus === 'processing' ? (
+                        {record.processingStatus === 'PROCESSING' ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <Spin size="small" />
                             <Text type="secondary" style={{ fontSize: 12 }}>Processing...</Text>
                           </div>
-                        ) : record.processingStatus === 'failed' ? (
+                        ) : record.processingStatus === 'FAILED' ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />
                             <Text type="danger" style={{ fontSize: 12 }}>Failed</Text>
