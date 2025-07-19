@@ -16,10 +16,23 @@ export async function GET(request: NextRequest) {
 
     const db = await getDbClient()
     
+    // First find the team by slackTeamId to get the database team ID
+    const team = await db.team.findUnique({
+      where: { slackTeamId: teamId },
+      select: { id: true }
+    })
+    
+    if (!team) {
+      return NextResponse.json(
+        { error: 'Team not found' },
+        { status: 404 }
+      )
+    }
+    
     // Get all links for the team, but filter listens by the current user
     const links = await db.processedLink.findMany({
       where: {
-        teamId: teamId
+        teamId: team.id
       },
       include: {
         listens: slackUserId ? {
