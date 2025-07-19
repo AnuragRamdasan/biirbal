@@ -63,6 +63,7 @@ export default function Dashboard() {
   const [duration, setDuration] = useState(0)
   const [progress, setProgress] = useState(0)
   const [audioDurations, setAudioDurations] = useState<Record<string, number>>({})
+  const [usageWarning, setUsageWarning] = useState<string | null>(null)
 
   useEffect(() => {
     fetchLinks()
@@ -145,10 +146,25 @@ export default function Dashboard() {
       }
       const data = await response.json()
       setLinks(data.links)
+      
+      // Check usage stats and warnings
+      await checkUsageWarnings(teamId)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const checkUsageWarnings = async (teamId: string) => {
+    try {
+      const response = await fetch(`/api/dashboard/usage?teamId=${teamId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setUsageWarning(data.warning)
+      }
+    } catch (error) {
+      console.error('Failed to check usage warnings:', error)
     }
   }
 
@@ -351,6 +367,23 @@ export default function Dashboard() {
         maxWidth: 1400, 
         margin: '0 auto'
       }}>
+        {/* Usage Warning */}
+        {usageWarning && (
+          <Alert
+            message="Usage Warning"
+            description={usageWarning}
+            type="warning"
+            showIcon
+            closable
+            style={{ marginBottom: 16 }}
+            action={
+              <Button size="small" href="/pricing">
+                Upgrade Plan
+              </Button>
+            }
+          />
+        )}
+
         {/* Compact Header */}
         <Card size="small" style={{ marginBottom: 16 }}>
           <Row justify="space-between" align="middle">

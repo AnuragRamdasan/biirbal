@@ -3,6 +3,7 @@ import { extractContentFromUrl, summarizeForAudio } from './content-extractor'
 import { generateAudioSummary, uploadAudioToStorage } from './text-to-speech'
 import { getDashboardUrl } from './config'
 import { WebClient } from '@slack/web-api'
+import { canProcessNewLink } from './subscription-utils'
 
 interface ProcessLinkParams {
   url: string
@@ -36,6 +37,26 @@ export async function processLink({
 
     if (!team) {
       throw new Error('Team not found')
+    }
+
+    // Check subscription limits before processing
+    const usageCheck = await canProcessNewLink(teamId)
+    if (!usageCheck.allowed) {
+      console.log(`🚫 Link processing blocked: ${usageCheck.reason}`)
+      
+      // Send limit notification to Slack
+      try {
+        const slackClient = new WebClient(team.accessToken)
+        await slackClient.chat.postMessage({
+          channel: channelId,
+          text: `⚠️ Unable to process link: ${usageCheck.reason}`,
+          thread_ts: messageTs
+        })
+      } catch (slackError) {
+        console.error('Failed to send limit notification to Slack:', slackError)
+      }
+      
+      throw new Error(`Subscription limit exceeded: ${usageCheck.reason}`)
     }
 
     const channel = await db.channel.upsert({

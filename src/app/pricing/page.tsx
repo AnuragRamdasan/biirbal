@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { PRICING_PLANS } from '@/lib/stripe'
 import Script from 'next/script'
 import { 
   Row, 
@@ -71,49 +70,49 @@ export default function PricingPage() {
 
   const plans: PricingPlan[] = [
     {
-      id: 'trial',
-      name: 'Free Trial',
-      description: 'Perfect for trying out biirbal.ai',
+      id: 'free',
+      name: 'Free',
+      description: 'Perfect for small teams getting started',
       price: 0,
       features: [
-        '50 audio summaries per month',
+        '30 audio summaries per month',
+        'Up to 2 team members',
         'Basic Slack integration',
         'Standard processing speed',
-        'Community support',
-        '7-day free trial'
+        'Community support'
       ]
     },
     {
       id: 'pro',
       name: 'Pro',
       description: 'For growing teams',
-      price: isAnnual ? 99 : 10,
+      price: isAnnual ? 199.9 : 19.99,
       isPopular: true,
       stripePriceId: 'price_pro',
       features: [
-        '500 audio summaries per month',
+        '100 audio summaries per month',
+        'Up to 5 team members',
         'Advanced Slack integration',
         'Priority processing',
         'Team analytics dashboard',
-        'Email support',
-        'Custom voice options'
+        'Email support'
       ]
     },
     {
       id: 'enterprise',
       name: 'Enterprise',
       description: 'For large organizations',
-      price: isAnnual ? 299 : 30,
+      price: isAnnual ? 699.9 : 69.99,
       stripePriceId: 'price_enterprise',
       features: [
         'Unlimited audio summaries',
+        'Unlimited team members',
         'Advanced analytics & reporting',
         'Custom integrations',
         'Dedicated account manager',
         'Priority support (SLA)',
         'Custom voice training',
-        'SSO & security features',
-        'On-premise deployment option'
+        'SSO & security features'
       ]
     }
   ]

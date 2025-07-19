@@ -6,6 +6,7 @@ const content_extractor_1 = require("./content-extractor");
 const text_to_speech_1 = require("./text-to-speech");
 const config_1 = require("./config");
 const web_api_1 = require("@slack/web-api");
+const subscription_utils_1 = require("./subscription-utils");
 async function processLink({ url, messageTs, channelId, teamId, slackTeamId }, updateProgress) {
     console.log(`🚀 Processing: ${url}`);
     try {
@@ -21,6 +22,24 @@ async function processLink({ url, messageTs, channelId, teamId, slackTeamId }, u
         });
         if (!team) {
             throw new Error('Team not found');
+        }
+        // Check subscription limits before processing
+        const usageCheck = await (0, subscription_utils_1.canProcessNewLink)(teamId);
+        if (!usageCheck.allowed) {
+            console.log(`🚫 Link processing blocked: ${usageCheck.reason}`);
+            // Send limit notification to Slack
+            try {
+                const slackClient = new web_api_1.WebClient(team.accessToken);
+                await slackClient.chat.postMessage({
+                    channel: channelId,
+                    text: `⚠️ Unable to process link: ${usageCheck.reason}`,
+                    thread_ts: messageTs
+                });
+            }
+            catch (slackError) {
+                console.error('Failed to send limit notification to Slack:', slackError);
+            }
+            throw new Error(`Subscription limit exceeded: ${usageCheck.reason}`);
         }
         const channel = await db.channel.upsert({
             where: { slackChannelId: channelId },

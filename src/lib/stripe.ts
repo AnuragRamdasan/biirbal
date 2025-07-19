@@ -3,31 +3,53 @@ import Stripe from 'stripe'
 // Initialize Stripe only if the secret key is available
 export const stripe = process.env.STRIPE_SECRET_KEY 
   ? new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2023-10-16'
+      apiVersion: '2025-05-28.basil'
     })
   : null
 
 export const PRICING_PLANS = {
-  STARTER: {
-    id: 'starter',
-    name: 'Starter',
-    price: 9.99,
-    monthlyLimit: 100,
-    stripePriceId: process.env.STRIPE_STARTER_PRICE_ID || 'price_starter'
+  FREE: {
+    id: 'free',
+    name: 'Free',
+    price: 0,
+    monthlyLinkLimit: 30,
+    userLimit: 2,
+    stripePriceId: null
   },
   PRO: {
     id: 'pro',
     name: 'Pro',
-    price: 29.99,
-    monthlyLimit: 500,
+    price: 19.99,
+    monthlyLinkLimit: 100,
+    userLimit: 5,
     stripePriceId: process.env.STRIPE_PRO_PRICE_ID || 'price_pro'
   },
   ENTERPRISE: {
     id: 'enterprise',
     name: 'Enterprise',
-    price: 99.99,
-    monthlyLimit: 2000,
+    price: 69.99,
+    monthlyLinkLimit: -1, // -1 means unlimited
+    userLimit: -1, // -1 means unlimited
     stripePriceId: process.env.STRIPE_ENTERPRISE_PRICE_ID || 'price_enterprise'
+  }
+}
+
+// Helper function to get plan details
+export function getPlanById(planId: string) {
+  return Object.values(PRICING_PLANS).find(plan => plan.id === planId)
+}
+
+// Helper function to check if usage is within limits
+export function checkUsageLimits(plan: typeof PRICING_PLANS.FREE, currentLinks: number, currentUsers: number) {
+  const linkLimitExceeded = plan.monthlyLinkLimit !== -1 && currentLinks >= plan.monthlyLinkLimit
+  const userLimitExceeded = plan.userLimit !== -1 && currentUsers >= plan.userLimit
+  
+  return {
+    linkLimitExceeded,
+    userLimitExceeded,
+    canProcessMore: !linkLimitExceeded && !userLimitExceeded,
+    linkWarning: plan.monthlyLinkLimit !== -1 && currentLinks >= (plan.monthlyLinkLimit * 0.8), // 80% warning
+    userWarning: plan.userLimit !== -1 && currentUsers >= (plan.userLimit * 0.8) // 80% warning
   }
 }
 
