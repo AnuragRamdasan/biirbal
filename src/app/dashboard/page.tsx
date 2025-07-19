@@ -61,6 +61,7 @@ export default function Dashboard() {
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null)
   const [showListened, setShowListened] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null)
 
   useEffect(() => {
     fetchLinks()
@@ -137,6 +138,46 @@ export default function Dashboard() {
       })
     } catch (error) {
       console.error('Failed to track listen:', error)
+    }
+  }
+
+  const handlePlayAudio = (linkId: string, audioUrl: string) => {
+    // Stop any currently playing audio
+    if (audioElement) {
+      audioElement.pause()
+      audioElement.currentTime = 0
+    }
+
+    // Create new audio element
+    const audio = new Audio(audioUrl)
+    audio.addEventListener('ended', () => {
+      setCurrentlyPlaying(null)
+      setAudioElement(null)
+    })
+    
+    audio.addEventListener('error', () => {
+      console.error('Audio playback failed')
+      setCurrentlyPlaying(null)
+      setAudioElement(null)
+    })
+
+    // Start playing
+    audio.play().then(() => {
+      setCurrentlyPlaying(linkId)
+      setAudioElement(audio)
+      trackListen(linkId)
+    }).catch((error) => {
+      console.error('Failed to play audio:', error)
+      setCurrentlyPlaying(null)
+      setAudioElement(null)
+    })
+  }
+
+  const handlePauseAudio = () => {
+    if (audioElement) {
+      audioElement.pause()
+      setCurrentlyPlaying(null)
+      setAudioElement(null)
     }
   }
 
@@ -306,8 +347,11 @@ export default function Dashboard() {
                 bodyStyle={{ padding: '16px' }}
                 onClick={() => {
                   if (record.processingStatus === 'COMPLETED' && record.audioFileUrl) {
-                    setCurrentlyPlaying(record.id)
-                    trackListen(record.id)
+                    if (currentlyPlaying === record.id) {
+                      handlePauseAudio()
+                    } else {
+                      handlePlayAudio(record.id, record.audioFileUrl)
+                    }
                   }
                 }}
               >
@@ -417,8 +461,11 @@ export default function Dashboard() {
                           icon={currentlyPlaying === record.id ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
                           onClick={(e) => {
                             e.stopPropagation()
-                            setCurrentlyPlaying(record.id)
-                            trackListen(record.id)
+                            if (currentlyPlaying === record.id) {
+                              handlePauseAudio()
+                            } else {
+                              handlePlayAudio(record.id, record.audioFileUrl!)
+                            }
                           }}
                           style={{
                             background: currentlyPlaying === record.id ? '#ff4d4f' : '#52c41a',
