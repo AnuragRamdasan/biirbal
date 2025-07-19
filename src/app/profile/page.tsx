@@ -7,33 +7,24 @@ import {
   Card, 
   Col, 
   Row, 
-  Statistic, 
   Avatar, 
   Button, 
   Badge, 
   Typography, 
   Space, 
-  Divider, 
   Progress,
   Spin,
   Alert,
   Tag,
-  List,
   Descriptions,
   Table
 } from 'antd'
 import {
   UserOutlined,
   TeamOutlined,
-  SoundOutlined,
-  CalendarOutlined,
   CrownOutlined,
   LogoutOutlined,
-  ArrowUpOutlined,
-  LinkOutlined,
-  PlayCircleOutlined,
-  CheckCircleOutlined,
-  MailOutlined
+  ArrowUpOutlined
 } from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
 
@@ -104,10 +95,18 @@ export default function ProfilePage() {
   const [teamData, setTeamData] = useState<TeamData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
     fetchProfileData()
+    
+    // Check if mobile
+    const checkIfMobile = () => setIsMobile(window.innerWidth <= 768)
+    checkIfMobile()
+    window.addEventListener('resize', checkIfMobile)
+    
+    return () => window.removeEventListener('resize', checkIfMobile)
   }, [])
 
   const fetchProfileData = async () => {
@@ -287,7 +286,11 @@ export default function ProfilePage() {
 
   return (
     <Layout currentPage="profile">
-      <div style={{ padding: '16px' }}>
+      <div style={{ 
+        padding: isMobile ? '12px 16px' : '16px 24px', 
+        maxWidth: 1400, 
+        margin: '0 auto'
+      }}>
         {/* Compact Header */}
         <Card size="small" style={{ marginBottom: 16 }}>
           <Row justify="space-between" align="middle">
@@ -313,9 +316,9 @@ export default function ProfilePage() {
           </Row>
         </Card>
 
-        <Row gutter={[16, 16]}>
+        <Row gutter={[16, 16]} style={{ marginBottom: 0 }}>
           {/* Current User & Team Info */}
-          <Col xs={24} lg={12}>
+          <Col xs={24} md={12}>
             <Card size="small" style={{ height: '100%' }}>
               <div style={{ marginBottom: 12 }}>
                 <Text strong style={{ fontSize: 14 }}>Current User & Team</Text>
@@ -369,7 +372,7 @@ export default function ProfilePage() {
           </Col>
 
           {/* Subscription & Usage */}
-          <Col xs={24} lg={12}>
+          <Col xs={24} md={12}>
             <Card size="small" style={{ height: '100%' }}>
               <div style={{ marginBottom: 12 }}>
                 <Text strong style={{ fontSize: 14 }}>Subscription & Usage</Text>
@@ -419,7 +422,7 @@ export default function ProfilePage() {
 
           {/* User Stats */}
           {teamData.userListenStats && (
-            <Col span={24}>
+            <Col xs={24}>
               <Card size="small">
                 <div style={{ marginBottom: 12 }}>
                   <Text strong style={{ fontSize: 14 }}>Your Listen Statistics</Text>
@@ -456,7 +459,7 @@ export default function ProfilePage() {
 
           {/* Team Members Table */}
           {teamData.teamMembers && teamData.teamMembers.length > 0 && (
-            <Col span={24}>
+            <Col xs={24}>
               <Card size="small">
                 <div style={{ marginBottom: 12 }}>
                   <Text strong style={{ fontSize: 14 }}>
@@ -470,13 +473,14 @@ export default function ProfilePage() {
                   size="small"
                   pagination={false}
                   showHeader={true}
+                  scroll={{ x: 600 }}
                 />
               </Card>
             </Col>
           )}
 
           {/* Compact Actions */}
-          <Col span={24}>
+          <Col xs={24}>
             <div style={{ textAlign: 'center' }}>
               <Link href="/pricing">
                 <Button 

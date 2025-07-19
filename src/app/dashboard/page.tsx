@@ -13,11 +13,8 @@ import {
   Switch, 
   Tag, 
   Table,
-  Tooltip,
   Empty,
-  Badge,
-  Progress,
-  Divider
+  Badge
 } from 'antd'
 import {
   PlayCircleOutlined,
@@ -62,14 +59,16 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null)
-  const [currentTime, setCurrentTime] = useState<{[key: string]: number}>({})
-  const [duration, setDuration] = useState<{[key: string]: number}>({})
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [currentIndex, setCurrentIndex] = useState(0)
   const [showListened, setShowListened] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
     fetchLinks()
+    
+    // Check if mobile
+    const checkIfMobile = () => setIsMobile(window.innerWidth <= 768)
+    checkIfMobile()
+    window.addEventListener('resize', checkIfMobile)
     
     // Scroll to specific link if hash is present
     const hash = window.location.hash.substring(1)
@@ -85,6 +84,8 @@ export default function Dashboard() {
         }
       }, 500)
     }
+    
+    return () => window.removeEventListener('resize', checkIfMobile)
   }, [])
 
   const fetchLinks = async () => {
@@ -192,32 +193,60 @@ export default function Dashboard() {
       title: 'Link',
       dataIndex: 'title',
       key: 'title',
-      width: '35%',
+      width: '40%',
       render: (title: string, record: ProcessedLink) => (
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <Text strong style={{ fontSize: 14 }}>
-              {title || 'Untitled Link'}
-            </Text>
-            <Tag 
-              color={getStatusColor(record.processingStatus)} 
-              size="small"
-              icon={getStatusIcon(record.processingStatus)}
-            >
-              {record.processingStatus}
-            </Tag>
-            {hasUserListened(record) && (
-              <Badge 
-                count="✓" 
-                style={{ backgroundColor: '#52c41a', fontSize: 10 }}
+        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+          {/* OG Image */}
+          <div style={{ 
+            width: 60, 
+            height: 45, 
+            flexShrink: 0,
+            borderRadius: 6,
+            overflow: 'hidden',
+            backgroundColor: '#f5f5f5',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            {record.ogImage ? (
+              <img 
+                src={record.ogImage} 
+                alt={title || 'Link preview'}
+                style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  objectFit: 'cover' 
+                }}
               />
+            ) : (
+              <LinkOutlined style={{ color: '#bfbfbf', fontSize: 16 }} />
             )}
           </div>
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            <LinkOutlined /> {new URL(record.url).hostname}
-          </Text>
-          {record.extractedText && (
-            <div style={{ marginTop: 4 }}>
+          
+          {/* Content */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+              <Text strong style={{ fontSize: 14 }}>
+                {title || 'Untitled Link'}
+              </Text>
+              <Tag 
+                color={getStatusColor(record.processingStatus)} 
+                size="small"
+                icon={getStatusIcon(record.processingStatus)}
+              >
+                {record.processingStatus}
+              </Tag>
+              {hasUserListened(record) && (
+                <Badge 
+                  count="✓" 
+                  style={{ backgroundColor: '#52c41a', fontSize: 10 }}
+                />
+              )}
+            </div>
+            <Text type="secondary" style={{ fontSize: 12, marginBottom: 4, display: 'block' }}>
+              <LinkOutlined /> {new URL(record.url).hostname}
+            </Text>
+            {record.extractedText && (
               <Text 
                 type="secondary" 
                 style={{ fontSize: 11, display: 'block' }}
@@ -225,28 +254,51 @@ export default function Dashboard() {
               >
                 {record.extractedText}
               </Text>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       ),
     },
     {
       title: 'Audio',
       key: 'audio',
-      width: '30%',
+      width: '25%',
       render: (_, record: ProcessedLink) => {
         if (record.processingStatus === 'completed' && record.audioFileUrl) {
           return (
-            <AudioPlayer
-              src={record.audioFileUrl}
-              linkId={record.id}
-              onPlay={() => {
-                setCurrentlyPlaying(record.id)
-                trackListen(record.id)
-              }}
-              onPause={() => setCurrentlyPlaying(null)}
-              isCurrentlyPlaying={currentlyPlaying === record.id}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Button
+                type="primary"
+                shape="circle"
+                size="small"
+                icon={currentlyPlaying === record.id ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
+                onClick={() => {
+                  if (currentlyPlaying === record.id) {
+                    setCurrentlyPlaying(null)
+                  } else {
+                    setCurrentlyPlaying(record.id)
+                    trackListen(record.id)
+                  }
+                }}
+                style={{ 
+                  backgroundColor: currentlyPlaying === record.id ? '#ff7875' : '#1890ff',
+                  borderColor: currentlyPlaying === record.id ? '#ff7875' : '#1890ff'
+                }}
+              />
+              <div style={{ flex: 1 }}>
+                <AudioPlayer
+                  src={record.audioFileUrl}
+                  linkId={record.id}
+                  onPlay={() => {
+                    setCurrentlyPlaying(record.id)
+                    trackListen(record.id)
+                  }}
+                  onPause={() => setCurrentlyPlaying(null)}
+                  isCurrentlyPlaying={currentlyPlaying === record.id}
+                  showControls={false}
+                />
+              </div>
+            </div>
           )
         }
         
@@ -339,7 +391,11 @@ export default function Dashboard() {
 
   return (
     <Layout currentPage="dashboard">
-      <div style={{ padding: '16px' }}>
+      <div style={{ 
+        padding: isMobile ? '12px 16px' : '16px 24px', 
+        maxWidth: 1400, 
+        margin: '0 auto'
+      }}>
         {/* Compact Header */}
         <Card size="small" style={{ marginBottom: 16 }}>
           <Row justify="space-between" align="middle">
@@ -351,41 +407,45 @@ export default function Dashboard() {
                 </Space>
               </Title>
             </Col>
-            <Col>
-              <Space size="middle">
-                {/* Compact Stats */}
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 16, fontWeight: 'bold', color: '#1890ff' }}>
-                    {links.length}
+            <Col xs={24} sm={24} md={16} lg={18}>
+              <Row gutter={[8, 8]} align="middle">
+                <Col xs={12} sm={6}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 16, fontWeight: 'bold', color: '#1890ff' }}>
+                      {links.length}
+                    </div>
+                    <Text type="secondary" style={{ fontSize: 10 }}>Total</Text>
                   </div>
-                  <Text type="secondary" style={{ fontSize: 10 }}>Total</Text>
-                </div>
-                <Divider type="vertical" style={{ height: 30 }} />
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 16, fontWeight: 'bold', color: '#52c41a' }}>
-                    {links.filter(link => link.processingStatus === 'completed').length}
+                </Col>
+                <Col xs={12} sm={6}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 16, fontWeight: 'bold', color: '#52c41a' }}>
+                      {links.filter(link => link.processingStatus === 'completed').length}
+                    </div>
+                    <Text type="secondary" style={{ fontSize: 10 }}>Ready</Text>
                   </div>
-                  <Text type="secondary" style={{ fontSize: 10 }}>Ready</Text>
-                </div>
-                <Divider type="vertical" style={{ height: 30 }} />
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 16, fontWeight: 'bold', color: '#722ed1' }}>
-                    {links.reduce((total, link) => total + getListenCount(link), 0)}
+                </Col>
+                <Col xs={12} sm={6}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 16, fontWeight: 'bold', color: '#722ed1' }}>
+                      {links.reduce((total, link) => total + getListenCount(link), 0)}
+                    </div>
+                    <Text type="secondary" style={{ fontSize: 10 }}>Listens</Text>
                   </div>
-                  <Text type="secondary" style={{ fontSize: 10 }}>Listens</Text>
-                </div>
-                <Divider type="vertical" style={{ height: 30 }} />
-                <Space size="small">
-                  <Text style={{ fontSize: 12 }}>Listened only</Text>
-                  <Switch
-                    size="small"
-                    checked={showListened}
-                    onChange={setShowListened}
-                    checkedChildren={<EyeOutlined />}
-                    unCheckedChildren={<EyeInvisibleOutlined />}
-                  />
-                </Space>
-              </Space>
+                </Col>
+                <Col xs={12} sm={6}>
+                  <Space size="small">
+                    <Text style={{ fontSize: 12 }}>Listened</Text>
+                    <Switch
+                      size="small"
+                      checked={showListened}
+                      onChange={setShowListened}
+                      checkedChildren={<EyeOutlined />}
+                      unCheckedChildren={<EyeInvisibleOutlined />}
+                    />
+                  </Space>
+                </Col>
+              </Row>
             </Col>
           </Row>
         </Card>
@@ -416,8 +476,10 @@ export default function Dashboard() {
                 size: 'small',
                 showSizeChanger: false,
                 showTotal: (total, range) => 
-                  `${range[0]}-${range[1]} of ${total} summaries`
+                  `${range[0]}-${range[1]} of ${total} summaries`,
+                responsive: true
               }}
+              scroll={{ x: 800 }}
               rowClassName={(record) => 
                 currentlyPlaying === record.id ? 'ant-table-row-selected' : ''
               }
