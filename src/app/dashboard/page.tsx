@@ -30,7 +30,6 @@ import {
   CalendarOutlined
 } from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
-import AudioPlayer from '@/components/dashboard/AudioPlayer'
 
 const { Title, Text } = Typography
 
@@ -229,13 +228,15 @@ export default function Dashboard() {
               <Text strong style={{ fontSize: 14 }}>
                 {title || 'Untitled Link'}
               </Text>
-              <Tag 
-                color={getStatusColor(record.processingStatus)} 
-                size="small"
-                icon={getStatusIcon(record.processingStatus)}
-              >
-                {record.processingStatus}
-              </Tag>
+              {record.processingStatus !== 'completed' && (
+                <Tag 
+                  color={getStatusColor(record.processingStatus)} 
+                  size="small"
+                  icon={getStatusIcon(record.processingStatus)}
+                >
+                  {record.processingStatus}
+                </Tag>
+              )}
               {hasUserListened(record) && (
                 <Badge 
                   count="✓" 
@@ -266,37 +267,42 @@ export default function Dashboard() {
       render: (_, record: ProcessedLink) => {
         if (record.processingStatus === 'completed' && record.audioFileUrl) {
           return (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <Button
                 type="primary"
                 shape="circle"
-                size="small"
+                size="large"
                 icon={currentlyPlaying === record.id ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation()
                   if (currentlyPlaying === record.id) {
                     setCurrentlyPlaying(null)
+                    // Pause audio
+                    const audio = document.getElementById(`audio-${record.id}`) as HTMLAudioElement
+                    if (audio) audio.pause()
                   } else {
                     setCurrentlyPlaying(record.id)
                     trackListen(record.id)
+                    // Play audio
+                    const audio = document.getElementById(`audio-${record.id}`) as HTMLAudioElement
+                    if (audio) audio.play()
                   }
                 }}
                 style={{ 
-                  backgroundColor: currentlyPlaying === record.id ? '#ff7875' : '#1890ff',
-                  borderColor: currentlyPlaying === record.id ? '#ff7875' : '#1890ff'
+                  backgroundColor: currentlyPlaying === record.id ? '#ff4d4f' : '#52c41a',
+                  borderColor: currentlyPlaying === record.id ? '#ff4d4f' : '#52c41a',
+                  width: 40,
+                  height: 40
                 }}
               />
-              <div style={{ flex: 1 }}>
-                <AudioPlayer
-                  src={record.audioFileUrl}
-                  linkId={record.id}
-                  onPlay={() => {
-                    setCurrentlyPlaying(record.id)
-                    trackListen(record.id)
-                  }}
-                  onPause={() => setCurrentlyPlaying(null)}
-                  isCurrentlyPlaying={currentlyPlaying === record.id}
-                  showControls={false}
-                />
+              <audio
+                id={`audio-${record.id}`}
+                src={record.audioFileUrl}
+                style={{ display: 'none' }}
+                onEnded={() => setCurrentlyPlaying(null)}
+              />
+              <div style={{ fontSize: 11, color: '#666' }}>
+                ~59s
               </div>
             </div>
           )
@@ -417,15 +423,7 @@ export default function Dashboard() {
                     <Text type="secondary" style={{ fontSize: 10 }}>Total</Text>
                   </div>
                 </Col>
-                <Col xs={12} sm={6}>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 16, fontWeight: 'bold', color: '#52c41a' }}>
-                      {links.filter(link => link.processingStatus === 'completed').length}
-                    </div>
-                    <Text type="secondary" style={{ fontSize: 10 }}>Ready</Text>
-                  </div>
-                </Col>
-                <Col xs={12} sm={6}>
+                <Col xs={12} sm={8}>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: 16, fontWeight: 'bold', color: '#722ed1' }}>
                       {links.reduce((total, link) => total + getListenCount(link), 0)}
@@ -433,7 +431,7 @@ export default function Dashboard() {
                     <Text type="secondary" style={{ fontSize: 10 }}>Listens</Text>
                   </div>
                 </Col>
-                <Col xs={12} sm={6}>
+                <Col xs={12} sm={4}>
                   <Space size="small">
                     <Text style={{ fontSize: 12 }}>Listened</Text>
                     <Switch
