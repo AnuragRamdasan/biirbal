@@ -10,6 +10,26 @@ import { Badge } from '@/components/ui/Badge'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import StatCard from '@/components/ui/StatCard'
 
+interface TeamMember {
+  id: string
+  name: string
+  email?: string
+  joinedAt: string
+  profile?: {
+    display_name?: string
+    real_name?: string
+    image_24?: string
+    image_32?: string
+    image_48?: string
+    title?: string
+  }
+  listenStats: {
+    totalListens: number
+    monthlyListens: number
+    completedListens: number
+  }
+}
+
 interface TeamData {
   team: {
     id: string
@@ -48,6 +68,7 @@ interface TeamData {
     monthlyListens: number
     completedListens: number
   }
+  teamMembers?: TeamMember[]
 }
 
 export default function ProfilePage() {
@@ -409,6 +430,58 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+
+        {/* Team Members */}
+        {teamData.teamMembers && teamData.teamMembers.length > 0 && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 p-8 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Team Members ({teamData.teamMembers.length})</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {teamData.teamMembers.map((member) => (
+                <div key={member.id} className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200">
+                  <div className="flex items-center space-x-4 mb-4">
+                    {member.profile?.image_48 && (
+                      <img 
+                        src={member.profile.image_48} 
+                        alt={member.name}
+                        className="w-12 h-12 rounded-full border border-gray-200"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-gray-900 truncate">
+                        {member.profile?.display_name || member.name}
+                      </div>
+                      {member.profile?.real_name && member.profile.real_name !== member.name && (
+                        <div className="text-sm text-gray-500 truncate">{member.profile.real_name}</div>
+                      )}
+                      {member.profile?.title && (
+                        <div className="text-xs text-gray-400 truncate">{member.profile.title}</div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div className="bg-white rounded-lg p-3 border border-gray-100">
+                      <div className="text-lg font-bold text-green-600">{member.listenStats.totalListens}</div>
+                      <div className="text-xs text-gray-500">Total</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-3 border border-gray-100">
+                      <div className="text-lg font-bold text-blue-600">{member.listenStats.monthlyListens}</div>
+                      <div className="text-xs text-gray-500">This Month</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-3 border border-gray-100">
+                      <div className="text-lg font-bold text-purple-600">{member.listenStats.completedListens}</div>
+                      <div className="text-xs text-gray-500">Completed</div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3 text-xs text-gray-400 text-center">
+                    Joined {formatDate(member.joinedAt)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="mt-8 flex justify-center">

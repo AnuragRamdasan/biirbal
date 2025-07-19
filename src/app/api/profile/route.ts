@@ -61,6 +61,85 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // Fetch all team members with their listening statistics
+    const teamMembers = await prisma.user.findMany({
+      where: {
+        teamId: team.id,
+        isActive: true
+      },
+      select: {
+        slackUserId: true,
+        name: true,
+        displayName: true,
+        realName: true,
+        email: true,
+        profileImage24: true,
+        profileImage32: true,
+        profileImage48: true,
+        title: true,
+        createdAt: true
+      },
+      orderBy: {
+        createdAt: 'asc'
+      }
+    })
+
+    // Get listening statistics for each team member
+    const teamMembersWithStats = await Promise.all(
+      teamMembers.map(async (member) => {
+        const [memberTotalListens, memberMonthlyListens, memberCompletedListens] = await Promise.all([
+          prisma.audioListen.count({
+            where: {
+              slackUserId: member.slackUserId,
+              processedLink: {
+                teamId: team.id
+              }
+            }
+          }),
+          prisma.audioListen.count({
+            where: {
+              slackUserId: member.slackUserId,
+              processedLink: {
+                teamId: team.id
+              },
+              listenedAt: {
+                gte: currentMonth
+              }
+            }
+          }),
+          prisma.audioListen.count({
+            where: {
+              slackUserId: member.slackUserId,
+              processedLink: {
+                teamId: team.id
+              },
+              completed: true
+            }
+          })
+        ])
+
+        return {
+          id: member.slackUserId,
+          name: member.name || member.realName || 'Unknown User',
+          email: member.email,
+          joinedAt: member.createdAt,
+          profile: {
+            display_name: member.displayName,
+            real_name: member.realName,
+            image_24: member.profileImage24,
+            image_32: member.profileImage32,
+            image_48: member.profileImage48,
+            title: member.title
+          },
+          listenStats: {
+            totalListens: memberTotalListens,
+            monthlyListens: memberMonthlyListens,
+            completedListens: memberCompletedListens
+          }
+        }
+      })
+    )
+
     // Fetch current user information and their specific stats if userId is provided
     let currentUser = null
     let userListenStats = null
@@ -157,7 +236,8 @@ export async function GET(request: NextRequest) {
         monthlyLimit: team.subscription?.monthlyLimit || 50
       },
       currentUser,
-      userListenStats
+      userListenStats,
+      teamMembers: teamMembersWithStats
     })
   } catch (error) {
     console.error('Profile API error:', error)
