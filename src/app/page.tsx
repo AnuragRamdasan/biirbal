@@ -147,7 +147,7 @@ function HomeContent() {
               <Space direction="vertical" size="large" style={{ width: '100%', textAlign: 'center' }}>
                 <Badge count="AI Powered" style={{ backgroundColor: '#52c41a' }}>
                   <Space align="center" style={{ color: 'white' }}>
-                    <img src="/logo.svg" alt="Biirbal" height="60" style={{ filter: 'brightness(0) invert(1)' }} />
+                    <img src="/logo.png" alt="Biirbal" height="60" style={{ filter: 'brightness(0) invert(1)' }} />
                     <Title level={1} style={{ color: 'white', fontSize: '3rem', marginBottom: 0, marginLeft: 16 }}>
                       Biirbal
                     </Title>

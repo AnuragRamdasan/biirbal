@@ -131,7 +131,7 @@ export function generateStructuredData(type: 'Organization' | 'Product' | 'Softw
         ...baseData,
         name: 'Biirbal',
         url: baseUrl,
-        logo: `${baseUrl}/logo.svg`,
+        logo: `${baseUrl}/logo.png`,
         description: 'AI-powered content intelligence for Slack teams',
         foundingDate: '2024',
         sameAs: [
