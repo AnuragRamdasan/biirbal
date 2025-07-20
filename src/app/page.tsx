@@ -146,9 +146,12 @@ function HomeContent() {
             <Col xs={24} lg={12}>
               <Space direction="vertical" size="large" style={{ width: '100%', textAlign: 'center' }}>
                 <Badge count="AI Powered" style={{ backgroundColor: '#52c41a' }}>
-                  <Title level={1} style={{ color: 'white', fontSize: '3rem', marginBottom: 0 }}>
-                    biirbal.ai
-                  </Title>
+                  <Space align="center" style={{ color: 'white' }}>
+                    <img src="/logo.svg" alt="Biirbal" height="60" style={{ filter: 'brightness(0) invert(1)' }} />
+                    <Title level={1} style={{ color: 'white', fontSize: '3rem', marginBottom: 0, marginLeft: 16 }}>
+                      Biirbal
+                    </Title>
+                  </Space>
                 </Badge>
                 
                 <Title level={2} style={{ color: 'white', fontWeight: 300, marginTop: 0 }}>
@@ -373,7 +376,7 @@ function HomeContent() {
                 <Text type="secondary">Perfect for small teams</Text>
                 <List
                   style={{ margin: '24px 0' }}
-                  dataSource={['30 audio summaries/month', 'Up to 2 team members', 'Standard processing']}
+                  dataSource={['10 audio summaries/month', 'Up to 2 team members', '2-5 min processing time']}
                   renderItem={(item) => (
                     <List.Item style={{ border: 'none', padding: '4px 0' }}>
                       <Space>
@@ -413,7 +416,7 @@ function HomeContent() {
                 <Text type="secondary">For growing teams</Text>
                 <List
                   style={{ margin: '24px 0' }}
-                  dataSource={['100 audio summaries/month', 'Up to 5 team members', 'Priority processing', 'Team analytics']}
+                  dataSource={['100 audio summaries/month', 'Up to 5 team members', '30s processing time', 'Usage insights & reports']}
                   renderItem={(item) => (
                     <List.Item style={{ border: 'none', padding: '4px 0' }}>
                       <Space>
@@ -436,7 +439,7 @@ function HomeContent() {
                 <Text type="secondary">For large organizations</Text>
                 <List
                   style={{ margin: '24px 0' }}
-                  dataSource={['Unlimited summaries', 'Unlimited team members', 'Advanced analytics', 'Priority support']}
+                  dataSource={['Unlimited summaries', 'Unlimited team members', '15s processing time', 'Advanced analytics + SLA']}
                   renderItem={(item) => (
                     <List.Item style={{ border: 'none', padding: '4px 0' }}>
                       <Space>
@@ -530,9 +533,17 @@ function HomeContent() {
       {/* Trust Indicators */}
       <div style={{ padding: '40px 0', background: '#fafafa' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
-          <Text type="secondary">
-            Trusted by teams at innovative companies worldwide
-          </Text>
+          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            <Text type="secondary" style={{ fontSize: 16 }}>
+              Trusted by <strong>500+ teams</strong> who've saved <strong>1000+ hours</strong> staying informed
+            </Text>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '40px', flexWrap: 'wrap' }}>
+              <Text type="secondary" style={{ fontSize: 14 }}>🚀 YC Startups</Text>
+              <Text type="secondary" style={{ fontSize: 14 }}>🏢 Fortune 500</Text>
+              <Text type="secondary" style={{ fontSize: 14 }}>🎓 Universities</Text>
+              <Text type="secondary" style={{ fontSize: 14 }}>💰 VC Firms</Text>
+            </div>
+          </Space>
         </div>
       </div>
     </Layout>

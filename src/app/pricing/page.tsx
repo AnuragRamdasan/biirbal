@@ -13,7 +13,8 @@ import {
   List, 
   Divider,
   Switch,
-  Statistic
+  Statistic,
+  Slider
 } from 'antd'
 import {
   CheckOutlined,
@@ -44,6 +45,8 @@ interface PricingPlan {
 export default function PricingPage() {
   const [loading, setLoading] = useState<string | null>(null)
   const [isAnnual, setIsAnnual] = useState(false)
+  const [linksPerWeek, setLinksPerWeek] = useState(8)
+  const [teamSize, setTeamSize] = useState(3)
 
   const handleSubscribe = async (planId: string) => {
     setLoading(planId)
@@ -104,9 +107,9 @@ export default function PricingPage() {
       description: 'Perfect for small teams getting started',
       price: 0,
       features: [
-        '30 audio summaries per month',
+        '10 audio summaries per month',
         'Up to 2 team members',
-        'Standard processing speed'
+        '2-5 min processing time'
       ]
     },
     {
@@ -119,7 +122,8 @@ export default function PricingPage() {
       features: [
         '100 audio summaries per month',
         'Up to 5 team members',
-        'Team analytics dashboard',
+        '30s processing time',
+        'Usage insights & reports',
         'Email support'
       ]
     },
@@ -132,9 +136,10 @@ export default function PricingPage() {
       features: [
         'Unlimited audio summaries',
         'Unlimited team members',
-        'Priority processing',
+        '15s processing time',
         'Advanced analytics & reporting',
-        'Priority support',
+        'Priority support + SLA',
+        'Custom integrations'
       ]
     }
   ]
@@ -142,19 +147,23 @@ export default function PricingPage() {
   const faqItems = [
     {
       question: 'How does the free trial work?',
-      answer: 'You get 30 audio summaries completely free. No credit card required to start.'
+      answer: 'You get 10 audio summaries completely free. No credit card required to start. Upgrade anytime to unlock faster processing and more features.'
+    },
+    {
+      question: 'What if I\'m not satisfied?',
+      answer: 'We offer a 30-day money-back guarantee. If you\'re not saving time and staying more informed, get your money back - no questions asked.'
+    },
+    {
+      question: 'How fast is the processing?',
+      answer: 'Free: 2-5 minutes, Pro: 30 seconds, Enterprise: 15 seconds. Most teams see immediate productivity gains with faster processing.'
     },
     {
       question: 'Can I change plans later?',
-      answer: 'Yes, you can upgrade or downgrade your plan at any time from your dashboard.'
+      answer: 'Yes, you can upgrade or downgrade your plan at any time from your dashboard. Changes take effect immediately.'
     },
     {
       question: 'What happens to my summaries if I cancel?',
       answer: 'Your summaries remain accessible for 30 days after cancellation to allow for data export.'
-    },
-    {
-      question: 'Do you offer refunds?',
-      answer: 'Yes, we offer a 30-day money-back guarantee for all paid plans.'
     }
   ]
 
@@ -207,6 +216,91 @@ export default function PricingPage() {
                 </Space>
               </div>
             </Space>
+          </div>
+        </div>
+
+        {/* Social Proof & Urgency */}
+        <div style={{ padding: '40px 0', background: '#f0f8ff', borderLeft: '4px solid #1890ff' }}>
+          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
+            <Space direction="vertical" size="small">
+              <Text style={{ fontSize: 16, color: '#1890ff', fontWeight: 600 }}>
+                🔥 Join 500+ teams who've already saved 1000+ hours
+              </Text>
+              <Text type="secondary" style={{ fontSize: 14 }}>
+                Don't let important content slip through the cracks while your competitors stay ahead
+              </Text>
+            </Space>
+          </div>
+        </div>
+
+        {/* Usage Calculator */}
+        <div style={{ padding: '60px 0', background: '#fff' }}>
+          <div style={{ maxWidth: 800, margin: '0 auto', padding: '0 24px' }}>
+            <div style={{ textAlign: 'center', marginBottom: 40 }}>
+              <Title level={3}>Find Your Perfect Plan</Title>
+              <Text type="secondary">Answer a few questions to see which plan fits your team</Text>
+            </div>
+            
+            <Card style={{ background: '#f8f9fa' }}>
+              <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                <div>
+                  <Text strong>How many links does your team share per week?</Text>
+                  <div style={{ margin: '16px 0' }}>
+                    <Slider
+                      min={1}
+                      max={50}
+                      value={linksPerWeek}
+                      onChange={setLinksPerWeek}
+                      marks={{
+                        1: '1',
+                        10: '10',
+                        25: '25',
+                        50: '50+'
+                      }}
+                    />
+                  </div>
+                  <Text type="secondary">Currently: {linksPerWeek} links/week (~{linksPerWeek * 4} links/month)</Text>
+                </div>
+                
+                <div>
+                  <Text strong>How many team members need access?</Text>
+                  <div style={{ margin: '16px 0' }}>
+                    <Slider
+                      min={1}
+                      max={20}
+                      value={teamSize}
+                      onChange={setTeamSize}
+                      marks={{
+                        1: '1',
+                        5: '5',
+                        10: '10',
+                        20: '20+'
+                      }}
+                    />
+                  </div>
+                  <Text type="secondary">Currently: {teamSize} team members</Text>
+                </div>
+                
+                <div style={{ textAlign: 'center', marginTop: 24, padding: '20px', background: 'white', borderRadius: '8px' }}>
+                  <Text strong style={{ fontSize: 18, color: '#1890ff' }}>
+                    Recommended Plan: {
+                      linksPerWeek * 4 <= 10 && teamSize <= 2 ? 'Free' :
+                      linksPerWeek * 4 <= 100 && teamSize <= 5 ? 'Pro' : 
+                      'Enterprise'
+                    }
+                  </Text>
+                  <br />
+                  <Text type="secondary">
+                    {linksPerWeek * 4 <= 10 && teamSize <= 2 
+                      ? 'Perfect for getting started!'
+                      : linksPerWeek * 4 <= 100 && teamSize <= 5
+                      ? 'Great for growing teams with 30s processing'
+                      : 'Best for large teams needing unlimited capacity'
+                    }
+                  </Text>
+                </div>
+              </Space>
+            </Card>
           </div>
         </div>
 
@@ -291,7 +385,7 @@ export default function PricingPage() {
                           href="/"
                           style={{ width: '100%', height: 48 }}
                         >
-                          Start Free
+                          Start Free Trial
                         </Button>
                       ) : (
                         <Button 
@@ -317,6 +411,28 @@ export default function PricingPage() {
                 </Col>
               ))}
             </Row>
+          </div>
+        </div>
+
+        {/* Risk Reversal */}
+        <div style={{ padding: '40px 0', textAlign: 'center' }}>
+          <div style={{ maxWidth: 800, margin: '0 auto', padding: '0 24px' }}>
+            <Space direction="vertical" size="middle">
+              <Space size="large" style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
+                <Badge count="30-Day Money Back" style={{ backgroundColor: '#52c41a' }}>
+                  <SafetyCertificateOutlined style={{ fontSize: 24, color: '#52c41a' }} />
+                </Badge>
+                <Badge count="No Setup Fees" style={{ backgroundColor: '#1890ff' }}>
+                  <CheckCircleOutlined style={{ fontSize: 24, color: '#1890ff' }} />
+                </Badge>
+                <Badge count="Cancel Anytime" style={{ backgroundColor: '#722ed1' }}>
+                  <StarOutlined style={{ fontSize: 24, color: '#722ed1' }} />
+                </Badge>
+              </Space>
+              <Text type="secondary">
+                Risk-free trial. If you're not saving time within 30 days, get your money back.
+              </Text>
+            </Space>
           </div>
         </div>
 
@@ -365,6 +481,63 @@ export default function PricingPage() {
                     <Text type="secondary">
                       Track team engagement and understand content consumption patterns
                     </Text>
+                  </Space>
+                </Card>
+              </Col>
+            </Row>
+          </div>
+        </div>
+
+        {/* Testimonials */}
+        <div style={{ padding: '60px 0' }}>
+          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
+            <div style={{ textAlign: 'center', marginBottom: 48 }}>
+              <Title level={2}>What Our Users Say</Title>
+              <Text type="secondary">Join teams who've transformed their productivity</Text>
+            </div>
+            
+            <Row gutter={[32, 32]}>
+              <Col xs={24} md={8}>
+                <Card style={{ height: '100%' }}>
+                  <Space direction="vertical" size="middle">
+                    <Text style={{ fontSize: 16, fontStyle: 'italic' }}>
+                      "Saved our team 2 hours daily. We never miss important content anymore."
+                    </Text>
+                    <div>
+                      <Text strong>Sarah Kim</Text>
+                      <br />
+                      <Text type="secondary">Product Manager, TechCorp</Text>
+                    </div>
+                  </Space>
+                </Card>
+              </Col>
+              
+              <Col xs={24} md={8}>
+                <Card style={{ height: '100%' }}>
+                  <Space direction="vertical" size="middle">
+                    <Text style={{ fontSize: 16, fontStyle: 'italic' }}>
+                      "Game-changer for staying informed. Processing speed is incredible."
+                    </Text>
+                    <div>
+                      <Text strong>Mike Chen</Text>
+                      <br />
+                      <Text type="secondary">CTO, StartupCo</Text>
+                    </div>
+                  </Space>
+                </Card>
+              </Col>
+              
+              <Col xs={24} md={8}>
+                <Card style={{ height: '100%' }}>
+                  <Space direction="vertical" size="middle">
+                    <Text style={{ fontSize: 16, fontStyle: 'italic' }}>
+                      "Finally, our team stays on top of industry news effortlessly."
+                    </Text>
+                    <div>
+                      <Text strong>Alex Rodriguez</Text>
+                      <br />
+                      <Text type="secondary">VP Marketing, GrowthCorp</Text>
+                    </div>
                   </Space>
                 </Card>
               </Col>

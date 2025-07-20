@@ -12,7 +12,7 @@ export const PRICING_PLANS = {
     id: 'free',
     name: 'Free',
     price: 0,
-    monthlyLinkLimit: 30,
+    monthlyLinkLimit: 10,
     userLimit: 2,
     stripePriceId: null
   },

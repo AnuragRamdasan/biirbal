@@ -57,8 +57,8 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 hover:opacity-90 transition-opacity">
-            <span className="text-2xl">🧠</span>
-            <span className="text-xl font-bold">biirbal.ai</span>
+            <img src="/logo.svg" alt="Biirbal" className="h-8 w-8" style={{ filter: 'brightness(0) invert(1)' }} />
+            <span className="text-xl font-bold">Biirbal</span>
           </Link>
 
           {/* Navigation */}

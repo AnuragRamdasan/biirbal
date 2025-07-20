@@ -17,7 +17,7 @@ import { getBaseUrl } from './config'
 const baseUrl = getBaseUrl()
 
 const defaultSEO: SEOConfig = {
-  title: 'biirbal.ai - AI-Powered Slack Content Intelligence',
+  title: 'Biirbal - AI-Powered Slack Content Intelligence',
   description: 'Transform Slack links into 59-second audio summaries. Never miss important content again with AI-powered content intelligence for your team.',
   keywords: [
     'slack bot',
@@ -40,16 +40,16 @@ export function generateMetadata(config: Partial<SEOConfig> = {}): Metadata {
   const seo = { ...defaultSEO, ...config }
   
   const title = config.title 
-    ? `${config.title} | biirbal.ai`
+    ? `${config.title} | Biirbal`
     : seo.title
 
   return {
     title,
     description: seo.description,
     keywords: seo.keywords?.join(', '),
-    authors: [{ name: 'biirbal.ai Team' }],
-    creator: 'biirbal.ai',
-    publisher: 'biirbal.ai',
+    authors: [{ name: 'Biirbal Team' }],
+    creator: 'Biirbal',
+    publisher: 'Biirbal',
     robots: seo.noIndex ? 'noindex,nofollow' : 'index,follow',
     
     // Open Graph
@@ -57,7 +57,7 @@ export function generateMetadata(config: Partial<SEOConfig> = {}): Metadata {
       type: seo.ogType,
       locale: 'en_US',
       url: seo.canonicalUrl || baseUrl,
-      siteName: 'biirbal.ai',
+      siteName: 'Biirbal',
       title,
       description: seo.description,
       images: [
@@ -73,8 +73,8 @@ export function generateMetadata(config: Partial<SEOConfig> = {}): Metadata {
     // Twitter
     twitter: {
       card: seo.twitterCard,
-      site: '@biirbal_ai',
-      creator: '@biirbal_ai',
+      site: '@biirbal',
+      creator: '@biirbal',
       title,
       description: seo.description,
       images: [seo.ogImage || `${baseUrl}/og-image.png`],
@@ -87,7 +87,7 @@ export function generateMetadata(config: Partial<SEOConfig> = {}): Metadata {
     },
     
     // App-specific
-    applicationName: 'biirbal.ai',
+    applicationName: 'Biirbal',
     generator: 'Next.js',
     
     // Verification (add your verification codes)
@@ -129,20 +129,20 @@ export function generateStructuredData(type: 'Organization' | 'Product' | 'Softw
     case 'Organization':
       return {
         ...baseData,
-        name: 'biirbal.ai',
+        name: 'Biirbal',
         url: baseUrl,
-        logo: `${baseUrl}/logo.png`,
+        logo: `${baseUrl}/logo.svg`,
         description: 'AI-powered content intelligence for Slack teams',
         foundingDate: '2024',
         sameAs: [
-          'https://twitter.com/biirbal_ai',
-          'https://linkedin.com/company/biirbal-ai',
+          'https://twitter.com/biirbal',
+          'https://linkedin.com/company/biirbal',
         ],
         contactPoint: {
           '@type': 'ContactPoint',
           telephone: '+1-555-BIIRBAL',
           contactType: 'customer service',
-          email: 'support@biirbal.ai'
+          email: 'support@biirbal.com'
         },
         ...data
       }
@@ -150,7 +150,7 @@ export function generateStructuredData(type: 'Organization' | 'Product' | 'Softw
     case 'SoftwareApplication':
       return {
         ...baseData,
-        name: 'biirbal.ai',
+        name: 'Biirbal',
         applicationCategory: 'BusinessApplication',
         operatingSystem: 'Web Browser',
         offers: {
@@ -176,12 +176,12 @@ export function generateStructuredData(type: 'Organization' | 'Product' | 'Softw
     case 'WebSite':
       return {
         ...baseData,
-        name: 'biirbal.ai',
+        name: 'Biirbal',
         url: baseUrl,
         description: 'AI-powered content intelligence for Slack teams',
         publisher: {
           '@type': 'Organization',
-          name: 'biirbal.ai'
+          name: 'Biirbal'
         },
         potentialAction: {
           '@type': 'SearchAction',
@@ -197,11 +197,11 @@ export function generateStructuredData(type: 'Organization' | 'Product' | 'Softw
     case 'Product':
       return {
         ...baseData,
-        name: 'biirbal.ai Slack Bot',
+        name: 'Biirbal Slack Bot',
         description: 'AI-powered audio summaries for Slack links',
         brand: {
           '@type': 'Brand',
-          name: 'biirbal.ai'
+          name: 'Biirbal'
         },
         offers: {
           '@type': 'AggregateOffer',

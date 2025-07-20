@@ -3,7 +3,7 @@ import { getBaseUrl } from '@/lib/config'
 
 export const metadata = generateMetadata({
   title: 'AI-Powered Slack Content Intelligence',
-  description: 'Transform Slack links into 59-second audio summaries. Never miss important content again with biirbal.ai - the AI-powered content intelligence platform for teams.',
+  description: 'Transform Slack links into 59-second audio summaries. Never miss important content again with Biirbal - the AI-powered content intelligence platform for teams.',
   keywords: [
     'slack bot',
     'ai content summarization',
