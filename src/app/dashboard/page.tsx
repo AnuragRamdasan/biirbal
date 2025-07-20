@@ -559,9 +559,13 @@ export default function Dashboard() {
                         fontSize: 12, 
                         color: '#8c8c8c',
                         marginBottom: 8,
+                        wordBreak: 'break-all',
+                        lineHeight: 1.3,
+                        maxHeight: '2.6em',
                         overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical'
                       }}>
                         {record.url}
                       </div>
