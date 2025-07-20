@@ -117,7 +117,7 @@ export default function PricingPage() {
       id: 'pro',
       name: 'Pro',
       description: 'For growing teams',
-      price: isAnnual ? 199.9 : 19.99,
+      price: isAnnual ? 199.99 : 19.99,
       isPopular: true,
       stripePriceId: 'price_pro',
       features: [
@@ -132,7 +132,7 @@ export default function PricingPage() {
       id: 'enterprise',
       name: 'Enterprise',
       description: 'For large organizations',
-      price: isAnnual ? 699.9 : 69.99,
+      price: isAnnual ? 699.99 : 69.99,
       stripePriceId: 'price_enterprise',
       features: [
         'Unlimited audio summaries',
@@ -200,22 +200,6 @@ export default function PricingPage() {
                 Start with our free trial and scale as your team grows. 
                 All plans include core AI summarization features.
               </Paragraph>
-
-              <div style={{ marginTop: 32 }}>
-                <Space align="center">
-                  <Text>Monthly</Text>
-                  <Switch 
-                    checked={isAnnual}
-                    onChange={setIsAnnual}
-                    checkedChildren="Annual"
-                    unCheckedChildren="Monthly"
-                  />
-                  <Text>Annual</Text>
-                  {isAnnual && (
-                    <Badge count="Save 20%" style={{ backgroundColor: '#52c41a', marginLeft: 8 }} />
-                  )}
-                </Space>
-              </div>
             </Space>
           </div>
         </div>
@@ -308,6 +292,23 @@ export default function PricingPage() {
         {/* Pricing Cards */}
         <div style={{ padding: '60px 0' }}>
           <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
+            
+            {/* Monthly/Annual Toggle */}
+            <div style={{ textAlign: 'center', marginBottom: 48 }}>
+              <Space align="center" size="large">
+                <Text style={{ fontSize: 16, fontWeight: 500 }}>Monthly</Text>
+                <Switch 
+                  checked={isAnnual}
+                  onChange={setIsAnnual}
+                  size="large"
+                  style={{ backgroundColor: isAnnual ? '#1890ff' : '#d9d9d9' }}
+                />
+                <Text style={{ fontSize: 16, fontWeight: 500 }}>Annual</Text>
+                {isAnnual && (
+                  <Badge count="Save 20%" style={{ backgroundColor: '#52c41a', marginLeft: 8 }} />
+                )}
+              </Space>
+            </div>
             <Row gutter={[24, 24]} justify="center">
               {plans.map((plan) => (
                 <Col xs={24} md={8} key={plan.id}>
@@ -315,10 +316,13 @@ export default function PricingPage() {
                     style={{ 
                       height: '100%',
                       position: 'relative',
+                      borderRadius: '12px',
+                      overflow: 'hidden',
                       ...(plan.isPopular && {
                         border: '2px solid #1890ff',
-                        transform: 'scale(1.05)',
-                        zIndex: 1
+                        transform: 'scale(1.02)',
+                        zIndex: 1,
+                        boxShadow: '0 8px 32px rgba(24, 144, 255, 0.12)'
                       })
                     }}
                     hoverable
@@ -326,12 +330,22 @@ export default function PricingPage() {
                     {plan.isPopular && (
                       <div style={{
                         position: 'absolute',
-                        top: -10,
+                        top: -8,
                         left: '50%',
                         transform: 'translateX(-50%)',
                         zIndex: 2
                       }}>
-                        <Badge count="Most Popular" style={{ backgroundColor: '#1890ff' }} />
+                        <Badge 
+                          count="Most Popular" 
+                          style={{ 
+                            backgroundColor: '#1890ff',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            borderRadius: '12px',
+                            padding: '4px 12px',
+                            height: 'auto'
+                          }} 
+                        />
                       </div>
                     )}
 
@@ -357,7 +371,7 @@ export default function PricingPage() {
                           />
                           {isAnnual && plan.price > 0 && (
                             <Text type="secondary">
-                              {Math.round((plan.price / 12) * 100) / 100}/month billed annually
+                              ${(plan.price / 12).toFixed(2)}/month billed annually
                             </Text>
                           )}
                         </div>
