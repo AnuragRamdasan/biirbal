@@ -178,7 +178,6 @@ export default function PricingPage() {
         '30s processing time',
         'Advanced analytics & reports',
         'Priority support',
-        'Custom voice options'
       ]
     },
     {
@@ -192,9 +191,7 @@ export default function PricingPage() {
         'Up to 25 team members',
         '15s processing time',
         'Advanced analytics & reporting',
-        'Priority support + SLA',
-        'Custom integrations',
-        'Dedicated account manager'
+        'Priority support',
       ]
     }
   ]
@@ -380,7 +377,7 @@ export default function PricingPage() {
                 />
                 <Text style={{ fontSize: 16, fontWeight: 500 }}>Annual</Text>
                 {isAnnual && (
-                  <Badge count="Save 20%" style={{ backgroundColor: '#52c41a', marginLeft: 8 }} />
+                  <Badge count="Get 2 Months Free" style={{ backgroundColor: '#52c41a', marginLeft: 8 }} />
                 )}
               </Space>
             </div>
