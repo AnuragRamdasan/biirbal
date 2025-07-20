@@ -82,7 +82,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       stripeSubscriptionId: subscriptionId,
       status: 'ACTIVE',
       currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-      monthlyLinkLimit: plan?.monthlyLinkLimit || 100,
+      monthlyLinkLimit: plan?.monthlyLinkLimit || 10,
+      userLimit: plan?.userLimit || 2,
       linksProcessed: 0 // Reset counter on new subscription
     }
   })

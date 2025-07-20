@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDbClient } from '@/lib/db'
-import { createStripeCustomer, createCheckoutSession, PRICING_PLANS } from '@/lib/stripe'
+import { createStripeCustomer, createCheckoutSession, PRICING_PLANS, getPriceId } from '@/lib/stripe'
 import { getBaseUrl } from '@/lib/config'
 
 export async function POST(request: NextRequest) {
@@ -14,8 +14,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { teamId, planId } = await request.json()
-    console.log(`🚀 Checkout request: planId=${planId}, teamId=${teamId}`)
+    const { teamId, planId, isAnnual = false } = await request.json()
+    console.log(`🚀 Checkout request: planId=${planId}, teamId=${teamId}, isAnnual=${isAnnual}`)
 
     if (!teamId || !planId) {
       return NextResponse.json(
@@ -41,7 +41,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!plan.stripePriceId) {
+    const priceId = getPriceId(plan, isAnnual)
+    if (!priceId) {
       return NextResponse.json(
         { error: 'Plan is not configured for checkout' },
         { status: 400 }
@@ -49,12 +50,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if the price ID looks like a default/placeholder
-    if (plan.stripePriceId.startsWith('price_') && !plan.stripePriceId.startsWith('price_1')) {
-      console.error(`❌ Invalid Stripe price ID: ${plan.stripePriceId}. Please set proper environment variables.`)
+    if (priceId.startsWith('price_') && !priceId.startsWith('price_1')) {
+      console.error(`❌ Invalid Stripe price ID: ${priceId}. Please set proper environment variables.`)
       return NextResponse.json(
         { 
           error: 'Stripe price ID not configured',
-          details: `The plan ${plan.name} has placeholder price ID: ${plan.stripePriceId}. Please configure STRIPE_${plan.id.toUpperCase()}_PRICE_ID environment variable.`
+          details: `The plan ${plan.name} (${isAnnual ? 'annual' : 'monthly'}) has placeholder price ID: ${priceId}. Please configure the appropriate STRIPE environment variables.`
         },
         { status: 503 }
       )
@@ -128,15 +129,16 @@ export async function POST(request: NextRequest) {
     const baseUrl = getBaseUrl()
     console.log(`Creating checkout session with:`, {
       customerId,
-      stripePriceId: plan.stripePriceId,
+      priceId,
       teamId: team.id,
-      baseUrl
+      baseUrl,
+      isAnnual
     })
 
     try {
       const session = await createCheckoutSession(
         customerId,
-        plan.stripePriceId,
+        priceId,
         team.id,
         `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
         `${baseUrl}/pricing?canceled=true`

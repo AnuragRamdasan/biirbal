@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { getPlanPrice } from '@/lib/stripe'
 import Script from 'next/script'
 import { 
   Row, 
@@ -94,7 +95,7 @@ export default function PricingPage() {
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId, teamId })
+        body: JSON.stringify({ planId, teamId, isAnnual })
       })
 
       if (!response.ok) {
@@ -145,44 +146,62 @@ export default function PricingPage() {
       features: [
         '10 audio summaries per month',
         'Up to 2 team members',
-        '2-5 min processing time'
+        '2-5 min processing time',
+        'Basic Slack integration',
+        'Community support'
+      ]
+    },
+    {
+      id: 'starter',
+      name: 'Starter',
+      description: 'For small teams and individuals',
+      price: isAnnual ? 99.00 : 9.00,
+      stripePriceId: 'price_starter',
+      features: [
+        '50 audio summaries per month',
+        'Up to 3 team members',
+        '1-2 min processing time',
+        'Basic analytics',
+        'Email support'
       ]
     },
     {
       id: 'pro',
       name: 'Pro',
       description: 'For growing teams',
-      price: isAnnual ? 199.99 : 19.99,
+      price: isAnnual ? 399.00 : 39.00,
       isPopular: true,
       stripePriceId: 'price_pro',
       features: [
-        '100 audio summaries per month',
-        'Up to 5 team members',
+        '200 audio summaries per month',
+        'Up to 10 team members',
         '30s processing time',
-        'Usage insights & reports',
-        'Email support'
+        'Advanced analytics & reports',
+        'Priority support',
+        'Custom voice options'
       ]
     },
     {
-      id: 'enterprise',
-      name: 'Enterprise',
+      id: 'business',
+      name: 'Business',
       description: 'For large organizations',
-      price: isAnnual ? 699.99 : 69.99,
-      stripePriceId: 'price_enterprise',
+      price: isAnnual ? 900.00 : 99.00,
+      stripePriceId: 'price_business',
       features: [
-        'Unlimited audio summaries',
-        'Unlimited team members',
+        '1000 audio summaries per month',
+        'Up to 25 team members',
         '15s processing time',
         'Advanced analytics & reporting',
         'Priority support + SLA',
-        'Custom integrations'
+        'Custom integrations',
+        'Dedicated account manager'
       ]
     }
   ]
 
   const faqItems = [
     {
-      question: 'How does the free trial work?',
+      question: 'How does the free plan work?',
       answer: 'You get 10 audio summaries completely free. No credit card required to start. Upgrade anytime to unlock faster processing and more features.'
     },
     {
@@ -191,7 +210,7 @@ export default function PricingPage() {
     },
     {
       question: 'How fast is the processing?',
-      answer: 'Free: 2-5 minutes, Pro: 30 seconds, Enterprise: 15 seconds. Most teams see immediate productivity gains with faster processing.'
+      answer: 'Free: 2-5 minutes, Starter: 1-2 minutes, Pro: 30 seconds, Business: 15 seconds. Most teams see immediate productivity gains with faster processing.'
     },
     {
       question: 'Can I change plans later?',
@@ -314,22 +333,25 @@ export default function PricingPage() {
                 </div>
                 
                 <div style={{ textAlign: 'center', marginTop: 24, padding: '20px', background: 'white', borderRadius: '8px' }}>
-                  <Text strong style={{ fontSize: 18, color: '#1890ff' }}>
-                    Recommended Plan: {
-                      linksPerWeek * 4 <= 10 && teamSize <= 2 ? 'Free' :
-                      linksPerWeek * 4 <= 100 && teamSize <= 5 ? 'Pro' : 
-                      'Enterprise'
-                    }
-                  </Text>
-                  <br />
-                  <Text type="secondary">
-                    {linksPerWeek * 4 <= 10 && teamSize <= 2 
-                      ? 'Perfect for getting started!'
-                      : linksPerWeek * 4 <= 100 && teamSize <= 5
-                      ? 'Great for growing teams with 30s processing'
-                      : 'Best for large teams needing unlimited capacity'
-                    }
-                  </Text>
+                                     <Text strong style={{ fontSize: 18, color: '#1890ff' }}>
+                     Recommended Plan: {
+                       linksPerWeek * 4 <= 10 && teamSize <= 2 ? 'Free' :
+                       linksPerWeek * 4 <= 50 && teamSize <= 3 ? 'Starter' :
+                       linksPerWeek * 4 <= 200 && teamSize <= 10 ? 'Pro' : 
+                       'Business'
+                     }
+                   </Text>
+                   <br />
+                   <Text type="secondary">
+                     {linksPerWeek * 4 <= 10 && teamSize <= 2 
+                       ? 'Perfect for getting started!'
+                       : linksPerWeek * 4 <= 50 && teamSize <= 3
+                       ? 'Great for small teams with faster processing'
+                       : linksPerWeek * 4 <= 200 && teamSize <= 10
+                       ? 'Ideal for growing teams with advanced features'
+                       : 'Best for large organizations needing high capacity'
+                     }
+                   </Text>
                 </div>
               </Space>
             </Card>
@@ -354,7 +376,6 @@ export default function PricingPage() {
                       links_per_week: linksPerWeek
                     })
                   }}
-                  size="large"
                   style={{ backgroundColor: isAnnual ? '#1890ff' : '#d9d9d9' }}
                 />
                 <Text style={{ fontSize: 16, fontWeight: 500 }}>Annual</Text>
@@ -365,7 +386,7 @@ export default function PricingPage() {
             </div>
             <Row gutter={[24, 24]} justify="center">
               {plans.map((plan) => (
-                <Col xs={24} md={8} key={plan.id}>
+                <Col xs={24} sm={12} md={6} key={plan.id}>
                   <Card
                     style={{ 
                       height: '100%',
@@ -414,7 +435,7 @@ export default function PricingPage() {
                         
                         <div style={{ margin: '16px 0' }}>
                           <Statistic
-                            value={plan.price}
+                            value={getPlanPrice(plan, isAnnual)}
                             prefix="$"
                             suffix={plan.price > 0 ? (isAnnual ? '/year' : '/month') : ''}
                             valueStyle={{ 
@@ -425,7 +446,7 @@ export default function PricingPage() {
                           />
                           {isAnnual && plan.price > 0 && (
                             <Text type="secondary">
-                              ${(plan.price / 12).toFixed(2)}/month billed annually
+                              ${(getPlanPrice(plan, isAnnual) / 12).toFixed(2)}/month billed annually
                             </Text>
                           )}
                         </div>

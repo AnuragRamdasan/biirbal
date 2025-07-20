@@ -16,27 +16,71 @@ export const PRICING_PLANS = {
     userLimit: 2,
     stripePriceId: null
   },
+  STARTER: {
+    id: 'starter',
+    name: 'Starter',
+    price: 9.00,
+    annualPrice: 99.00,
+    monthlyLinkLimit: 50,
+    userLimit: 3,
+    stripePriceId: {
+      monthly: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID || 'price_starter_monthly',
+      annual: process.env.STRIPE_STARTER_ANNUAL_PRICE_ID || 'price_starter_annual'
+    }
+  },
   PRO: {
     id: 'pro',
     name: 'Pro',
-    price: 19.99,
-    monthlyLinkLimit: 100,
-    userLimit: 5,
-    stripePriceId: process.env.STRIPE_PRO_PRICE_ID || 'price_pro'
+    price: 39.00,
+    annualPrice: 399.00,
+    monthlyLinkLimit: 200,
+    userLimit: 10,
+    stripePriceId: {
+      monthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID || 'price_pro_monthly',
+      annual: process.env.STRIPE_PRO_ANNUAL_PRICE_ID || 'price_pro_annual'
+    }
   },
-  ENTERPRISE: {
-    id: 'enterprise',
-    name: 'Enterprise',
-    price: 69.99,
-    monthlyLinkLimit: -1, // -1 means unlimited
-    userLimit: -1, // -1 means unlimited
-    stripePriceId: process.env.STRIPE_ENTERPRISE_PRICE_ID || 'price_enterprise'
+  BUSINESS: {
+    id: 'business',
+    name: 'Business',
+    price: 99.00,
+    annualPrice: 900.00,
+    monthlyLinkLimit: 1000,
+    userLimit: 25,
+    stripePriceId: {
+      monthly: process.env.STRIPE_BUSINESS_MONTHLY_PRICE_ID || 'price_business_monthly',
+      annual: process.env.STRIPE_BUSINESS_ANNUAL_PRICE_ID || 'price_business_annual'
+    }
   }
 }
 
 // Helper function to get plan details
 export function getPlanById(planId: string) {
   return Object.values(PRICING_PLANS).find(plan => plan.id === planId)
+}
+
+// Helper function to get price ID based on billing cycle
+export function getPriceId(plan: any, isAnnual: boolean): string | null {
+  if (!plan.stripePriceId) return null
+  
+  if (typeof plan.stripePriceId === 'string') {
+    // Backward compatibility for old format
+    return plan.stripePriceId
+  }
+  
+  if (typeof plan.stripePriceId === 'object' && plan.stripePriceId.monthly && plan.stripePriceId.annual) {
+    return isAnnual ? plan.stripePriceId.annual : plan.stripePriceId.monthly
+  }
+  
+  return null
+}
+
+// Helper function to get plan price based on billing cycle
+export function getPlanPrice(plan: any, isAnnual: boolean): number {
+  if (isAnnual && 'annualPrice' in plan) {
+    return plan.annualPrice
+  }
+  return plan.price
 }
 
 // Helper function to check if usage is within limits
