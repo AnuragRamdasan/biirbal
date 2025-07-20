@@ -7,6 +7,7 @@ const text_to_speech_1 = require("./text-to-speech");
 const config_1 = require("./config");
 const web_api_1 = require("@slack/web-api");
 const subscription_utils_1 = require("./subscription-utils");
+const exception_teams_1 = require("./exception-teams");
 async function processLink({ url, messageTs, channelId, teamId, slackTeamId }, updateProgress) {
     console.log(`🚀 Processing: ${url}`);
     try {
@@ -25,7 +26,7 @@ async function processLink({ url, messageTs, channelId, teamId, slackTeamId }, u
         }
         // Check if usage limits are exceeded (but don't block processing)
         const usageCheck = await (0, subscription_utils_1.canProcessNewLink)(teamId);
-        const isLimitExceeded = !usageCheck.allowed;
+        const isLimitExceeded = !usageCheck.allowed && !(0, exception_teams_1.isExceptionTeam)(teamId);
         const channel = await db.channel.upsert({
             where: { slackChannelId: channelId },
             update: { teamId, isActive: true },

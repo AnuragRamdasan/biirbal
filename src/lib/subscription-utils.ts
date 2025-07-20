@@ -1,5 +1,6 @@
 import { getDbClient } from './db'
 import { PRICING_PLANS, getPlanById, checkUsageLimits } from './stripe'
+import { isExceptionTeam } from './exception-teams'
 
 export interface UsageStats {
   currentLinks: number
@@ -12,10 +13,14 @@ export interface UsageStats {
   userWarning: boolean
   linkUsagePercentage: number
   userUsagePercentage: number
+  isExceptionTeam: boolean
 }
 
 export async function getTeamUsageStats(teamId: string): Promise<UsageStats> {
   const db = await getDbClient()
+  
+  // Check if this is an exception team first
+  const isException = isExceptionTeam(teamId)
   
   // Get team subscription - teamId is actually the Slack team ID
   const team = await db.team.findUnique({
@@ -49,7 +54,24 @@ export async function getTeamUsageStats(teamId: string): Promise<UsageStats> {
   const currentLinks = team.processedLinks.length
   const currentUsers = team.users.length
 
-  // Check limits
+  // For exception teams, bypass all limits
+  if (isException) {
+    return {
+      currentLinks,
+      currentUsers,
+      plan,
+      canProcessMore: true,
+      linkLimitExceeded: false,
+      userLimitExceeded: false,
+      linkWarning: false,
+      userWarning: false,
+      linkUsagePercentage: 0,
+      userUsagePercentage: 0,
+      isExceptionTeam: true
+    }
+  }
+
+  // Check limits for regular teams
   const limits = checkUsageLimits(plan, currentLinks, currentUsers)
 
   // Calculate usage percentages
@@ -68,12 +90,18 @@ export async function getTeamUsageStats(teamId: string): Promise<UsageStats> {
     linkWarning: limits.linkWarning,
     userWarning: limits.userWarning,
     linkUsagePercentage,
-    userUsagePercentage
+    userUsagePercentage,
+    isExceptionTeam: false
   }
 }
 
 export async function canProcessNewLink(teamId: string): Promise<{ allowed: boolean, reason?: string }> {
   try {
+    // Exception teams are always allowed
+    if (isExceptionTeam(teamId)) {
+      return { allowed: true }
+    }
+    
     const stats = await getTeamUsageStats(teamId)
     
     if (stats.linkLimitExceeded) {

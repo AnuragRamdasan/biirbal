@@ -66,6 +66,7 @@ export default function Dashboard() {
   const [audioDurations, setAudioDurations] = useState<Record<string, number>>({})
   const [usageWarning, setUsageWarning] = useState<string | null>(null)
   const [linkLimitExceeded, setLinkLimitExceeded] = useState<boolean>(false)
+  const [isExceptionTeam, setIsExceptionTeam] = useState<boolean>(false)
 
   useEffect(() => {
     fetchLinks()
@@ -165,6 +166,7 @@ export default function Dashboard() {
         const data = await response.json()
         setUsageWarning(data.warning)
         setLinkLimitExceeded(data.linkLimitExceeded || false)
+        setIsExceptionTeam(data.isExceptionTeam || false)
       }
     } catch (error) {
       console.error('Failed to check usage warnings:', error)
@@ -370,8 +372,19 @@ export default function Dashboard() {
         maxWidth: 1400, 
         margin: '0 auto'
       }}>
+        {/* Exception Team Banner */}
+        {isExceptionTeam && (
+          <Alert
+            message="Complimentary Access"
+            description="🎉 You're using Biirbal with complimentary access! No usage limits apply to your team."
+            type="success"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+        )}
+
         {/* Usage Warning */}
-        {usageWarning && (
+        {usageWarning && !isExceptionTeam && (
           <Alert
             message="Usage Warning"
             description={usageWarning}
@@ -388,7 +401,7 @@ export default function Dashboard() {
         )}
 
         {/* Link Limit Exceeded Alert */}
-        {linkLimitExceeded && (
+        {linkLimitExceeded && !isExceptionTeam && (
           <Alert
             message="Playback Restricted"
             description="You've exceeded your monthly link limit. Audio playback is disabled. Links will continue to be processed and posted to Slack."
@@ -607,17 +620,17 @@ export default function Dashboard() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         {/* Play Button */}
                         <Tooltip 
-                          title={linkLimitExceeded ? "Monthly limit exceeded. Upgrade your plan to access playback." : "Play audio summary"}
+                          title={(linkLimitExceeded && !isExceptionTeam) ? "Monthly limit exceeded. Upgrade your plan to access playback." : "Play audio summary"}
                         >
                           <Button
                             type="primary"
                             shape="circle"
                             size="large"
-                            disabled={linkLimitExceeded}
+                            disabled={linkLimitExceeded && !isExceptionTeam}
                             icon={currentlyPlaying === record.id ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
                             onClick={(e) => {
                               e.stopPropagation()
-                              if (linkLimitExceeded) return
+                              if (linkLimitExceeded && !isExceptionTeam) return
                               if (currentlyPlaying === record.id) {
                                 handlePauseAudio()
                               } else {
@@ -625,9 +638,9 @@ export default function Dashboard() {
                               }
                             }}
                             style={{
-                              background: linkLimitExceeded ? '#d9d9d9' : (currentlyPlaying === record.id ? '#ff4d4f' : '#52c41a'),
-                              borderColor: linkLimitExceeded ? '#d9d9d9' : (currentlyPlaying === record.id ? '#ff4d4f' : '#52c41a'),
-                              opacity: linkLimitExceeded ? 0.6 : 1
+                              background: (linkLimitExceeded && !isExceptionTeam) ? '#d9d9d9' : (currentlyPlaying === record.id ? '#ff4d4f' : '#52c41a'),
+                              borderColor: (linkLimitExceeded && !isExceptionTeam) ? '#d9d9d9' : (currentlyPlaying === record.id ? '#ff4d4f' : '#52c41a'),
+                              opacity: (linkLimitExceeded && !isExceptionTeam) ? 0.6 : 1
                             }}
                           />
                         </Tooltip>

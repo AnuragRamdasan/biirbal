@@ -4,6 +4,7 @@ import { generateAudioSummary, uploadAudioToStorage } from './text-to-speech'
 import { getDashboardUrl } from './config'
 import { WebClient } from '@slack/web-api'
 import { canProcessNewLink } from './subscription-utils'
+import { isExceptionTeam } from './exception-teams'
 
 interface ProcessLinkParams {
   url: string
@@ -41,7 +42,7 @@ export async function processLink({
 
     // Check if usage limits are exceeded (but don't block processing)
     const usageCheck = await canProcessNewLink(teamId)
-    const isLimitExceeded = !usageCheck.allowed
+    const isLimitExceeded = !usageCheck.allowed && !isExceptionTeam(teamId)
 
     const channel = await db.channel.upsert({
       where: { slackChannelId: channelId },
