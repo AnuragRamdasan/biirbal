@@ -202,10 +202,6 @@ export default function PricingPage() {
       answer: 'You get 10 audio summaries completely free. No credit card required to start. Upgrade anytime to unlock faster processing and more features.'
     },
     {
-      question: 'What if I\'m not satisfied?',
-      answer: 'We offer a 30-day money-back guarantee. If you\'re not saving time and staying more informed, get your money back - no questions asked.'
-    },
-    {
       question: 'How fast is the processing?',
       answer: 'Free: 2-5 minutes, Starter: 1-2 minutes, Pro: 30 seconds, Business: 15 seconds. Most teams see immediate productivity gains with faster processing.'
     },
@@ -216,6 +212,10 @@ export default function PricingPage() {
     {
       question: 'What happens to my summaries if I cancel?',
       answer: 'Your summaries remain accessible for 30 days after cancellation to allow for data export.'
+    },
+    {
+      question: 'What happens to my data if I cancel?',
+      answer: 'Your data remains accessible for 30 days after cancellation to allow for data export.'
     }
   ]
 
