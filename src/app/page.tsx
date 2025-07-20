@@ -350,6 +350,118 @@ function HomeContent() {
         </div>
       </div>
 
+      {/* Pricing Section */}
+      <div style={{ padding: '80px 0' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
+          <div style={{ textAlign: 'center', marginBottom: 60 }}>
+            <Title level={2}>
+              <Space>
+                <CheckCircleOutlined />
+                Simple, Transparent Pricing
+              </Space>
+            </Title>
+            <Paragraph style={{ fontSize: 18, color: '#666' }}>
+              Start free and scale as your team grows
+            </Paragraph>
+          </div>
+
+          <Row gutter={[32, 32]} justify="center">
+            <Col xs={24} sm={8}>
+              <Card style={{ textAlign: 'center', height: '100%' }} hoverable>
+                <Title level={3}>Free</Title>
+                <Title level={1} style={{ color: '#52c41a', margin: '16px 0' }}>$0</Title>
+                <Text type="secondary">Perfect for small teams</Text>
+                <List
+                  style={{ margin: '24px 0' }}
+                  dataSource={['30 audio summaries/month', 'Up to 2 team members', 'Standard processing']}
+                  renderItem={(item) => (
+                    <List.Item style={{ border: 'none', padding: '4px 0' }}>
+                      <Space>
+                        <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                        <Text>{item}</Text>
+                      </Space>
+                    </List.Item>
+                  )}
+                />
+                <Button type="default" size="large" href="/" style={{ width: '100%' }}>
+                  Start Free
+                </Button>
+              </Card>
+            </Col>
+
+            <Col xs={24} sm={8}>
+              <Card 
+                style={{ 
+                  textAlign: 'center', 
+                  height: '100%', 
+                  border: '2px solid #1890ff',
+                  position: 'relative'
+                }} 
+                hoverable
+              >
+                <Badge 
+                  count="Most Popular" 
+                  style={{ 
+                    position: 'absolute', 
+                    top: -10, 
+                    right: -10, 
+                    backgroundColor: '#1890ff' 
+                  }} 
+                />
+                <Title level={3}>Pro</Title>
+                <Title level={1} style={{ color: '#1890ff', margin: '16px 0' }}>$19.99</Title>
+                <Text type="secondary">For growing teams</Text>
+                <List
+                  style={{ margin: '24px 0' }}
+                  dataSource={['100 audio summaries/month', 'Up to 5 team members', 'Priority processing', 'Team analytics']}
+                  renderItem={(item) => (
+                    <List.Item style={{ border: 'none', padding: '4px 0' }}>
+                      <Space>
+                        <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                        <Text>{item}</Text>
+                      </Space>
+                    </List.Item>
+                  )}
+                />
+                <Button type="primary" size="large" href="/pricing" style={{ width: '100%' }}>
+                  Get Started
+                </Button>
+              </Card>
+            </Col>
+
+            <Col xs={24} sm={8}>
+              <Card style={{ textAlign: 'center', height: '100%' }} hoverable>
+                <Title level={3}>Enterprise</Title>
+                <Title level={1} style={{ color: '#722ed1', margin: '16px 0' }}>$69.99</Title>
+                <Text type="secondary">For large organizations</Text>
+                <List
+                  style={{ margin: '24px 0' }}
+                  dataSource={['Unlimited summaries', 'Unlimited team members', 'Advanced analytics', 'Priority support']}
+                  renderItem={(item) => (
+                    <List.Item style={{ border: 'none', padding: '4px 0' }}>
+                      <Space>
+                        <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                        <Text>{item}</Text>
+                      </Space>
+                    </List.Item>
+                  )}
+                />
+                <Button type="default" size="large" href="/pricing" style={{ width: '100%' }}>
+                  Get Started
+                </Button>
+              </Card>
+            </Col>
+          </Row>
+
+          <div style={{ textAlign: 'center', marginTop: 40 }}>
+            <Paragraph style={{ color: '#666' }}>
+              💰 <strong>20% discount available</strong> for non-profits, startups, and open source projects.{' '}
+              <a href="mailto:hello@biirbal.ai?subject=Special Discount Inquiry">Contact us</a> to learn more.
+            </Paragraph>
+          </div>
+        </div>
+      </div>
+
       {/* CTA Section */}
       <div style={{ padding: '80px 0', background: '#001529', color: 'white' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>

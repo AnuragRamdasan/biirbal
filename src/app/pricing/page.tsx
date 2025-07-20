@@ -106,9 +106,7 @@ export default function PricingPage() {
       features: [
         '30 audio summaries per month',
         'Up to 2 team members',
-        'Basic Slack integration',
-        'Standard processing speed',
-        'Community support'
+        'Standard processing speed'
       ]
     },
     {
@@ -121,8 +119,6 @@ export default function PricingPage() {
       features: [
         '100 audio summaries per month',
         'Up to 5 team members',
-        'Advanced Slack integration',
-        'Priority processing',
         'Team analytics dashboard',
         'Email support'
       ]
@@ -136,12 +132,9 @@ export default function PricingPage() {
       features: [
         'Unlimited audio summaries',
         'Unlimited team members',
+        'Priority processing',
         'Advanced analytics & reporting',
-        'Custom integrations',
-        'Dedicated account manager',
         'Priority support (SLA)',
-        'Custom voice training',
-        'SSO & security features'
       ]
     }
   ]
@@ -149,7 +142,7 @@ export default function PricingPage() {
   const faqItems = [
     {
       question: 'How does the free trial work?',
-      answer: 'You get 50 audio summaries completely free for 7 days. No credit card required to start.'
+      answer: 'You get 30 audio summaries completely free. No credit card required to start.'
     },
     {
       question: 'Can I change plans later?',
@@ -304,7 +297,7 @@ export default function PricingPage() {
                             })
                           }}
                         >
-                          {plan.id === 'enterprise' ? 'Contact Sales' : 'Get Started'}
+                          Get Started
                         </Button>
                       )}
                     </div>
@@ -392,20 +385,20 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* Enterprise CTA */}
+        {/* Special Offers */}
         <div style={{ padding: '60px 0', background: '#001529', color: 'white' }}>
           <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
             <Space direction="vertical" size="large" style={{ width: '100%' }}>
               <Title level={2} style={{ color: 'white' }}>
                 <Space>
                   <SafetyCertificateOutlined />
-                  Enterprise Ready
+                  Special Discounts Available
                 </Space>
               </Title>
               
               <Paragraph style={{ color: 'rgba(255,255,255,0.8)', fontSize: 18 }}>
-                Need custom features, on-premise deployment, or enterprise-grade security? 
-                Let's discuss a custom solution for your organization.
+                We offer 20% discounts for non-profit organizations, startups, and open source groups.
+                Contact us to learn more about these special pricing options.
               </Paragraph>
 
               <Space size="large">
@@ -413,9 +406,10 @@ export default function PricingPage() {
                   type="primary" 
                   size="large"
                   icon={<TeamOutlined />}
+                  href="mailto:hello@biirbal.ai?subject=Special Discount Inquiry"
                   style={{ height: 48, fontSize: 16 }}
                 >
-                  Contact Sales
+                  Contact Us for Discounts
                 </Button>
                 
                 <Button 
@@ -435,9 +429,9 @@ export default function PricingPage() {
 
               <div style={{ marginTop: 40 }}>
                 <Space split={<Divider type="vertical" />}>
-                  <Text style={{ color: 'rgba(255,255,255,0.8)' }}>SOC 2 Compliant</Text>
-                  <Text style={{ color: 'rgba(255,255,255,0.8)' }}>GDPR Ready</Text>
-                  <Text style={{ color: 'rgba(255,255,255,0.8)' }}>99.9% SLA</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Non-Profits</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Startups</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Open Source</Text>
                 </Space>
               </div>
             </Space>
