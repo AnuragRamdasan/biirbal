@@ -172,7 +172,8 @@ export default function Dashboard() {
       await checkUsageWarnings(teamId)
       
       // Track dashboard visit with analytics
-      analytics.trackDashboard(teamId, userId)
+      const userId = localStorage.getItem('biirbal_user_id')
+      analytics.trackDashboard(teamId, userId || undefined)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
