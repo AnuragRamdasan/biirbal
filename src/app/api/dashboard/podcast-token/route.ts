@@ -37,7 +37,10 @@ export async function POST(request: NextRequest) {
       }
     })
     
-    const baseUrl = process.env.NEXTAUTH_URL || 'https://biirbal.ai'
+    // Get the base URL from the request or environment
+    const protocol = request.headers.get('x-forwarded-proto') || 'https'
+    const host = request.headers.get('host') || 'biirbal.ai'
+    const baseUrl = process.env.NEXTAUTH_URL || `${protocol}://${host}`
     const podcastFeedUrl = `${baseUrl}/api/podcast/${teamId}?token=${podcastToken}`
     
     return NextResponse.json({
@@ -77,8 +80,13 @@ export async function GET(request: NextRequest) {
     // For now, generate a new token each time
     // In production, you might want to store and reuse tokens
     const podcastToken = generatePodcastToken(teamId)
-    const baseUrl = process.env.NEXTAUTH_URL || 'https://biirbal.ai'
+    // Get the base URL from the request or environment
+    const protocol = request.headers.get('x-forwarded-proto') || 'https'
+    const host = request.headers.get('host') || 'biirbal.ai'
+    const baseUrl = process.env.NEXTAUTH_URL || `${protocol}://${host}`
     const podcastFeedUrl = `${baseUrl}/api/podcast/${teamId}?token=${podcastToken}`
+    
+    console.log('GET: Generating podcast feed URL:', { protocol, host, baseUrl, podcastFeedUrl }) // Debug log
     
     return NextResponse.json({
       success: true,

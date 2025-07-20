@@ -407,7 +407,10 @@ export default function Dashboard() {
       const response = await fetch(`/api/dashboard/podcast-token?teamId=${teamId}`)
       const data = await response.json()
       
+      console.log('Podcast API response:', data) // Debug log
+      
       if (data.success) {
+        console.log('Setting podcast URL:', data.podcastFeedUrl) // Debug log
         setPodcastFeedUrl(data.podcastFeedUrl)
         setPodcastModalVisible(true)
         analytics.trackFeature('podcast_feed_opened', { team_id: teamId })
