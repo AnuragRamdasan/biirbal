@@ -13,7 +13,10 @@ import {
   Switch, 
   Empty,
   Badge,
-  Tooltip
+  Tooltip,
+  Modal,
+  Input,
+  message
 } from 'antd'
 import {
   PlayCircleOutlined,
@@ -26,7 +29,9 @@ import {
   CheckCircleOutlined,
   LoadingOutlined,
   ExclamationCircleOutlined,
-  CalendarOutlined
+  CalendarOutlined,
+  ApiOutlined,
+  CopyOutlined
 } from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
 import { useAnalytics } from '@/hooks/useAnalytics'
@@ -68,6 +73,9 @@ export default function Dashboard() {
   const [usageWarning, setUsageWarning] = useState<string | null>(null)
   const [linkLimitExceeded, setLinkLimitExceeded] = useState<boolean>(false)
   const [isExceptionTeam, setIsExceptionTeam] = useState<boolean>(false)
+  const [podcastModalVisible, setPodcastModalVisible] = useState(false)
+  const [podcastFeedUrl, setPodcastFeedUrl] = useState<string>('')
+  const [podcastLoading, setPodcastLoading] = useState(false)
   const sessionStartTime = useRef<number>(Date.now())
   const audioStartTimes = useRef<Record<string, number>>({})
   
@@ -386,6 +394,46 @@ export default function Dashboard() {
     )
   }
 
+  const handlePodcastFeed = async () => {
+    const teamId = localStorage.getItem('biirbal_team_id')
+    if (!teamId) {
+      message.error('Team ID not found. Please refresh the page.')
+      return
+    }
+
+    setPodcastLoading(true)
+    try {
+      const response = await fetch(`/api/dashboard/podcast-token?teamId=${teamId}`)
+      const data = await response.json()
+      
+      if (data.success) {
+        setPodcastFeedUrl(data.podcastFeedUrl)
+        setPodcastModalVisible(true)
+        analytics.trackFeature('podcast_feed_opened', { team_id: teamId })
+      } else {
+        message.error(data.error || 'Failed to generate podcast feed')
+      }
+    } catch (error) {
+      console.error('Podcast feed error:', error)
+      message.error('Failed to generate podcast feed')
+    } finally {
+      setPodcastLoading(false)
+    }
+  }
+
+  const copyPodcastUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(podcastFeedUrl)
+      message.success('Podcast feed URL copied to clipboard!')
+      analytics.trackFeature('podcast_url_copied', { 
+        team_id: localStorage.getItem('biirbal_team_id') 
+      })
+    } catch (error) {
+      console.error('Copy failed:', error)
+      message.error('Failed to copy URL')
+    }
+  }
+
   // Filter links based on the toggle
   const filteredLinks = showListened 
     ? links  // Show all links when toggle is on
@@ -522,22 +570,40 @@ export default function Dashboard() {
                     <Text type="secondary" style={{ fontSize: 10 }}>Min Listened</Text>
                   </div>
                 </Col>
-                <Col xs={12} sm={8}>
-                  <Space size="small">
-                    <Text style={{ fontSize: 12 }}>Show All</Text>
-                    <Switch
-                      size="small"
-                      checked={showListened}
-                      onChange={(checked) => {
-                        setShowListened(checked)
-                        analytics.trackFeature('toggle_show_listened', { 
-                          show_listened: checked 
-                        })
-                      }}
-                      checkedChildren={<EyeOutlined />}
-                      unCheckedChildren={<EyeInvisibleOutlined />}
-                    />
-                  </Space>
+                <Col xs={24} sm={16}>
+                  <Row gutter={[8, 8]} align="middle" justify="end">
+                    <Col>
+                      <Space size="small">
+                        <Text style={{ fontSize: 12 }}>Show All</Text>
+                        <Switch
+                          size="small"
+                          checked={showListened}
+                          onChange={(checked) => {
+                            setShowListened(checked)
+                            analytics.trackFeature('toggle_show_listened', { 
+                              show_listened: checked 
+                            })
+                          }}
+                          checkedChildren={<EyeOutlined />}
+                          unCheckedChildren={<EyeInvisibleOutlined />}
+                        />
+                      </Space>
+                    </Col>
+                    <Col>
+                      <Tooltip title="Get podcast feed URL to add to your favorite podcast player">
+                        <Button
+                          type="primary"
+                          size="small"
+                          icon={<ApiOutlined />}
+                          onClick={handlePodcastFeed}
+                          loading={podcastLoading}
+                          style={{ fontSize: 11 }}
+                        >
+                          Podcast Feed
+                        </Button>
+                      </Tooltip>
+                    </Col>
+                  </Row>
                 </Col>
               </Row>
             </Col>
@@ -768,6 +834,69 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* Podcast Feed Modal */}
+      <Modal
+        title={
+          <Space>
+            <ApiOutlined />
+            Podcast Feed
+          </Space>
+        }
+        open={podcastModalVisible}
+        onCancel={() => setPodcastModalVisible(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setPodcastModalVisible(false)}>
+            Close
+          </Button>,
+          <Button 
+            key="copy" 
+            type="primary" 
+            icon={<CopyOutlined />}
+            onClick={copyPodcastUrl}
+          >
+            Copy URL
+          </Button>
+        ]}
+        width={600}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <Text type="secondary">
+            Use this URL to add your team's audio summaries to any podcast player like Apple Podcasts, 
+            Spotify, Google Podcasts, or Overcast.
+          </Text>
+        </div>
+        
+        <div style={{ marginBottom: 16 }}>
+          <Text strong>Podcast Feed URL:</Text>
+          <Input.TextArea
+            value={podcastFeedUrl}
+            readOnly
+            rows={3}
+            style={{ marginTop: 8 }}
+            placeholder="Click 'Get Podcast Feed' to generate your URL..."
+          />
+        </div>
+
+        <Alert
+          message="How to use"
+          description={
+            <div>
+              <p>1. Copy the URL above</p>
+              <p>2. Open your podcast app</p>
+              <p>3. Look for "Add by URL" or "Add RSS Feed" option</p>
+              <p>4. Paste the URL and subscribe</p>
+              <p style={{ marginTop: 12, marginBottom: 0 }}>
+                <Text type="secondary">
+                  💡 The feed includes your latest 50 audio summaries and updates automatically as you process new links.
+                </Text>
+              </p>
+            </div>
+          }
+          type="info"
+          showIcon
+        />
+      </Modal>
     </Layout>
   )
 }
