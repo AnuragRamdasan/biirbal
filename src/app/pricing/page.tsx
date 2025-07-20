@@ -234,27 +234,6 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* Hero Section */}
-        <div style={{ textAlign: 'center', padding: '60px 0', background: '#f8f9fa' }}>
-          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
-            <Space direction="vertical" size="large" style={{ width: '100%' }}>
-              <Badge count="Simple Pricing" style={{ backgroundColor: '#52c41a' }}>
-                <Title level={1} style={{ margin: 0 }}>
-                  <Space>
-                    <CrownOutlined />
-                    Choose Your Plan
-                  </Space>
-                </Title>
-              </Badge>
-              
-              <Paragraph style={{ fontSize: 18, color: '#666', maxWidth: 600, margin: '0 auto' }}>
-                Start with our free trial and scale as your team grows. 
-                All plans include core AI summarization features.
-              </Paragraph>
-            </Space>
-          </div>
-        </div>
-
         {/* Social Proof & Urgency */}
         <div style={{ padding: '40px 0', background: '#f0f8ff', borderLeft: '4px solid #1890ff' }}>
           <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
@@ -356,8 +335,28 @@ export default function PricingPage() {
         </div>
 
         {/* Pricing Cards */}
-        <div style={{ padding: '60px 0' }}>
+        <div style={{ textAlign: 'center', padding: '60px 0', background: '#f8f9fa' }}>
           <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
+            <Space direction="vertical" size="large" style={{ width: '100%' }}>
+              <Badge style={{ backgroundColor: '#52c41a' }}>
+                <Title level={1} style={{ margin: 0 }}>
+                  <Space>
+                    <CrownOutlined />
+                    Choose Your Plan
+                  </Space>
+                </Title>
+              </Badge>
+              
+              <Paragraph style={{ fontSize: 18, color: '#666', maxWidth: 600, margin: '0 auto' }}>
+                Start with our free trial and scale as your team grows. 
+                All plans include core AI summarization features.
+              </Paragraph>
+            </Space>
+          </div>
+        </div>
+
+        <div style={{ padding: '80px 0' }}>
+          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 48px' }}>
             
             {/* Monthly/Annual Toggle */}
             <div style={{ textAlign: 'center', marginBottom: 48 }}>
@@ -381,7 +380,7 @@ export default function PricingPage() {
                 )}
               </Space>
             </div>
-            <Row gutter={[24, 24]} justify="center">
+            <Row gutter={[48, 48]} justify="center">
               {plans.map((plan) => (
                 <Col xs={24} sm={12} md={6} key={plan.id}>
                   <Card
@@ -390,6 +389,8 @@ export default function PricingPage() {
                       position: 'relative',
                       borderRadius: '12px',
                       overflow: 'hidden',
+                      padding: '8px',
+                      margin: '8px',
                       ...(plan.isPopular && {
                         border: '2px solid #1890ff',
                         transform: 'scale(1.02)',
@@ -498,28 +499,6 @@ export default function PricingPage() {
                 </Col>
               ))}
             </Row>
-          </div>
-        </div>
-
-        {/* Risk Reversal */}
-        <div style={{ padding: '40px 0', textAlign: 'center' }}>
-          <div style={{ maxWidth: 800, margin: '0 auto', padding: '0 24px' }}>
-            <Space direction="vertical" size="middle">
-              <Space size="large" style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
-                <Badge count="30-Day Money Back" style={{ backgroundColor: '#52c41a' }}>
-                  <SafetyCertificateOutlined style={{ fontSize: 24, color: '#52c41a' }} />
-                </Badge>
-                <Badge count="No Setup Fees" style={{ backgroundColor: '#1890ff' }}>
-                  <CheckCircleOutlined style={{ fontSize: 24, color: '#1890ff' }} />
-                </Badge>
-                <Badge count="Cancel Anytime" style={{ backgroundColor: '#722ed1' }}>
-                  <StarOutlined style={{ fontSize: 24, color: '#722ed1' }} />
-                </Badge>
-              </Space>
-              <Text type="secondary">
-                Risk-free trial. If you're not saving time within 30 days, get your money back.
-              </Text>
-            </Space>
           </div>
         </div>
 
