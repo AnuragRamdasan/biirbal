@@ -9,9 +9,9 @@ export async function GET(request: NextRequest) {
     const db = await getDbClient()
     
     if (teamId) {
-      // Get specific team
+      // Get specific team - teamId is actually the Slack team ID
       const team = await db.team.findUnique({
-        where: { id: teamId },
+        where: { slackTeamId: teamId },
         include: { 
           subscription: true,
           users: { select: { id: true, slackUserId: true, isActive: true } },

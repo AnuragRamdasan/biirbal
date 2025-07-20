@@ -17,9 +17,9 @@ export interface UsageStats {
 export async function getTeamUsageStats(teamId: string): Promise<UsageStats> {
   const db = await getDbClient()
   
-  // Get team subscription
+  // Get team subscription - teamId is actually the Slack team ID
   const team = await db.team.findUnique({
-    where: { id: teamId },
+    where: { slackTeamId: teamId },
     include: { 
       subscription: true,
       users: { where: { isActive: true } },

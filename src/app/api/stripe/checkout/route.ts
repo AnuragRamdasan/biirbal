@@ -47,8 +47,9 @@ export async function POST(request: NextRequest) {
 
     // Get team and subscription info
     const db = await getDbClient()
+    // teamId from localStorage is actually the Slack team ID, not our internal ID
     const team = await db.team.findUnique({
-      where: { id: teamId },
+      where: { slackTeamId: teamId },
       include: { subscription: true }
     })
 

@@ -8,9 +8,9 @@ const db_1 = require("./db");
 const stripe_1 = require("./stripe");
 async function getTeamUsageStats(teamId) {
     const db = await (0, db_1.getDbClient)();
-    // Get team subscription
+    // Get team subscription - teamId is actually the Slack team ID
     const team = await db.team.findUnique({
-        where: { id: teamId },
+        where: { slackTeamId: teamId },
         include: {
             subscription: true,
             users: { where: { isActive: true } },
