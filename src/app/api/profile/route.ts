@@ -233,7 +233,7 @@ export async function GET(request: NextRequest) {
       usage: {
         monthlyUsage,
         totalListens,
-        monthlyLimit: team.subscription?.monthlyLimit || 50
+        monthlyLimit: team.subscription?.monthlyLinkLimit || 10
       },
       currentUser,
       userListenStats,

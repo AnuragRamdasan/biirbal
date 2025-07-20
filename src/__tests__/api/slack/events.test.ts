@@ -17,7 +17,7 @@ jest.mock('@/lib/prisma', () => ({
         isActive: true,
         subscription: {
           linksProcessed: 10,
-          monthlyLimit: 100,
+          monthlyLinkLimit: 100,
           updatedAt: new Date()
         }
       })

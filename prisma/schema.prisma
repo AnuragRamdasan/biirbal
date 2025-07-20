@@ -100,7 +100,7 @@ model Subscription {
   currentPeriodEnd  DateTime?
   linksProcessed    Int               @default(0)
   monthlyLimit      Int               @default(50)  // Keep for backwards compatibility
-  monthlyLinkLimit  Int               @default(30)
+  monthlyLinkLimit  Int               @default(10)
   userLimit         Int               @default(2)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt

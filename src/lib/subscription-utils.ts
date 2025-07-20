@@ -160,7 +160,7 @@ function mapStripeStatusToSubscriptionStatus(stripeStatus: string) {
 export function getUpgradeMessage(stats: UsageStats): string | null {
   if (stats.linkLimitExceeded) {
     if (stats.plan.id === 'free') {
-      return 'You\'ve reached your free plan limit of 30 links. Upgrade to Pro for 100 links/month or Enterprise for unlimited links.'
+      return 'You\'ve reached your free plan limit of 10 links. Upgrade to Pro for 100 links/month or Enterprise for unlimited links.'
     }
     if (stats.plan.id === 'pro') {
       return 'You\'ve reached your Pro plan limit of 100 links. Upgrade to Enterprise for unlimited links.'

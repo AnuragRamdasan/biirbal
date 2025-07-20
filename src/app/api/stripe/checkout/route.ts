@@ -110,8 +110,7 @@ export async function POST(request: NextRequest) {
             stripeCustomerId: customerId,
             status: 'TRIAL',
             planId: 'free',
-            monthlyLimit: 50,
-            monthlyLinkLimit: 30,
+            monthlyLinkLimit: 10,
             userLimit: 2,
             linksProcessed: 0
           }

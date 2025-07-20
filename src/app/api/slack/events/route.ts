@@ -104,7 +104,7 @@ async function handleMessage(event: any, teamId: string) {
       })
     }
 
-    if (team.subscription.linksProcessed >= team.subscription.monthlyLimit) {
+    if (team.subscription.linksProcessed >= team.subscription.monthlyLinkLimit) {
       // TODO: Send limit reached message
       return
     }

@@ -13,7 +13,7 @@ jest.mock('@/lib/stripe', () => ({
       id: 'starter',
       name: 'Starter',
       price: 9.99,
-      monthlyLimit: 100,
+      monthlyLinkLimit: 100,
       stripePriceId: 'price_starter'
     }
   }

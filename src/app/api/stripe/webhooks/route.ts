@@ -82,7 +82,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       stripeSubscriptionId: subscriptionId,
       status: 'ACTIVE',
       currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-      monthlyLimit: plan?.monthlyLimit || 100,
+      monthlyLinkLimit: plan?.monthlyLinkLimit || 100,
       linksProcessed: 0 // Reset counter on new subscription
     }
   })
@@ -105,7 +105,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     data: {
       status,
       currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-      monthlyLimit: plan?.monthlyLimit || 100
+      monthlyLinkLimit: plan?.monthlyLinkLimit || 100
     }
   })
 
@@ -120,7 +120,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     where: { teamId },
     data: {
       status: 'CANCELED',
-      monthlyLimit: 50, // Back to trial limits
+      monthlyLinkLimit: 10, // Back to free tier limits
       stripeSubscriptionId: null
     }
   })

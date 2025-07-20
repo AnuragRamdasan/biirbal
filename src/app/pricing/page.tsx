@@ -18,6 +18,7 @@ import {
 } from 'antd'
 import {
   CheckOutlined,
+  CheckCircleOutlined,
   CrownOutlined,
   RocketOutlined,
   StarOutlined,

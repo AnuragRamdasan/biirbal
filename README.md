@@ -1,12 +1,12 @@
-# 🧠 biirbal.ai
+# 🧠 Biirbal
 
-A production-ready Slack application that automatically generates 90-second audio summaries of links shared in your channels using AI-powered content extraction and text-to-speech technology.
+A production-ready Slack application that automatically generates 59-second audio summaries of links shared in your channels using AI-powered content extraction and text-to-speech technology.
 
 ## 🌟 Features
 
 - **🔗 Automatic Link Detection**: Monitors all channels where the bot is added and detects shared links
 - **📄 Smart Content Extraction**: Uses advanced readability algorithms to extract clean, meaningful content from web pages
-- **🎧 AI Audio Summaries**: Generates high-quality 90-second audio summaries using Google Cloud Text-to-Speech
+- **🎧 AI Audio Summaries**: Generates high-quality 59-second audio summaries using Google Cloud Text-to-Speech
 - **💳 Stripe Payment Integration**: Subscription-based pricing with trial periods
 - **🔒 Enterprise Security**: Production-ready security headers and validation
 - **📊 Usage Analytics**: Track link processing and subscription limits
@@ -126,10 +126,9 @@ docker-compose up
 
 ## 💰 Pricing Plans
 
-- **Free Trial**: 50 links/month, 7-day trial
-- **Starter**: $9.99/month, 100 links/month
-- **Pro**: $29.99/month, 500 links/month ⭐ Most Popular
-- **Enterprise**: $99.99/month, 2000 links/month + custom features
+- **Free**: 10 links/month, 2 users
+- **Pro**: $19.99/month, 100 links/month, 5 users ⭐ Most Popular  
+- **Enterprise**: $69.99/month, unlimited links + users
 
 ## 🔒 Security Features
 

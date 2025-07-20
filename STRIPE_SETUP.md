@@ -14,7 +14,7 @@ biirbal.ai offers three subscription tiers:
 
 | Plan | Price | Monthly Links | Users | Features |
 |------|-------|---------------|-------|----------|
-| **Free** | $0 | 30 | 2 | Basic Slack integration, Community support |
+| **Free** | $0 | 10 | 2 | Basic Slack integration, Community support |
 | **Pro** | $19.99 | 100 | 5 | Priority processing, Team analytics, Email support |
 | **Enterprise** | $69.99 | Unlimited | Unlimited | Custom integrations, Dedicated support, SLA |
 
@@ -94,7 +94,7 @@ The subscription limits are enforced through the database:
 ```sql
 -- Subscription table includes:
 planId VARCHAR -- 'free', 'pro', 'enterprise'
-monthlyLinkLimit INTEGER -- 30, 100, -1 (unlimited)
+monthlyLinkLimit INTEGER -- 10, 100, -1 (unlimited)
 userLimit INTEGER -- 2, 5, -1 (unlimited)
 linksProcessed INTEGER -- Current month usage
 ```
@@ -167,7 +167,7 @@ POST /api/admin/sync-subscription
 
 ### Testing Checklist
 
-- [ ] Free plan limits enforced (30 links, 2 users)
+- [ ] Free plan limits enforced (10 links, 2 users)
 - [ ] Pro plan checkout flow works
 - [ ] Enterprise plan checkout flow works
 - [ ] Webhook events properly update database
