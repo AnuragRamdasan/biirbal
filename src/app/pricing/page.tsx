@@ -58,6 +58,9 @@ export default function PricingPage() {
         return
       }
 
+      // Debug: Log the team ID being used
+      console.log('Using team ID:', teamId)
+
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -66,7 +69,17 @@ export default function PricingPage() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Checkout failed')
+        console.error('Checkout API error:', errorData)
+        
+        let errorMessage = errorData.error || 'Checkout failed'
+        if (errorData.details) {
+          errorMessage += `\n\nDetails: ${errorData.details}`
+        }
+        if (errorData.suggestion) {
+          errorMessage += `\n\n${errorData.suggestion}`
+        }
+        
+        throw new Error(errorMessage)
       }
 
       const { url } = await response.json()

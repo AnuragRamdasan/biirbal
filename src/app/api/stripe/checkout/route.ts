@@ -53,8 +53,18 @@ export async function POST(request: NextRequest) {
     })
 
     if (!team) {
+      console.log(`Team lookup failed for ID: ${teamId}`)
+      
+      // Check if any teams exist at all
+      const teamCount = await db.team.count()
+      console.log(`Total teams in database: ${teamCount}`)
+      
       return NextResponse.json(
-        { error: 'Team not found' },
+        { 
+          error: 'Team not found',
+          details: `No team found with ID: ${teamId}. Total teams in database: ${teamCount}`,
+          suggestion: 'Please ensure the biirbal.ai Slack app is properly installed for your workspace.'
+        },
         { status: 404 }
       )
     }
