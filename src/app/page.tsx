@@ -537,12 +537,12 @@ function HomeContent() {
             <Text type="secondary" style={{ fontSize: 16 }}>
               Trusted by <strong>500+ teams</strong> who've saved <strong>1000+ hours</strong> staying informed
             </Text>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '40px', flexWrap: 'wrap' }}>
+            {/* <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '40px', flexWrap: 'wrap' }}>
               <Text type="secondary" style={{ fontSize: 14 }}>🚀 YC Startups</Text>
               <Text type="secondary" style={{ fontSize: 14 }}>🏢 Fortune 500</Text>
               <Text type="secondary" style={{ fontSize: 14 }}>🎓 Universities</Text>
               <Text type="secondary" style={{ fontSize: 14 }}>💰 VC Firms</Text>
-            </div>
+            </div> */}
           </Space>
         </div>
       </div>
