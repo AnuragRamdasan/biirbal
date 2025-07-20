@@ -4,6 +4,7 @@
 export const EXCEPTION_TEAMS = [
   // Add Slack team IDs here for teams that should bypass all limits
   // Example: 'T1234567890',
+  'T08F83XV0QG'
 ]
 
 export function isExceptionTeam(teamId: string): boolean {

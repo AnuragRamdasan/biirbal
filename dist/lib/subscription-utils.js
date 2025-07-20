@@ -6,8 +6,11 @@ exports.updateSubscriptionFromStripe = updateSubscriptionFromStripe;
 exports.getUpgradeMessage = getUpgradeMessage;
 const db_1 = require("./db");
 const stripe_1 = require("./stripe");
+const exception_teams_1 = require("./exception-teams");
 async function getTeamUsageStats(teamId) {
     const db = await (0, db_1.getDbClient)();
+    // Check if this is an exception team first
+    const isException = (0, exception_teams_1.isExceptionTeam)(teamId);
     // Get team subscription - teamId is actually the Slack team ID
     const team = await db.team.findUnique({
         where: { slackTeamId: teamId },
@@ -35,7 +38,23 @@ async function getTeamUsageStats(teamId) {
     // Calculate current usage
     const currentLinks = team.processedLinks.length;
     const currentUsers = team.users.length;
-    // Check limits
+    // For exception teams, bypass all limits
+    if (isException) {
+        return {
+            currentLinks,
+            currentUsers,
+            plan,
+            canProcessMore: true,
+            linkLimitExceeded: false,
+            userLimitExceeded: false,
+            linkWarning: false,
+            userWarning: false,
+            linkUsagePercentage: 0,
+            userUsagePercentage: 0,
+            isExceptionTeam: true
+        };
+    }
+    // Check limits for regular teams
     const limits = (0, stripe_1.checkUsageLimits)(plan, currentLinks, currentUsers);
     // Calculate usage percentages
     const linkUsagePercentage = plan.monthlyLinkLimit === -1 ? 0 :
@@ -52,11 +71,16 @@ async function getTeamUsageStats(teamId) {
         linkWarning: limits.linkWarning,
         userWarning: limits.userWarning,
         linkUsagePercentage,
-        userUsagePercentage
+        userUsagePercentage,
+        isExceptionTeam: false
     };
 }
 async function canProcessNewLink(teamId) {
     try {
+        // Exception teams are always allowed
+        if ((0, exception_teams_1.isExceptionTeam)(teamId)) {
+            return { allowed: true };
+        }
         const stats = await getTeamUsageStats(teamId);
         if (stats.linkLimitExceeded) {
             return {
