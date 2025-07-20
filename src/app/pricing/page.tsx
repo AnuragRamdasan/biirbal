@@ -134,7 +134,7 @@ export default function PricingPage() {
         'Unlimited team members',
         'Priority processing',
         'Advanced analytics & reporting',
-        'Priority support (SLA)',
+        'Priority support',
       ]
     }
   ]
@@ -161,6 +161,18 @@ export default function PricingPage() {
   return (
     <Layout currentPage="pricing">
       <div style={{ padding: '24px 0' }}>
+        {/* Special Discount Banner */}
+        <div style={{ background: '#001529', color: 'white', padding: '16px 0' }}>
+          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
+            <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 14 }}>
+              💰 <strong>20% discount available</strong> for non-profits, startups, and open source groups.{' '}
+              <a href="mailto:hello@biirbal.ai?subject=Special Discount Inquiry" style={{ color: '#52c41a' }}>
+                Contact us
+              </a> to learn more.
+            </Text>
+          </div>
+        </div>
+
         {/* Hero Section */}
         <div style={{ textAlign: 'center', padding: '60px 0', background: '#f8f9fa' }}>
           <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
@@ -385,58 +397,6 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* Special Offers */}
-        <div style={{ padding: '60px 0', background: '#001529', color: 'white' }}>
-          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
-            <Space direction="vertical" size="large" style={{ width: '100%' }}>
-              <Title level={2} style={{ color: 'white' }}>
-                <Space>
-                  <SafetyCertificateOutlined />
-                  Special Discounts Available
-                </Space>
-              </Title>
-              
-              <Paragraph style={{ color: 'rgba(255,255,255,0.8)', fontSize: 18 }}>
-                We offer 20% discounts for non-profit organizations, startups, and open source groups.
-                Contact us to learn more about these special pricing options.
-              </Paragraph>
-
-              <Space size="large">
-                <Button 
-                  type="primary" 
-                  size="large"
-                  icon={<TeamOutlined />}
-                  href="mailto:hello@biirbal.ai?subject=Special Discount Inquiry"
-                  style={{ height: 48, fontSize: 16 }}
-                >
-                  Contact Us for Discounts
-                </Button>
-                
-                <Button 
-                  size="large" 
-                  ghost
-                  href="/"
-                  style={{ 
-                    borderColor: 'white',
-                    color: 'white',
-                    height: 48,
-                    fontSize: 16
-                  }}
-                >
-                  Start Free Trial
-                </Button>
-              </Space>
-
-              <div style={{ marginTop: 40 }}>
-                <Space split={<Divider type="vertical" />}>
-                  <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Non-Profits</Text>
-                  <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Startups</Text>
-                  <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Open Source</Text>
-                </Space>
-              </div>
-            </Space>
-          </div>
-        </div>
       </div>
 
       {/* Pricing-specific structured data */}

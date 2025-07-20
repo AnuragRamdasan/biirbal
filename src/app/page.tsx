@@ -511,15 +511,15 @@ function HomeContent() {
               <Space split={<Divider type="vertical" />}>
                 <Space>
                   <SafetyCertificateOutlined />
-                  <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Enterprise Security</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Secure & Reliable</Text>
                 </Space>
                 <Space>
                   <GlobalOutlined />
-                  <Text style={{ color: 'rgba(255,255,255,0.8)' }}>99.9% Uptime</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Fast Processing</Text>
                 </Space>
                 <Space>
                   <TeamOutlined />
-                  <Text style={{ color: 'rgba(255,255,255,0.8)' }}>24/7 Support</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Team Support</Text>
                 </Space>
               </Space>
             </div>
