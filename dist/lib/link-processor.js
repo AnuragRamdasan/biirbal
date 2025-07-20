@@ -28,7 +28,8 @@ async function processLink({ url, messageTs, channelId, teamId, slackTeamId }, u
         }
         // Check if usage limits are exceeded (but don't block processing)
         const usageCheck = await (0, subscription_utils_1.canProcessNewLink)(teamId);
-        const isLimitExceeded = !usageCheck.allowed && !(0, exception_teams_1.isExceptionTeam)(teamId);
+        const isExceptionTeamFlag = (0, exception_teams_1.isExceptionTeam)(teamId);
+        const isLimitExceeded = !usageCheck.allowed && !isExceptionTeamFlag;
         // Track link shared event
         try {
             const urlObj = new URL(url);

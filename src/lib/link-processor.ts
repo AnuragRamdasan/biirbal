@@ -44,7 +44,8 @@ export async function processLink({
 
     // Check if usage limits are exceeded (but don't block processing)
     const usageCheck = await canProcessNewLink(teamId)
-    const isLimitExceeded = !usageCheck.allowed && !isExceptionTeam(teamId)
+    const isExceptionTeamFlag = isExceptionTeam(teamId)
+    const isLimitExceeded = !usageCheck.allowed && !isExceptionTeamFlag
     
     // Track link shared event
     try {
