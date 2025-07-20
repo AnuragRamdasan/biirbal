@@ -146,18 +146,7 @@ function HomeContent() {
             <Col xs={24} lg={12}>
               <Space direction="vertical" size="large" style={{ width: '100%', textAlign: 'center' }}>
                 <Badge count="AI Powered" style={{ backgroundColor: '#52c41a' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '16px' }}>
-                    <img src="/logo.png" alt="Biirbal" height="60" style={{ filter: 'brightness(0) invert(1)' }} />
-                    <Title level={1} style={{ 
-                      color: 'white', 
-                      fontSize: 'clamp(2rem, 5vw, 3rem)', 
-                      marginBottom: 0, 
-                      lineHeight: 1,
-                      whiteSpace: 'nowrap'
-                    }}>
-                      Biirbal
-                    </Title>
-                  </div>
+                  <img src="/logo.png" alt="Biirbal" height="80" style={{ filter: 'brightness(0) invert(1)' }} />
                 </Badge>
                 
                 <Title level={2} style={{ color: 'white', fontWeight: 300, marginTop: 0 }}>
