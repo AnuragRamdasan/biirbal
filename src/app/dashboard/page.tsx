@@ -12,7 +12,8 @@ import {
   Alert, 
   Switch, 
   Empty,
-  Badge
+  Badge,
+  Tooltip
 } from 'antd'
 import {
   PlayCircleOutlined,
@@ -64,6 +65,7 @@ export default function Dashboard() {
   const [progress, setProgress] = useState(0)
   const [audioDurations, setAudioDurations] = useState<Record<string, number>>({})
   const [usageWarning, setUsageWarning] = useState<string | null>(null)
+  const [linkLimitExceeded, setLinkLimitExceeded] = useState<boolean>(false)
 
   useEffect(() => {
     fetchLinks()
@@ -162,6 +164,7 @@ export default function Dashboard() {
       if (response.ok) {
         const data = await response.json()
         setUsageWarning(data.warning)
+        setLinkLimitExceeded(data.linkLimitExceeded || false)
       }
     } catch (error) {
       console.error('Failed to check usage warnings:', error)
@@ -384,6 +387,22 @@ export default function Dashboard() {
           />
         )}
 
+        {/* Link Limit Exceeded Alert */}
+        {linkLimitExceeded && (
+          <Alert
+            message="Playback Restricted"
+            description="You've exceeded your monthly link limit. Audio playback is disabled. Links will continue to be processed and posted to Slack."
+            type="error"
+            showIcon
+            style={{ marginBottom: 16 }}
+            action={
+              <Button size="small" href="/pricing" type="primary">
+                Upgrade Now
+              </Button>
+            }
+          />
+        )}
+
         {/* Compact Header */}
         <Card size="small" style={{ marginBottom: 16 }}>
           <Row justify="space-between" align="middle">
@@ -583,24 +602,31 @@ export default function Dashboard() {
                     {record.processingStatus === 'COMPLETED' && record.audioFileUrl ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         {/* Play Button */}
-                        <Button
-                          type="primary"
-                          shape="circle"
-                          size="large"
-                          icon={currentlyPlaying === record.id ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            if (currentlyPlaying === record.id) {
-                              handlePauseAudio()
-                            } else {
-                              handlePlayAudio(record.id, record.audioFileUrl!)
-                            }
-                          }}
-                          style={{
-                            background: currentlyPlaying === record.id ? '#ff4d4f' : '#52c41a',
-                            borderColor: currentlyPlaying === record.id ? '#ff4d4f' : '#52c41a'
-                          }}
-                        />
+                        <Tooltip 
+                          title={linkLimitExceeded ? "Monthly limit exceeded. Upgrade your plan to access playback." : "Play audio summary"}
+                        >
+                          <Button
+                            type="primary"
+                            shape="circle"
+                            size="large"
+                            disabled={linkLimitExceeded}
+                            icon={currentlyPlaying === record.id ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (linkLimitExceeded) return
+                              if (currentlyPlaying === record.id) {
+                                handlePauseAudio()
+                              } else {
+                                handlePlayAudio(record.id, record.audioFileUrl!)
+                              }
+                            }}
+                            style={{
+                              background: linkLimitExceeded ? '#d9d9d9' : (currentlyPlaying === record.id ? '#ff4d4f' : '#52c41a'),
+                              borderColor: linkLimitExceeded ? '#d9d9d9' : (currentlyPlaying === record.id ? '#ff4d4f' : '#52c41a'),
+                              opacity: linkLimitExceeded ? 0.6 : 1
+                            }}
+                          />
+                        </Tooltip>
                         
                         {/* Progress Info */}
                         <div style={{ textAlign: 'center', minWidth: 80 }}>

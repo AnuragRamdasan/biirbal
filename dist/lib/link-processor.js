@@ -23,24 +23,9 @@ async function processLink({ url, messageTs, channelId, teamId, slackTeamId }, u
         if (!team) {
             throw new Error('Team not found');
         }
-        // Check subscription limits before processing
+        // Check if usage limits are exceeded (but don't block processing)
         const usageCheck = await (0, subscription_utils_1.canProcessNewLink)(teamId);
-        if (!usageCheck.allowed) {
-            console.log(`🚫 Link processing blocked: ${usageCheck.reason}`);
-            // Send limit notification to Slack
-            try {
-                const slackClient = new web_api_1.WebClient(team.accessToken);
-                await slackClient.chat.postMessage({
-                    channel: channelId,
-                    text: `⚠️ Unable to process link: ${usageCheck.reason}`,
-                    thread_ts: messageTs
-                });
-            }
-            catch (slackError) {
-                console.error('Failed to send limit notification to Slack:', slackError);
-            }
-            throw new Error(`Subscription limit exceeded: ${usageCheck.reason}`);
-        }
+        const isLimitExceeded = !usageCheck.allowed;
         const channel = await db.channel.upsert({
             where: { slackChannelId: channelId },
             update: { teamId, isActive: true },
@@ -110,10 +95,12 @@ async function processLink({ url, messageTs, channelId, teamId, slackTeamId }, u
         // 6. Notify Slack
         console.log('📱 Notifying Slack...');
         const slackClient = new web_api_1.WebClient(team.accessToken);
+        const baseMessage = `🎧 Audio summary ready: ${(0, config_1.getDashboardUrl)(processedLink.id)}`;
+        const limitMessage = isLimitExceeded ? `\n\n⚠️ Note: You've exceeded your monthly limit. Upgrade to access playback on dashboard.` : '';
         await slackClient.chat.postMessage({
             channel: channelId,
             thread_ts: messageTs,
-            text: `🎧 Audio summary ready: ${(0, config_1.getDashboardUrl)(processedLink.id)}`
+            text: baseMessage + limitMessage
         });
         if (updateProgress)
             await updateProgress(100);
