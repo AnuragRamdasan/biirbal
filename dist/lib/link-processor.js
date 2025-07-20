@@ -8,8 +8,10 @@ const config_1 = require("./config");
 const web_api_1 = require("@slack/web-api");
 const subscription_utils_1 = require("./subscription-utils");
 const exception_teams_1 = require("./exception-teams");
+const analytics_1 = require("./analytics");
 async function processLink({ url, messageTs, channelId, teamId, slackTeamId }, updateProgress) {
     console.log(`🚀 Processing: ${url}`);
+    const processingStartTime = Date.now();
     try {
         console.log('💾 Getting database client...');
         const db = await (0, db_1.getDbClient)();
@@ -27,6 +29,19 @@ async function processLink({ url, messageTs, channelId, teamId, slackTeamId }, u
         // Check if usage limits are exceeded (but don't block processing)
         const usageCheck = await (0, subscription_utils_1.canProcessNewLink)(teamId);
         const isLimitExceeded = !usageCheck.allowed && !(0, exception_teams_1.isExceptionTeam)(teamId);
+        // Track link shared event
+        try {
+            const urlObj = new URL(url);
+            (0, analytics_1.trackLinkShared)({
+                team_id: teamId,
+                channel_id: channelId,
+                link_domain: urlObj.hostname,
+                user_id: messageTs // Using messageTs as proxy for user identifier
+            });
+        }
+        catch (error) {
+            console.log('Failed to track link shared event:', error);
+        }
         const channel = await db.channel.upsert({
             where: { slackChannelId: channelId },
             update: { teamId, isActive: true },
@@ -106,9 +121,29 @@ async function processLink({ url, messageTs, channelId, teamId, slackTeamId }, u
         if (updateProgress)
             await updateProgress(100);
         console.log(`✅ Successfully processed: ${url}`);
+        // Track successful link processing
+        const processingTimeSeconds = (Date.now() - processingStartTime) / 1000;
+        (0, analytics_1.trackLinkProcessed)({
+            team_id: teamId,
+            link_id: processedLink.id,
+            processing_time_seconds: processingTimeSeconds,
+            success: true,
+            content_type: extractedContent.title ? 'article' : 'unknown',
+            word_count: extractedContent.text?.split(' ').length || 0
+        });
     }
     catch (error) {
         console.error('Link processing failed:', error);
+        // Track failed link processing
+        const processingTimeSeconds = (Date.now() - processingStartTime) / 1000;
+        (0, analytics_1.trackLinkProcessed)({
+            team_id: teamId,
+            link_id: 'failed',
+            processing_time_seconds: processingTimeSeconds,
+            success: false,
+            content_type: 'error',
+            word_count: 0
+        });
         throw error;
     }
 }

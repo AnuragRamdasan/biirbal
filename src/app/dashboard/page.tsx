@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { 
   Card, 
   Row, 
@@ -29,6 +29,7 @@ import {
   CalendarOutlined
 } from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
+import { useAnalytics } from '@/hooks/useAnalytics'
 
 const { Title, Text } = Typography
 
@@ -67,6 +68,15 @@ export default function Dashboard() {
   const [usageWarning, setUsageWarning] = useState<string | null>(null)
   const [linkLimitExceeded, setLinkLimitExceeded] = useState<boolean>(false)
   const [isExceptionTeam, setIsExceptionTeam] = useState<boolean>(false)
+  const sessionStartTime = useRef<number>(Date.now())
+  const audioStartTimes = useRef<Record<string, number>>({})
+  
+  // Initialize analytics
+  const analytics = useAnalytics({
+    autoTrackPageViews: true,
+    trackScrollDepth: true,
+    trackTimeOnPage: true
+  })
 
   useEffect(() => {
     fetchLinks()
@@ -152,6 +162,9 @@ export default function Dashboard() {
       
       // Check usage stats and warnings
       await checkUsageWarnings(teamId)
+      
+      // Track dashboard visit with analytics
+      analytics.trackDashboard(teamId, userId)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
@@ -167,6 +180,26 @@ export default function Dashboard() {
         setUsageWarning(data.warning)
         setLinkLimitExceeded(data.linkLimitExceeded || false)
         setIsExceptionTeam(data.isExceptionTeam || false)
+        
+        // Set analytics user properties
+        analytics.setUser({
+          team_id: teamId,
+          user_id: localStorage.getItem('biirbal_user_id') || undefined,
+          plan_type: data.plan?.id || 'free',
+          team_size: data.currentUsers || 1,
+          monthly_usage: data.currentLinks || 0,
+          usage_percentage: data.linkUsagePercentage || 0,
+          is_exception_team: data.isExceptionTeam || false
+        })
+        
+        // Track usage patterns
+        if (data.currentLinks && data.plan?.monthlyLinkLimit) {
+          analytics.trackUsage('monthly_links', data.currentLinks, data.plan.monthlyLinkLimit)
+        }
+        
+        if (data.currentUsers && data.plan?.userLimit) {
+          analytics.trackUsage('team_users', data.currentUsers, data.plan.userLimit)
+        }
       }
     } catch (error) {
       console.error('Failed to check usage warnings:', error)
@@ -207,10 +240,13 @@ export default function Dashboard() {
 
     // Create new audio element
     const audio = new Audio(audioUrl)
+    audioStartTimes.current[linkId] = Date.now()
     
     // Add event listeners for progress tracking
     audio.addEventListener('loadedmetadata', () => {
       setDuration(audio.duration)
+      // Track audio play event
+      analytics.trackAudioPlay(linkId, audio.duration, 'dashboard')
     })
     
     audio.addEventListener('timeupdate', () => {
@@ -221,6 +257,13 @@ export default function Dashboard() {
     })
     
     audio.addEventListener('ended', () => {
+      const listenDuration = audioStartTimes.current[linkId] 
+        ? (Date.now() - audioStartTimes.current[linkId]) / 1000 
+        : audio.duration
+      
+      // Track audio completion
+      analytics.trackAudioComplete(linkId, 100, listenDuration)
+      
       setCurrentlyPlaying(null)
       setAudioElement(null)
       setCurrentTime(0)
@@ -230,6 +273,7 @@ export default function Dashboard() {
     
     audio.addEventListener('error', () => {
       console.error('Audio playback failed')
+      analytics.trackFeature('audio_play_error', { link_id: linkId })
       setCurrentlyPlaying(null)
       setAudioElement(null)
       setCurrentTime(0)
@@ -244,6 +288,7 @@ export default function Dashboard() {
       trackListen(linkId)
     }).catch((error) => {
       console.error('Failed to play audio:', error)
+      analytics.trackFeature('audio_play_error', { link_id: linkId, error: error.message })
       setCurrentlyPlaying(null)
       setAudioElement(null)
       setCurrentTime(0)
@@ -253,7 +298,23 @@ export default function Dashboard() {
   }
 
   const handlePauseAudio = () => {
-    if (audioElement) {
+    if (audioElement && currentlyPlaying) {
+      const listenDuration = audioStartTimes.current[currentlyPlaying] 
+        ? (Date.now() - audioStartTimes.current[currentlyPlaying]) / 1000 
+        : 0
+      const completionPercentage = duration > 0 ? Math.round((currentTime / duration) * 100) : 0
+      
+      // Track partial completion if user listened to some of the audio
+      if (completionPercentage > 10) {
+        analytics.trackAudioComplete(currentlyPlaying, completionPercentage, listenDuration)
+      }
+      
+      analytics.trackFeature('audio_paused', { 
+        link_id: currentlyPlaying, 
+        completion_percentage: completionPercentage,
+        listen_duration: listenDuration
+      })
+      
       audioElement.pause()
       setCurrentlyPlaying(null)
       setAudioElement(null)
@@ -467,7 +528,12 @@ export default function Dashboard() {
                     <Switch
                       size="small"
                       checked={showListened}
-                      onChange={setShowListened}
+                      onChange={(checked) => {
+                        setShowListened(checked)
+                        analytics.trackFeature('toggle_show_listened', { 
+                          show_listened: checked 
+                        })
+                      }}
                       checkedChildren={<EyeOutlined />}
                       unCheckedChildren={<EyeInvisibleOutlined />}
                     />

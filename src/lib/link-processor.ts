@@ -5,6 +5,7 @@ import { getDashboardUrl } from './config'
 import { WebClient } from '@slack/web-api'
 import { canProcessNewLink } from './subscription-utils'
 import { isExceptionTeam } from './exception-teams'
+import { trackLinkShared, trackLinkProcessed, trackUsageLimit } from './analytics'
 
 interface ProcessLinkParams {
   url: string
@@ -22,6 +23,7 @@ export async function processLink({
   slackTeamId
 }: ProcessLinkParams, updateProgress?: (progress: number) => Promise<void>): Promise<void> {
   console.log(`🚀 Processing: ${url}`)
+  const processingStartTime = Date.now()
   
   try {
     console.log('💾 Getting database client...')
@@ -43,6 +45,19 @@ export async function processLink({
     // Check if usage limits are exceeded (but don't block processing)
     const usageCheck = await canProcessNewLink(teamId)
     const isLimitExceeded = !usageCheck.allowed && !isExceptionTeam(teamId)
+    
+    // Track link shared event
+    try {
+      const urlObj = new URL(url)
+      trackLinkShared({
+        team_id: teamId,
+        channel_id: channelId,
+        link_domain: urlObj.hostname,
+        user_id: messageTs // Using messageTs as proxy for user identifier
+      })
+    } catch (error) {
+      console.log('Failed to track link shared event:', error)
+    }
 
     const channel = await db.channel.upsert({
       where: { slackChannelId: channelId },
@@ -131,9 +146,32 @@ export async function processLink({
 
     if (updateProgress) await updateProgress(100)
     console.log(`✅ Successfully processed: ${url}`)
+    
+    // Track successful link processing
+    const processingTimeSeconds = (Date.now() - processingStartTime) / 1000
+    trackLinkProcessed({
+      team_id: teamId,
+      link_id: processedLink.id,
+      processing_time_seconds: processingTimeSeconds,
+      success: true,
+      content_type: extractedContent.title ? 'article' : 'unknown',
+      word_count: extractedContent.text?.split(' ').length || 0
+    })
 
   } catch (error) {
     console.error('Link processing failed:', error)
+    
+    // Track failed link processing
+    const processingTimeSeconds = (Date.now() - processingStartTime) / 1000
+    trackLinkProcessed({
+      team_id: teamId,
+      link_id: 'failed',
+      processing_time_seconds: processingTimeSeconds,
+      success: false,
+      content_type: 'error',
+      word_count: 0
+    })
+    
     throw error
   }
 }

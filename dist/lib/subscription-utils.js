@@ -7,6 +7,7 @@ exports.getUpgradeMessage = getUpgradeMessage;
 const db_1 = require("./db");
 const stripe_1 = require("./stripe");
 const exception_teams_1 = require("./exception-teams");
+const analytics_1 = require("./analytics");
 async function getTeamUsageStats(teamId) {
     const db = await (0, db_1.getDbClient)();
     // Check if this is an exception team first
@@ -107,7 +108,11 @@ async function updateSubscriptionFromStripe(teamId, stripeSubscriptionId, planId
     if (!plan) {
         throw new Error(`Invalid plan ID: ${planId}`);
     }
-    await db.subscription.upsert({
+    // Get current subscription to track changes
+    const currentSubscription = await db.subscription.findUnique({
+        where: { teamId }
+    });
+    const subscription = await db.subscription.upsert({
         where: { teamId },
         update: {
             stripeSubscriptionId,
@@ -127,6 +132,28 @@ async function updateSubscriptionFromStripe(teamId, stripeSubscriptionId, planId
             currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
         }
     });
+    // Track subscription events
+    const mappedStatus = mapStripeStatusToSubscriptionStatus(status);
+    if (mappedStatus === 'ACTIVE') {
+        // Track subscription started or upgraded
+        (0, analytics_1.trackSubscriptionStarted)({
+            team_id: teamId,
+            plan_type: planId,
+            previous_plan: currentSubscription?.planId,
+            currency: 'USD',
+            value: plan.price || 0
+        });
+    }
+    else if (mappedStatus === 'CANCELED') {
+        // Track subscription cancelled
+        (0, analytics_1.trackSubscriptionCancelled)({
+            team_id: teamId,
+            plan_type: planId,
+            previous_plan: currentSubscription?.planId,
+            currency: 'USD',
+            value: plan.price || 0
+        });
+    }
 }
 function getFirstDayOfCurrentMonth() {
     const now = new Date();

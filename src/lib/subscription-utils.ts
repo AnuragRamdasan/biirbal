@@ -1,6 +1,7 @@
 import { getDbClient } from './db'
 import { PRICING_PLANS, getPlanById, checkUsageLimits } from './stripe'
 import { isExceptionTeam } from './exception-teams'
+import { trackUsageLimit, trackSubscriptionStarted, trackSubscriptionCancelled } from './analytics'
 
 export interface UsageStats {
   currentLinks: number
@@ -138,7 +139,12 @@ export async function updateSubscriptionFromStripe(
     throw new Error(`Invalid plan ID: ${planId}`)
   }
 
-  await db.subscription.upsert({
+  // Get current subscription to track changes
+  const currentSubscription = await db.subscription.findUnique({
+    where: { teamId }
+  })
+
+  const subscription = await db.subscription.upsert({
     where: { teamId },
     update: {
       stripeSubscriptionId,
@@ -158,6 +164,29 @@ export async function updateSubscriptionFromStripe(
       currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
     }
   })
+
+  // Track subscription events
+  const mappedStatus = mapStripeStatusToSubscriptionStatus(status)
+  
+  if (mappedStatus === 'ACTIVE') {
+    // Track subscription started or upgraded
+    trackSubscriptionStarted({
+      team_id: teamId,
+      plan_type: planId as 'pro' | 'enterprise',
+      previous_plan: currentSubscription?.planId as 'free' | 'pro' | undefined,
+      currency: 'USD',
+      value: plan.price || 0
+    })
+  } else if (mappedStatus === 'CANCELED') {
+    // Track subscription cancelled
+    trackSubscriptionCancelled({
+      team_id: teamId,
+      plan_type: planId as 'pro' | 'enterprise',
+      previous_plan: currentSubscription?.planId as 'free' | 'pro' | undefined,
+      currency: 'USD',
+      value: plan.price || 0
+    })
+  }
 }
 
 function getFirstDayOfCurrentMonth(): Date {

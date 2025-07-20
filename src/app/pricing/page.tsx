@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Script from 'next/script'
 import { 
   Row, 
@@ -30,6 +30,7 @@ import {
   LoadingOutlined
 } from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
+import { useAnalytics } from '@/hooks/useAnalytics'
 
 const { Title, Text, Paragraph } = Typography
 
@@ -48,15 +49,40 @@ export default function PricingPage() {
   const [isAnnual, setIsAnnual] = useState(false)
   const [linksPerWeek, setLinksPerWeek] = useState(8)
   const [teamSize, setTeamSize] = useState(3)
+  
+  // Initialize analytics
+  const analytics = useAnalytics({
+    autoTrackPageViews: true,
+    trackScrollDepth: true
+  })
+  
+  // Track pricing page visit
+  useEffect(() => {
+    analytics.trackFeature('pricing_page_visit', {
+      initial_annual_toggle: isAnnual,
+      initial_links_per_week: linksPerWeek,
+      initial_team_size: teamSize
+    })
+  }, [])
 
   const handleSubscribe = async (planId: string) => {
     setLoading(planId)
+    
+    // Track checkout attempt
+    analytics.trackConversion('checkout_initiated', plans.find(p => p.id === planId)?.price)
+    analytics.trackFeature('plan_selected', {
+      plan_id: planId,
+      is_annual: isAnnual,
+      team_size_input: teamSize,
+      links_per_week_input: linksPerWeek
+    })
     
     try {
       // Get team ID from localStorage
       const teamId = localStorage.getItem('biirbal_team_id')
       
       if (!teamId) {
+        analytics.trackFeature('checkout_blocked_no_team', { plan_id: planId })
         alert('Please install the biirbal.ai Slack app first to access subscription plans.')
         window.location.href = '/'
         return
@@ -89,12 +115,21 @@ export default function PricingPage() {
       const { url } = await response.json()
       
       if (url) {
+        // Track successful checkout redirect
+        analytics.trackConversion('checkout_redirect_success', plans.find(p => p.id === planId)?.price)
         window.location.href = url
       } else {
         throw new Error('No checkout URL received')
       }
     } catch (error) {
       console.error('Checkout failed:', error)
+      
+      // Track checkout failure
+      analytics.trackFeature('checkout_failed', {
+        plan_id: planId,
+        error_message: error instanceof Error ? error.message : 'Unknown error'
+      })
+      
       alert(`Failed to start checkout: ${error instanceof Error ? error.message : 'Please try again.'}`)
     } finally {
       setLoading(null)
@@ -235,7 +270,13 @@ export default function PricingPage() {
                       min={1}
                       max={50}
                       value={linksPerWeek}
-                      onChange={setLinksPerWeek}
+                      onChange={(value) => {
+                        setLinksPerWeek(value)
+                        analytics.trackFeature('calculator_links_changed', {
+                          links_per_week: value,
+                          team_size: teamSize
+                        })
+                      }}
                       marks={{
                         1: '1',
                         10: '10',
@@ -254,7 +295,13 @@ export default function PricingPage() {
                       min={1}
                       max={20}
                       value={teamSize}
-                      onChange={setTeamSize}
+                      onChange={(value) => {
+                        setTeamSize(value)
+                        analytics.trackFeature('calculator_team_size_changed', {
+                          team_size: value,
+                          links_per_week: linksPerWeek
+                        })
+                      }}
                       marks={{
                         1: '1',
                         5: '5',
@@ -299,7 +346,14 @@ export default function PricingPage() {
                 <Text style={{ fontSize: 16, fontWeight: 500 }}>Monthly</Text>
                 <Switch 
                   checked={isAnnual}
-                  onChange={setIsAnnual}
+                  onChange={(checked) => {
+                    setIsAnnual(checked)
+                    analytics.trackFeature('billing_toggle_changed', {
+                      is_annual: checked,
+                      team_size: teamSize,
+                      links_per_week: linksPerWeek
+                    })
+                  }}
                   size="large"
                   style={{ backgroundColor: isAnnual ? '#1890ff' : '#d9d9d9' }}
                 />
