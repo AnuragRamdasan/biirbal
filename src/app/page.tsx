@@ -145,12 +145,20 @@ function HomeContent() {
           <Row justify="center" align="middle" gutter={[48, 48]}>
             <Col xs={24} lg={12}>
               <Space direction="vertical" size="large" style={{ width: '100%', textAlign: 'center' }}>
-                <Badge count="AI Powered" style={{ backgroundColor: '#52c41a' }}>
-                  <img src="/logo.png" alt="Biirbal" height="80" style={{ filter: 'brightness(0) invert(1)' }} />
-                </Badge>
+                <img src="/logo.png" alt="Biirbal" height="80" style={{ filter: 'brightness(0) invert(1)' }} />
                 
                 <Title level={2} style={{ color: 'white', fontWeight: 300, marginTop: 0 }}>
-                  AI Audio Summaries for Slack Teams
+                  <span style={{ 
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+                    color: 'white', 
+                    padding: '8px 16px', 
+                    borderRadius: '8px',
+                    fontWeight: 'bold',
+                    boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+                  }}>
+                    AI Audio Summaries
+                  </span>
+                  for Slack Teams
                 </Title>
                 
                 <Paragraph style={{ color: 'rgba(255,255,255,0.9)', fontSize: 18, lineHeight: 1.6 }}>
