@@ -10,26 +10,25 @@ datasource db {
 }
 
 model Team {
-  id          String   @id @default(cuid())
-  slackTeamId String   @unique
-  teamName    String?
-  accessToken String
-  botUserId   String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  channels     Channel[]
+  id             String          @id @default(cuid())
+  slackTeamId    String          @unique
+  teamName       String?
+  accessToken    String
+  botUserId      String?
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  channels       Channel[]
   processedLinks ProcessedLink[]
-  subscription Subscription?
-  users        User[]
+  subscription   Subscription?
+  users          User[]
 
   @@map("teams")
 }
 
 model User {
-  id              String   @id @default(cuid())
-  slackUserId     String   @unique
+  id              String        @id @default(cuid())
+  slackUserId     String        @unique
   teamId          String
   name            String?
   displayName     String?
@@ -40,91 +39,105 @@ model User {
   profileImage48  String?
   title           String?
   userAccessToken String?
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  audioListens AudioListen[]
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  audioListens    AudioListen[]
+  team            Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@map("users")
 }
 
 model Channel {
-  id            String   @id @default(cuid())
-  slackChannelId String  @unique
-  channelName   String?
-  teamId        String
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  id             String          @id @default(cuid())
+  slackChannelId String          @unique
+  channelName    String?
+  teamId         String
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  team           Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
   processedLinks ProcessedLink[]
 
   @@map("channels")
 }
 
 model ProcessedLink {
-  id              String   @id @default(cuid())
-  url             String
-  messageTs       String
-  channelId       String
-  teamId          String
-  title           String?
-  extractedText   String?
-  audioFileUrl    String?
-  audioFileKey    String?
-  ttsScript       String?
-  ogImage         String?
-  processingStatus ProcessingStatus @default(PENDING)
-  errorMessage    String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  team    Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  listens AudioListen[]
+  id                 String           @id @default(cuid())
+  url                String
+  messageTs          String
+  channelId          String
+  teamId             String
+  title              String?
+  extractedText      String?
+  audioFileUrl       String?
+  audioFileKey       String?
+  processingStatus   ProcessingStatus @default(PENDING)
+  errorMessage       String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  ttsScript          String?
+  ogImage            String?
+  isAccessRestricted Boolean          @default(false)
+  listens            AudioListen[]
+  channel            Channel          @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  team               Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@unique([url, messageTs, channelId])
   @@map("processed_links")
 }
 
 model Subscription {
-  id                String            @id @default(cuid())
-  teamId            String            @unique
-  stripeCustomerId  String?
+  id                   String             @id @default(cuid())
+  teamId               String             @unique
+  stripeCustomerId     String?
   stripeSubscriptionId String?
-  status            SubscriptionStatus @default(TRIAL)
-  planId            String            @default("free")
-  currentPeriodEnd  DateTime?
-  linksProcessed    Int               @default(0)
-  monthlyLimit      Int               @default(50)  // Keep for backwards compatibility
-  monthlyLinkLimit  Int               @default(10)
-  userLimit         Int               @default(2)
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-
-  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  status               SubscriptionStatus @default(TRIAL)
+  currentPeriodEnd     DateTime?
+  linksProcessed       Int                @default(0)
+  monthlyLimit         Int                @default(50)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  planId               String             @default("free")
+  monthlyLinkLimit     Int                @default(20)
+  userLimit            Int                @default(1)
+  team                 Team               @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@map("subscriptions")
 }
 
 model AudioListen {
-  id              String   @id @default(cuid())
+  id              String        @id @default(cuid())
   processedLinkId String
-  userId          String?  // Keep this for backwards compatibility and anonymous listens
-  slackUserId     String?  // New field for authenticated user tracking
+  userId          String?
   userAgent       String?
   ipAddress       String?
-  listenedAt      DateTime @default(now())
-  completed       Boolean  @default(false)
-  listenDuration  Int?     // Duration in seconds
-
-  processedLink ProcessedLink @relation(fields: [processedLinkId], references: [id], onDelete: Cascade)
-  user          User?         @relation(fields: [slackUserId], references: [slackUserId], onDelete: SetNull)
+  listenedAt      DateTime      @default(now())
+  completed       Boolean       @default(false)
+  listenDuration  Int?
+  slackUserId     String?
+  processedLink   ProcessedLink @relation(fields: [processedLinkId], references: [id], onDelete: Cascade)
+  user            User?         @relation(fields: [slackUserId], references: [slackUserId])
 
   @@map("audio_listens")
+}
+
+model QueuedJob {
+  id          String    @id
+  type        String
+  payload     Json
+  status      String    @default("PENDING")
+  priority    Int       @default(1)
+  retryCount  Int       @default(0)
+  maxRetries  Int       @default(3)
+  error       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  processedAt DateTime?
+
+  @@index([status, priority])
+  @@index([createdAt])
+  @@map("queued_jobs")
 }
 
 enum ProcessingStatus {
@@ -142,22 +155,4 @@ enum SubscriptionStatus {
   INCOMPLETE
   INCOMPLETE_EXPIRED
   UNPAID
-}
-
-model QueuedJob {
-  id          String   @id
-  type        String
-  payload     Json
-  status      String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
-  priority    Int      @default(1)
-  retryCount  Int      @default(0)
-  maxRetries  Int      @default(3)
-  error       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  processedAt DateTime?
-
-  @@index([status, priority])
-  @@index([createdAt])
-  @@map("queued_jobs")
 }

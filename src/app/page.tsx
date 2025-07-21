@@ -145,7 +145,7 @@ function HomeContent() {
           <Row justify="center" align="middle" gutter={[48, 48]}>
             <Col xs={24} lg={12}>
               <Space direction="vertical" size="large" style={{ width: '100%', textAlign: 'center' }}>
-                <img src="/logo.png" alt="Biirbal" height="60" style={{ filter: 'brightness(0) invert(1)' }} />
+                <img src="/logo.png" alt="Biirbal" height="20" style={{ filter: 'brightness(0) invert(1)' }} />
                 
                 <Title level={2} style={{ color: 'white', fontWeight: 300, marginTop: 0 }}>
                   <span style={{ 

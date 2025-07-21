@@ -181,25 +181,30 @@ function mapStripeStatusToSubscriptionStatus(stripeStatus) {
 function getUpgradeMessage(stats) {
     if (stats.linkLimitExceeded) {
         if (stats.plan.id === 'free') {
-            return 'You\'ve reached your free plan limit of 10 links. Upgrade to Pro for 100 links/month or Enterprise for unlimited links.';
-        }
-        if (stats.plan.id === 'pro') {
-            return 'You\'ve reached your Pro plan limit of 100 links. Upgrade to Enterprise for unlimited links.';
+            return 'You\'ve reached your free plan limit of 20 links. Upgrade to Starter for unlimited links.';
         }
     }
     if (stats.userLimitExceeded) {
         if (stats.plan.id === 'free') {
-            return 'You\'ve reached your free plan limit of 2 users. Upgrade to Pro for 5 users or Enterprise for unlimited users.';
+            return 'You\'ve reached your free plan limit of 1 user. Upgrade to Starter for individual use or Pro for up to 10 team members.';
+        }
+        if (stats.plan.id === 'starter') {
+            return 'Starter plan is for individual use only. Upgrade to Pro for up to 10 team members or Business for unlimited users.';
         }
         if (stats.plan.id === 'pro') {
-            return 'You\'ve reached your Pro plan limit of 5 users. Upgrade to Enterprise for unlimited users.';
+            return 'You\'ve reached your Pro plan limit of 10 users. Upgrade to Business for unlimited users.';
         }
     }
     if (stats.linkWarning && stats.plan.id === 'free') {
-        return `You've used ${stats.linkUsagePercentage}% of your free plan links. Consider upgrading to Pro for more capacity.`;
+        return `You've used ${stats.linkUsagePercentage}% of your free plan links. Consider upgrading to Starter for unlimited links.`;
     }
-    if (stats.userWarning && stats.plan.id === 'free') {
-        return `You're approaching your user limit (${stats.currentUsers}/${stats.plan.userLimit}). Consider upgrading for more users.`;
+    if (stats.userWarning) {
+        if (stats.plan.id === 'free') {
+            return `You're approaching your user limit (${stats.currentUsers}/${stats.plan.userLimit}). Consider upgrading for more users.`;
+        }
+        if (stats.plan.id === 'pro') {
+            return `You're approaching your user limit (${stats.currentUsers}/${stats.plan.userLimit}). Consider upgrading to Business for unlimited users.`;
+        }
     }
     return null;
 }

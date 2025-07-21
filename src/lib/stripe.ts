@@ -12,8 +12,8 @@ export const PRICING_PLANS = {
     id: 'free',
     name: 'Free',
     price: 0,
-    monthlyLinkLimit: 10,
-    userLimit: 2,
+    monthlyLinkLimit: 20,
+    userLimit: 1,
     stripePriceId: null
   },
   STARTER: {
@@ -21,8 +21,8 @@ export const PRICING_PLANS = {
     name: 'Starter',
     price: 9.00,
     annualPrice: 99.00,
-    monthlyLinkLimit: 50,
-    userLimit: 3,
+    monthlyLinkLimit: -1, // Unlimited links
+    userLimit: 1,
     stripePriceId: {
       monthly: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID || 'price_starter_monthly',
       annual: process.env.STRIPE_STARTER_ANNUAL_PRICE_ID || 'price_starter_annual'
@@ -33,7 +33,7 @@ export const PRICING_PLANS = {
     name: 'Pro',
     price: 39.00,
     annualPrice: 399.00,
-    monthlyLinkLimit: 200,
+    monthlyLinkLimit: -1, // Unlimited links
     userLimit: 10,
     stripePriceId: {
       monthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID || 'price_pro_monthly',
@@ -45,8 +45,8 @@ export const PRICING_PLANS = {
     name: 'Business',
     price: 99.00,
     annualPrice: 900.00,
-    monthlyLinkLimit: 1000,
-    userLimit: 25,
+    monthlyLinkLimit: -1, // Unlimited links
+    userLimit: -1, // Unlimited users
     stripePriceId: {
       monthly: process.env.STRIPE_BUSINESS_MONTHLY_PRICE_ID || 'price_business_monthly',
       annual: process.env.STRIPE_BUSINESS_ANNUAL_PRICE_ID || 'price_business_annual'

@@ -141,11 +141,11 @@ export default function PricingPage() {
     {
       id: 'free',
       name: 'Free',
-      description: 'Perfect for small teams getting started',
+      description: 'Perfect for individuals getting started',
       price: 0,
       features: [
-        '10 audio summaries per month',
-        'Up to 2 team members',
+        '20 audio summaries per month',
+        '1 user',
         '2-5 min processing time',
         'Basic Slack integration',
         'Community support'
@@ -154,12 +154,12 @@ export default function PricingPage() {
     {
       id: 'starter',
       name: 'Starter',
-      description: 'For small teams and individuals',
+      description: 'For individual power users',
       price: isAnnual ? 99.00 : 9.00,
       stripePriceId: 'price_starter',
       features: [
-        '50 audio summaries per month',
-        'Up to 3 team members',
+        'Unlimited audio summaries',
+        '1 user',
         '1-2 min processing time',
         'Basic analytics',
         'Email support'
@@ -173,7 +173,7 @@ export default function PricingPage() {
       isPopular: true,
       stripePriceId: 'price_pro',
       features: [
-        '200 audio summaries per month',
+        'Unlimited audio summaries',
         'Up to 10 team members',
         '30s processing time',
         'Advanced analytics & reports',
@@ -187,8 +187,8 @@ export default function PricingPage() {
       price: isAnnual ? 900.00 : 99.00,
       stripePriceId: 'price_business',
       features: [
-        '1000 audio summaries per month',
-        'Up to 25 team members',
+        'Unlimited audio summaries',
+        'Unlimited team members',
         '15s processing time',
         'Advanced analytics & reporting',
         'Priority support',
@@ -199,7 +199,7 @@ export default function PricingPage() {
   const faqItems = [
     {
       question: 'How does the free plan work?',
-      answer: 'You get 10 audio summaries completely free. No credit card required to start. Upgrade anytime to unlock faster processing and more features.'
+      answer: 'You get 20 audio summaries completely free for 1 user. No credit card required to start. Upgrade anytime to unlock unlimited links and more users.'
     },
     {
       question: 'How fast is the processing?',
@@ -311,21 +311,18 @@ export default function PricingPage() {
                 <div style={{ textAlign: 'center', marginTop: 24, padding: '20px', background: 'white', borderRadius: '8px' }}>
                                      <Text strong style={{ fontSize: 18, color: '#1890ff' }}>
                      Recommended Plan: {
-                       linksPerWeek * 4 <= 10 && teamSize <= 2 ? 'Free' :
-                       linksPerWeek * 4 <= 50 && teamSize <= 3 ? 'Starter' :
-                       linksPerWeek * 4 <= 200 && teamSize <= 10 ? 'Pro' : 
+                       teamSize <= 1 ? (linksPerWeek * 4 <= 20 ? 'Free' : 'Starter') :
+                       teamSize <= 10 ? 'Pro' : 
                        'Business'
                      }
                    </Text>
                    <br />
                    <Text type="secondary">
-                     {linksPerWeek * 4 <= 10 && teamSize <= 2 
-                       ? 'Perfect for getting started!'
-                       : linksPerWeek * 4 <= 50 && teamSize <= 3
-                       ? 'Great for small teams with faster processing'
-                       : linksPerWeek * 4 <= 200 && teamSize <= 10
+                     {teamSize <= 1 
+                       ? (linksPerWeek * 4 <= 20 ? 'Perfect for getting started!' : 'Great for individual power users')
+                       : teamSize <= 10
                        ? 'Ideal for growing teams with advanced features'
-                       : 'Best for large organizations needing high capacity'
+                       : 'Best for large organizations needing unlimited seats'
                      }
                    </Text>
                 </div>

@@ -5,6 +5,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PRICING_PLANS = exports.stripe = void 0;
 exports.getPlanById = getPlanById;
+exports.getPriceId = getPriceId;
+exports.getPlanPrice = getPlanPrice;
 exports.checkUsageLimits = checkUsageLimits;
 exports.createStripeCustomer = createStripeCustomer;
 exports.createCheckoutSession = createCheckoutSession;
@@ -22,30 +24,70 @@ exports.PRICING_PLANS = {
         id: 'free',
         name: 'Free',
         price: 0,
-        monthlyLinkLimit: 10,
-        userLimit: 2,
+        monthlyLinkLimit: 20,
+        userLimit: 1,
         stripePriceId: null
+    },
+    STARTER: {
+        id: 'starter',
+        name: 'Starter',
+        price: 9.00,
+        annualPrice: 99.00,
+        monthlyLinkLimit: -1, // Unlimited links
+        userLimit: 1,
+        stripePriceId: {
+            monthly: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID || 'price_starter_monthly',
+            annual: process.env.STRIPE_STARTER_ANNUAL_PRICE_ID || 'price_starter_annual'
+        }
     },
     PRO: {
         id: 'pro',
         name: 'Pro',
-        price: 19.99,
-        monthlyLinkLimit: 100,
-        userLimit: 5,
-        stripePriceId: process.env.STRIPE_PRO_PRICE_ID || 'price_pro'
+        price: 39.00,
+        annualPrice: 399.00,
+        monthlyLinkLimit: -1, // Unlimited links
+        userLimit: 10,
+        stripePriceId: {
+            monthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID || 'price_pro_monthly',
+            annual: process.env.STRIPE_PRO_ANNUAL_PRICE_ID || 'price_pro_annual'
+        }
     },
-    ENTERPRISE: {
-        id: 'enterprise',
-        name: 'Enterprise',
-        price: 69.99,
-        monthlyLinkLimit: -1, // -1 means unlimited
-        userLimit: -1, // -1 means unlimited
-        stripePriceId: process.env.STRIPE_ENTERPRISE_PRICE_ID || 'price_enterprise'
+    BUSINESS: {
+        id: 'business',
+        name: 'Business',
+        price: 99.00,
+        annualPrice: 900.00,
+        monthlyLinkLimit: -1, // Unlimited links
+        userLimit: -1, // Unlimited users
+        stripePriceId: {
+            monthly: process.env.STRIPE_BUSINESS_MONTHLY_PRICE_ID || 'price_business_monthly',
+            annual: process.env.STRIPE_BUSINESS_ANNUAL_PRICE_ID || 'price_business_annual'
+        }
     }
 };
 // Helper function to get plan details
 function getPlanById(planId) {
     return Object.values(exports.PRICING_PLANS).find(plan => plan.id === planId);
+}
+// Helper function to get price ID based on billing cycle
+function getPriceId(plan, isAnnual) {
+    if (!plan.stripePriceId)
+        return null;
+    if (typeof plan.stripePriceId === 'string') {
+        // Backward compatibility for old format
+        return plan.stripePriceId;
+    }
+    if (typeof plan.stripePriceId === 'object' && plan.stripePriceId.monthly && plan.stripePriceId.annual) {
+        return isAnnual ? plan.stripePriceId.annual : plan.stripePriceId.monthly;
+    }
+    return null;
+}
+// Helper function to get plan price based on billing cycle
+function getPlanPrice(plan, isAnnual) {
+    if (isAnnual && 'annualPrice' in plan) {
+        return plan.annualPrice;
+    }
+    return plan.price;
 }
 // Helper function to check if usage is within limits
 function checkUsageLimits(plan, currentLinks, currentUsers) {

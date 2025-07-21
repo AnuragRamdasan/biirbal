@@ -101,10 +101,10 @@ Make sure your Stripe webhook endpoint handles these events:
 
 | Plan | Monthly Price | Annual Price | Discount | Monthly Limit | User Limit |
 |------|---------------|--------------|----------|---------------|------------|
-| Free | $0 | $0 | - | 10 | 2 |
-| Starter | $9.00 | $99.00 | 8% | 50 | 3 |
-| Pro | $39.00 | $399.00 | 15% | 200 | 10 |
-| Business | $99.00 | $900.00 | 24% | 1000 | 25 |
+| Free | $0 | $0 | - | 20 | 1 |
+| Starter | $9.00 | $99.00 | 8% | Unlimited | 1 |
+| Pro | $39.00 | $399.00 | 15% | Unlimited | 10 |
+| Business | $99.00 | $900.00 | 24% | Unlimited | Unlimited |
 
 ## Troubleshooting
 
