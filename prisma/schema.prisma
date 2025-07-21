@@ -115,6 +115,7 @@ model AudioListen {
   listenedAt      DateTime      @default(now())
   completed       Boolean       @default(false)
   listenDuration  Int?
+  resumePosition  Int?          @default(0)
   slackUserId     String?
   processedLink   ProcessedLink @relation(fields: [processedLinkId], references: [id], onDelete: Cascade)
   user            User?         @relation(fields: [slackUserId], references: [slackUserId])

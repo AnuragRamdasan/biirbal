@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
     // Get listening statistics for each team member
     const teamMembersWithStats = await Promise.all(
       teamMembers.map(async (member) => {
-        const [memberTotalListens, memberMonthlyListens, memberCompletedListens] = await Promise.all([
+        const [memberTotalListens, memberMonthlyListens, memberCompletedListens, memberListenDurations] = await Promise.all([
           prisma.audioListen.count({
             where: {
               slackUserId: member.slackUserId,
@@ -114,8 +114,38 @@ export async function GET(request: NextRequest) {
               },
               completed: true
             }
+          }),
+          // Calculate total minutes listened
+          prisma.audioListen.findMany({
+            where: {
+              slackUserId: member.slackUserId,
+              processedLink: {
+                teamId: team.id
+              }
+            },
+            select: {
+              listenDuration: true,
+              completed: true,
+              processedLink: {
+                select: {
+                  audioFileUrl: true
+                }
+              }
+            }
           })
         ])
+
+        // Calculate minutes listened from actual durations
+        const totalSecondsListened = memberListenDurations.reduce((total, listen) => {
+          if (listen.listenDuration && listen.listenDuration > 0) {
+            return total + listen.listenDuration
+          }
+          // For completed listens without duration, estimate ~59 seconds
+          if (listen.completed && listen.processedLink.audioFileUrl) {
+            return total + 59
+          }
+          return total
+        }, 0)
 
         return {
           id: member.slackUserId,
@@ -133,7 +163,8 @@ export async function GET(request: NextRequest) {
           listenStats: {
             totalListens: memberTotalListens,
             monthlyListens: memberMonthlyListens,
-            completedListens: memberCompletedListens
+            completedListens: memberCompletedListens,
+            minutesListened: Math.round(totalSecondsListened / 60)
           }
         }
       })
@@ -176,41 +207,71 @@ export async function GET(request: NextRequest) {
           }
 
           // Get user-specific listen statistics
-          const userTotalListens = await prisma.audioListen.count({
-            where: {
-              slackUserId: userId,
-              processedLink: {
-                teamId: team.id
+          const [userTotalListens, userMonthlyListens, userCompletedListens, userListenDurations] = await Promise.all([
+            prisma.audioListen.count({
+              where: {
+                slackUserId: userId,
+                processedLink: {
+                  teamId: team.id
+                }
               }
-            }
-          })
-
-          const userMonthlyListens = await prisma.audioListen.count({
-            where: {
-              slackUserId: userId,
-              processedLink: {
-                teamId: team.id
-              },
-              listenedAt: {
-                gte: currentMonth
+            }),
+            prisma.audioListen.count({
+              where: {
+                slackUserId: userId,
+                processedLink: {
+                  teamId: team.id
+                },
+                listenedAt: {
+                  gte: currentMonth
+                }
               }
-            }
-          })
-
-          const userCompletedListens = await prisma.audioListen.count({
-            where: {
-              slackUserId: userId,
-              processedLink: {
-                teamId: team.id
+            }),
+            prisma.audioListen.count({
+              where: {
+                slackUserId: userId,
+                processedLink: {
+                  teamId: team.id
+                },
+                completed: true
+              }
+            }),
+            prisma.audioListen.findMany({
+              where: {
+                slackUserId: userId,
+                processedLink: {
+                  teamId: team.id
+                }
               },
-              completed: true
+              select: {
+                listenDuration: true,
+                completed: true,
+                processedLink: {
+                  select: {
+                    audioFileUrl: true
+                  }
+                }
+              }
+            })
+          ])
+
+          // Calculate minutes listened from actual durations
+          const userTotalSecondsListened = userListenDurations.reduce((total, listen) => {
+            if (listen.listenDuration && listen.listenDuration > 0) {
+              return total + listen.listenDuration
             }
-          })
+            // For completed listens without duration, estimate ~59 seconds
+            if (listen.completed && listen.processedLink.audioFileUrl) {
+              return total + 59
+            }
+            return total
+          }, 0)
 
           userListenStats = {
             totalListens: userTotalListens,
             monthlyListens: userMonthlyListens,
-            completedListens: userCompletedListens
+            completedListens: userCompletedListens,
+            minutesListened: Math.round(userTotalSecondsListened / 60)
           }
         }
       } catch (error) {

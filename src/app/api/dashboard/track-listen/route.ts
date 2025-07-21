@@ -18,15 +18,34 @@ export async function POST(request: NextRequest) {
     const ipAddress = forwardedFor ? forwardedFor.split(',')[0] : 
       request.headers.get('x-real-ip') || undefined
 
-    // Create a new listen record
+    // Check if user already has an incomplete listen record for this link
     const db = await getDbClient()
+    
+    if (slackUserId) {
+      const existingListen = await db.audioListen.findFirst({
+        where: {
+          processedLinkId: linkId,
+          slackUserId: slackUserId,
+          completed: false
+        },
+        orderBy: { listenedAt: 'desc' }
+      })
+
+      if (existingListen) {
+        // Return existing incomplete listen record to resume from
+        return NextResponse.json({ listen: existingListen })
+      }
+    }
+
+    // Create a new listen record
     const listen = await db.audioListen.create({
       data: {
         processedLinkId: linkId,
         userId, // Keep for backwards compatibility
         slackUserId, // New field for authenticated users
         userAgent,
-        ipAddress
+        ipAddress,
+        resumePosition: 0
       }
     })
 

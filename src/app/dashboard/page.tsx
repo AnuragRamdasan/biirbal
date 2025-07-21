@@ -51,6 +51,7 @@ interface AudioListen {
   listenedAt: string
   completed: boolean
   listenDuration: number | null
+  resumePosition?: number | null
 }
 
 export default function Dashboard() {
@@ -68,7 +69,9 @@ export default function Dashboard() {
   const [usageWarning, setUsageWarning] = useState<string | null>(null)
   const [linkLimitExceeded, setLinkLimitExceeded] = useState<boolean>(false)
   const [isExceptionTeam, setIsExceptionTeam] = useState<boolean>(false)
+  const [currentListenRecord, setCurrentListenRecord] = useState<string | null>(null)
   const audioStartTimes = useRef<Record<string, number>>({})
+  const progressUpdateInterval = useRef<NodeJS.Timeout | null>(null)
   
   // Initialize analytics
   const analytics = useAnalytics({
@@ -100,7 +103,12 @@ export default function Dashboard() {
       }, 500)
     }
     
-    return () => window.removeEventListener('resize', checkIfMobile)
+    return () => {
+      window.removeEventListener('resize', checkIfMobile)
+      if (progressUpdateInterval.current) {
+        clearInterval(progressUpdateInterval.current)
+      }
+    }
   }, [])
 
   // Load audio durations for completed links
@@ -206,12 +214,12 @@ export default function Dashboard() {
     }
   }
 
-  const trackListen = async (linkId: string) => {
+  const trackListen = async (linkId: string): Promise<{ listen: any } | null> => {
     try {
       // Get the current user ID from localStorage if available
       const slackUserId = localStorage.getItem('biirbal_user_id')
       
-      await fetch('/api/dashboard/track-listen', {
+      const response = await fetch('/api/dashboard/track-listen', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -221,22 +229,62 @@ export default function Dashboard() {
           slackUserId: slackUserId
         }),
       })
+      
+      if (!response.ok) {
+        throw new Error('Failed to track listen')
+      }
+      
+      return await response.json()
     } catch (error) {
       console.error('Failed to track listen:', error)
+      return null
     }
   }
 
-  const handlePlayAudio = (linkId: string, audioUrl: string) => {
+  const updateListenProgress = async (listenId: string, duration: number, currentTime: number, completed: boolean = false) => {
+    try {
+      await fetch('/api/dashboard/complete-listen', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          linkId: currentlyPlaying,
+          listenId: listenId,
+          duration: duration,
+          currentTime: currentTime,
+          completed: completed
+        }),
+      })
+    } catch (error) {
+      console.error('Failed to update listen progress:', error)
+    }
+  }
+
+  const handlePlayAudio = async (linkId: string, audioUrl: string) => {
     // Stop any currently playing audio
     if (audioElement) {
       audioElement.pause()
-      audioElement.currentTime = 0
+      if (currentListenRecord && progressUpdateInterval.current) {
+        clearInterval(progressUpdateInterval.current)
+        await updateListenProgress(currentListenRecord, audioElement.duration, audioElement.currentTime, false)
+      }
     }
 
     // Reset progress state
     setCurrentTime(0)
     setProgress(0)
     setDuration(0)
+
+    // Track listen and get resume position
+    const trackResult = await trackListen(linkId)
+    if (!trackResult) {
+      console.error('Failed to start tracking listen')
+      return
+    }
+
+    const listenRecord = trackResult.listen
+    setCurrentListenRecord(listenRecord.id)
 
     // Create new audio element
     const audio = new Audio(audioUrl)
@@ -245,6 +293,15 @@ export default function Dashboard() {
     // Add event listeners for progress tracking
     audio.addEventListener('loadedmetadata', () => {
       setDuration(audio.duration)
+      
+      // Resume from saved position if available
+      const resumePosition = listenRecord.resumePosition || 0
+      if (resumePosition > 0 && resumePosition < audio.duration - 5) {
+        audio.currentTime = resumePosition
+        setCurrentTime(resumePosition)
+        setProgress(resumePosition / audio.duration)
+      }
+      
       // Track audio play event
       analytics.trackAudioPlay(linkId, audio.duration, 'dashboard')
     })
@@ -256,7 +313,7 @@ export default function Dashboard() {
       }
     })
     
-    audio.addEventListener('ended', () => {
+    audio.addEventListener('ended', async () => {
       const listenDuration = audioStartTimes.current[linkId] 
         ? (Date.now() - audioStartTimes.current[linkId]) / 1000 
         : audio.duration
@@ -264,8 +321,17 @@ export default function Dashboard() {
       // Track audio completion
       analytics.trackAudioComplete(linkId, 100, listenDuration)
       
+      // Mark listen as completed
+      if (currentListenRecord) {
+        await updateListenProgress(currentListenRecord, audio.duration, audio.duration, true)
+        if (progressUpdateInterval.current) {
+          clearInterval(progressUpdateInterval.current)
+        }
+      }
+      
       setCurrentlyPlaying(null)
       setAudioElement(null)
+      setCurrentListenRecord(null)
       setCurrentTime(0)
       setProgress(0)
       setDuration(0)
@@ -276,33 +342,53 @@ export default function Dashboard() {
       analytics.trackFeature('audio_play_error', { link_id: linkId })
       setCurrentlyPlaying(null)
       setAudioElement(null)
+      setCurrentListenRecord(null)
       setCurrentTime(0)
       setProgress(0)
       setDuration(0)
+      if (progressUpdateInterval.current) {
+        clearInterval(progressUpdateInterval.current)
+      }
     })
 
     // Start playing
     audio.play().then(() => {
       setCurrentlyPlaying(linkId)
       setAudioElement(audio)
-      trackListen(linkId)
+      
+      // Set up periodic progress updates
+      progressUpdateInterval.current = setInterval(() => {
+        if (audio.duration > 0 && currentListenRecord) {
+          updateListenProgress(currentListenRecord, audio.duration, audio.currentTime, false)
+        }
+      }, 10000) // Update every 10 seconds
+      
     }).catch((error) => {
       console.error('Failed to play audio:', error)
       analytics.trackFeature('audio_play_error', { link_id: linkId, error: error.message })
       setCurrentlyPlaying(null)
       setAudioElement(null)
+      setCurrentListenRecord(null)
       setCurrentTime(0)
       setProgress(0)
       setDuration(0)
     })
   }
 
-  const handlePauseAudio = () => {
+  const handlePauseAudio = async () => {
     if (audioElement && currentlyPlaying) {
       const listenDuration = audioStartTimes.current[currentlyPlaying] 
         ? (Date.now() - audioStartTimes.current[currentlyPlaying]) / 1000 
         : 0
       const completionPercentage = duration > 0 ? Math.round((currentTime / duration) * 100) : 0
+      
+      // Save current progress
+      if (currentListenRecord) {
+        await updateListenProgress(currentListenRecord, audioElement.duration, audioElement.currentTime, false)
+        if (progressUpdateInterval.current) {
+          clearInterval(progressUpdateInterval.current)
+        }
+      }
       
       // Track partial completion if user listened to some of the audio
       if (completionPercentage > 10) {
@@ -318,6 +404,7 @@ export default function Dashboard() {
       audioElement.pause()
       setCurrentlyPlaying(null)
       setAudioElement(null)
+      setCurrentListenRecord(null)
       setCurrentTime(0)
       setProgress(0)
       setDuration(0)
@@ -375,13 +462,18 @@ export default function Dashboard() {
   const getMinutesListened = () => {
     return Math.round(
       links.reduce((total, link) => {
-        // Only calculate for tracks where we have the actual duration
-        const trackDuration = audioDurations[link.id]
-        if (trackDuration) {
-          const listenCount = link.listens.length
-          return total + (trackDuration * listenCount)
-        }
-        return total
+        // Sum up the actual listen durations from completed listens
+        const listenTime = link.listens.reduce((linkTotal, listen) => {
+          if (listen.listenDuration && listen.listenDuration > 0) {
+            return linkTotal + listen.listenDuration
+          }
+          // Fallback to track duration for completed listens without duration
+          if (listen.completed && audioDurations[link.id]) {
+            return linkTotal + audioDurations[link.id]
+          }
+          return linkTotal
+        }, 0)
+        return total + listenTime
       }, 0) / 60
     )
   }
@@ -578,12 +670,12 @@ export default function Dashboard() {
                   cursor: 'pointer'
                 }}
                 bodyStyle={{ padding: '16px' }}
-                onClick={() => {
+                onClick={async () => {
                   if (record.processingStatus === 'COMPLETED' && record.audioFileUrl) {
                     if (currentlyPlaying === record.id) {
-                      handlePauseAudio()
+                      await handlePauseAudio()
                     } else {
-                      handlePlayAudio(record.id, record.audioFileUrl)
+                      await handlePlayAudio(record.id, record.audioFileUrl)
                     }
                   }
                 }}
@@ -700,13 +792,13 @@ export default function Dashboard() {
                             size="large"
                             disabled={linkLimitExceeded && !isExceptionTeam}
                             icon={currentlyPlaying === record.id ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
-                            onClick={(e) => {
+                            onClick={async (e) => {
                               e.stopPropagation()
                               if (linkLimitExceeded && !isExceptionTeam) return
                               if (currentlyPlaying === record.id) {
-                                handlePauseAudio()
+                                await handlePauseAudio()
                               } else {
-                                handlePlayAudio(record.id, record.audioFileUrl!)
+                                await handlePlayAudio(record.id, record.audioFileUrl!)
                               }
                             }}
                             style={{

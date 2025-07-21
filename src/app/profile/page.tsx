@@ -47,6 +47,7 @@ interface TeamMember {
     totalListens: number
     monthlyListens: number
     completedListens: number
+    minutesListened: number
   }
 }
 
@@ -87,6 +88,7 @@ interface TeamData {
     totalListens: number
     monthlyListens: number
     completedListens: number
+    minutesListened: number
   }
   teamMembers?: TeamMember[]
 }
@@ -221,7 +223,7 @@ export default function ProfilePage() {
     {
       title: 'Member',
       key: 'member',
-      width: '35%',
+      width: '30%',
       render: (_: any, member: TeamMember) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Avatar 
@@ -245,7 +247,7 @@ export default function ProfilePage() {
     {
       title: 'Total',
       key: 'total',
-      width: '15%',
+      width: '12%',
       render: (_: any, member: TeamMember) => (
         <div style={{ textAlign: 'center', fontSize: 14, fontWeight: 'bold', color: '#52c41a' }}>
           {member.listenStats.totalListens}
@@ -255,7 +257,7 @@ export default function ProfilePage() {
     {
       title: 'Monthly',
       key: 'monthly',
-      width: '15%',
+      width: '12%',
       render: (_: any, member: TeamMember) => (
         <div style={{ textAlign: 'center', fontSize: 14, fontWeight: 'bold', color: '#1890ff' }}>
           {member.listenStats.monthlyListens}
@@ -265,7 +267,7 @@ export default function ProfilePage() {
     {
       title: 'Completed',
       key: 'completed',
-      width: '15%',
+      width: '12%',
       render: (_: any, member: TeamMember) => (
         <div style={{ textAlign: 'center', fontSize: 14, fontWeight: 'bold', color: '#722ed1' }}>
           {member.listenStats.completedListens}
@@ -273,9 +275,19 @@ export default function ProfilePage() {
       ),
     },
     {
+      title: 'Minutes',
+      key: 'minutes',
+      width: '12%',
+      render: (_: any, member: TeamMember) => (
+        <div style={{ textAlign: 'center', fontSize: 14, fontWeight: 'bold', color: '#fa8c16' }}>
+          {member.listenStats.minutesListened}
+        </div>
+      ),
+    },
+    {
       title: 'Joined',
       key: 'joined',
-      width: '20%',
+      width: '22%',
       render: (_: any, member: TeamMember) => (
         <Text type="secondary" style={{ fontSize: 11 }}>
           {formatDate(member.joinedAt)}
@@ -428,28 +440,36 @@ export default function ProfilePage() {
                   <Text strong style={{ fontSize: 14 }}>Your Listen Statistics</Text>
                 </div>
                 <Row gutter={16}>
-                  <Col xs={8}>
+                  <Col xs={6}>
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 20, fontWeight: 'bold', color: '#52c41a' }}>
+                      <div style={{ fontSize: 18, fontWeight: 'bold', color: '#52c41a' }}>
                         {teamData.userListenStats.totalListens}
                       </div>
                       <Text type="secondary" style={{ fontSize: 10 }}>Total Listens</Text>
                     </div>
                   </Col>
-                  <Col xs={8}>
+                  <Col xs={6}>
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 20, fontWeight: 'bold', color: '#1890ff' }}>
+                      <div style={{ fontSize: 18, fontWeight: 'bold', color: '#1890ff' }}>
                         {teamData.userListenStats.monthlyListens}
                       </div>
                       <Text type="secondary" style={{ fontSize: 10 }}>Monthly Listens</Text>
                     </div>
                   </Col>
-                  <Col xs={8}>
+                  <Col xs={6}>
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 20, fontWeight: 'bold', color: '#722ed1' }}>
+                      <div style={{ fontSize: 18, fontWeight: 'bold', color: '#722ed1' }}>
                         {teamData.userListenStats.completedListens}
                       </div>
                       <Text type="secondary" style={{ fontSize: 10 }}>Completed</Text>
+                    </div>
+                  </Col>
+                  <Col xs={6}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 18, fontWeight: 'bold', color: '#fa8c16' }}>
+                        {teamData.userListenStats.minutesListened}
+                      </div>
+                      <Text type="secondary" style={{ fontSize: 10 }}>Minutes</Text>
                     </div>
                   </Col>
                 </Row>
