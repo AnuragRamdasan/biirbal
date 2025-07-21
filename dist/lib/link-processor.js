@@ -43,13 +43,32 @@ async function processLink({ url, messageTs, channelId, teamId }, updateProgress
         catch (error) {
             console.log('Failed to track link shared event:', error);
         }
+        // Get channel info from Slack API to get the channel name
+        const channelSlackClient = new web_api_1.WebClient(team.accessToken);
+        let channelName = null;
+        try {
+            const channelInfo = await channelSlackClient.conversations.info({
+                channel: channelId
+            });
+            channelName = channelInfo.channel?.name || null;
+            console.log(`📋 Channel info retrieved: ${channelName}`);
+        }
+        catch (error) {
+            console.warn('Failed to get channel info from Slack:', error);
+            // Continue processing even if we can't get channel name
+        }
         const channel = await db.channel.upsert({
             where: { slackChannelId: channelId },
-            update: { teamId, isActive: true },
+            update: {
+                teamId,
+                isActive: true,
+                ...(channelName && { channelName })
+            },
             create: {
                 slackChannelId: channelId,
                 teamId,
-                isActive: true
+                isActive: true,
+                ...(channelName && { channelName })
             }
         });
         // Create processing record
