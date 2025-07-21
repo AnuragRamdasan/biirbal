@@ -81,7 +81,7 @@ async function processLink({ url, messageTs, channelId, teamId }, updateProgress
             await updateProgress(50);
         // 2. Summarize with OpenAI
         console.log('🤖 Summarizing content...');
-        const summary = await (0, content_extractor_1.summarizeForAudio)(extractedContent.text, 150);
+        const summary = await (0, content_extractor_1.summarizeForAudio)(extractedContent.text, 150, extractedContent.url);
         console.log('🖼️ OG Image extracted:', extractedContent.ogImage);
         if (updateProgress)
             await updateProgress(60);

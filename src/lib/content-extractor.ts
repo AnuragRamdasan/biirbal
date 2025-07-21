@@ -77,23 +77,41 @@ function cleanTitle(title: string): string {
     .trim()
 }
 
-export async function summarizeForAudio(text: string, maxWords: number = 150): Promise<string> {
+export async function summarizeForAudio(text: string, maxWords: number = 150, sourceUrl?: string): Promise<string> {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error('OPENAI_API_KEY is required')
   }
 
   const words = text.split(/\s+/)
   if (words.length <= maxWords) {
-    return text
+    // Even for short text, we want to add source attribution and structure
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY
+    })
+
+    const prompt = PROMPTS.summarizeForAudio(maxWords, sourceUrl).replace('{text}', text)
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ 
+        role: "user", 
+        content: prompt 
+      }],
+      max_tokens: Math.ceil(maxWords * 1.5),
+      temperature: 0.3
+    })
+
+    const summary = response.choices[0]?.message?.content?.trim()
+    if (summary) return summary
   }
 
-  console.log(`🤖 Summarizing ${words.length} words to ${maxWords} words`)
+  console.log(`🤖 Summarizing ${words.length} words to ${maxWords} words with storytelling format`)
 
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
   })
 
-  const prompt = PROMPTS.summarizeForAudio(maxWords).replace('{text}', text.substring(0, 12000))
+  const prompt = PROMPTS.summarizeForAudio(maxWords, sourceUrl).replace('{text}', text.substring(0, 12000))
 
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",
