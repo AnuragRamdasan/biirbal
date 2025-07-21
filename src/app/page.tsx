@@ -15,9 +15,7 @@ import {
   Badge,
   Divider,
   List,
-  Avatar,
   Timeline,
-  Tooltip
 } from 'antd'
 import {
   SoundOutlined,
@@ -33,7 +31,7 @@ import {
   ArrowRightOutlined
 } from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
-import { getOAuthRedirectUri, getBaseUrl } from '@/lib/config'
+import { getOAuthRedirectUri } from '@/lib/config'
 
 const { Title, Text, Paragraph } = Typography
 
@@ -324,7 +322,7 @@ function HomeContent() {
             <Col xs={24} lg={16}>
               <Timeline
                 mode="alternate"
-                items={howItWorks.map((step, index) => ({
+                items={howItWorks.map((step) => ({
                   dot: (
                     <div style={{ 
                       background: '#1890ff', 

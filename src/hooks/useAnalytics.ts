@@ -52,7 +52,6 @@ export const useAnalytics = (options: UseAnalyticsOptions = {}): AnalyticsHookRe
   const router = useRouter()
   const pageStartTime = useRef<number>(Date.now())
   const currentUser = useRef<AnalyticsUser | undefined>(options.user)
-  const scrollDepthRef = useRef<number>(0)
   const maxScrollDepth = useRef<number>(0)
 
   // Set user on initialization

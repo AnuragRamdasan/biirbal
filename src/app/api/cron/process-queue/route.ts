@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { processJobs, resumeWorker } from '@/lib/queue/bull-worker'
 import { queueClient } from '@/lib/queue/client'
 import { linkProcessingQueue } from '@/lib/queue/bull-queue'
 import { ensureDbConnection } from '@/lib/db'
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     console.log('🕐 Bull cron job: Initializing and monitoring queue...')
     
@@ -61,6 +61,6 @@ export async function GET(_request: NextRequest) {
 }
 
 // Also support POST for manual triggering
-export async function POST(request: NextRequest) {
-  return GET(request)
+export async function POST() {
+  return GET()
 }

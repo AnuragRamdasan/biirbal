@@ -1,10 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { processJobs, workerHealthCheck } from '@/lib/queue/bull-worker'
 
-// Remove edge runtime since Bull requires Node.js runtime for Redis connections
-// export const runtime = 'edge'
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     console.log('🔄 Bull worker API called')
     
@@ -31,7 +29,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const health = await workerHealthCheck()
     

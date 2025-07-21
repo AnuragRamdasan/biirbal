@@ -14,7 +14,7 @@ Keep the summary under ${maxWords} words and optimize it for audio narration wit
 Text to summarize:
 {text}`,
   
-  extractTitle: (text: string) => `Extract a clear, descriptive title from this article content. The title should be engaging and accurately represent the main topic:
+  extractTitle: () => `Extract a clear, descriptive title from this article content. The title should be engaging and accurately represent the main topic:
 
 {text}`,
   

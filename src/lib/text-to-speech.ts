@@ -11,7 +11,6 @@ export interface AudioResult {
 export async function generateAudioSummary(
   text: string, 
   title: string,
-  maxDurationSeconds: number = 59
 ): Promise<AudioResult> {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error('OPENAI_API_KEY is required')
@@ -23,8 +22,6 @@ export async function generateAudioSummary(
     apiKey: process.env.OPENAI_API_KEY
   })
 
-  const wordsPerMinute = 150
-  const maxWords = Math.floor((maxDurationSeconds / 60) * wordsPerMinute)
   const processedText = `Here's a summary of ${title}: ${text}`
 
   console.log(`📝 Converting ${processedText.split(' ').length} words to speech`)

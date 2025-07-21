@@ -196,3 +196,42 @@ const stats = await queueClient.getStats()
 - Performance timing measurements
 - Error tracking with context
 - Queue job progress tracking
+
+## Git Workflow Guidelines
+
+### Selective Commits for Parallel Development
+Given that multiple Claude agents may be working on this codebase simultaneously, it's critical to only commit files that were changed in the current session to avoid conflicts and maintain clean git history.
+
+### CRITICAL GIT RULES
+- **NEVER commit all modified files at once** - This can include changes from other sessions
+- **ALWAYS use selective commits** - Only commit files modified in the current session
+- **VERIFY files before staging** - Check `git status` and `git diff` before committing
+- **Use specific file paths** - Explicitly specify which files to add/commit
+
+### Recommended Git Commands
+```bash
+# Check what files are modified
+git status
+
+# Review changes in specific files
+git diff path/to/file
+
+# Add only specific files modified in this session
+git add path/to/specific/file1 path/to/specific/file2
+
+# Or add files interactively to select specific changes
+git add -p
+
+# Commit with descriptive message
+git commit -m "feat: add specific feature
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+```
+
+### Avoiding Conflicts
+- Never use `git add .` or `git add -A` in a shared development environment
+- Always review `git status` output before staging any files
+- Use `git diff --name-only` to see which files have changes
+- If unsure about a file's origin, check `git log --oneline -n 5 path/to/file` to see recent changes

@@ -5,22 +5,20 @@ import { getDashboardUrl } from './config'
 import { WebClient } from '@slack/web-api'
 import { canProcessNewLink } from './subscription-utils'
 import { isExceptionTeam } from './exception-teams'
-import { trackLinkShared, trackLinkProcessed, trackUsageLimit } from './analytics'
+import { trackLinkShared, trackLinkProcessed } from './analytics'
 
 interface ProcessLinkParams {
   url: string
   messageTs: string
   channelId: string
   teamId: string
-  slackTeamId: string
 }
 
 export async function processLink({
   url,
   messageTs,
   channelId,
-  teamId,
-  slackTeamId
+  teamId
 }: ProcessLinkParams, updateProgress?: (progress: number) => Promise<void>): Promise<void> {
   console.log(`🚀 Processing: ${url}`)
   const processingStartTime = Date.now()

@@ -148,7 +148,7 @@ class BullQueueClient {
         issues,
         stats
       }
-    } catch (error) {
+    } catch {
       return {
         healthy: false,
         issues: ['Health check failed'],

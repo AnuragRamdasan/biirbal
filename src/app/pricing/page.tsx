@@ -12,21 +12,18 @@ import {
   Space, 
   Badge, 
   List, 
-  Divider,
   Switch,
   Statistic,
   Slider
 } from 'antd'
 import {
   CheckOutlined,
-  CheckCircleOutlined,
   CrownOutlined,
   RocketOutlined,
   StarOutlined,
   TeamOutlined,
   SoundOutlined,
   SlackOutlined,
-  SafetyCertificateOutlined,
   QuestionCircleOutlined,
   LoadingOutlined
 } from '@ant-design/icons'

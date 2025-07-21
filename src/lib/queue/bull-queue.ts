@@ -60,7 +60,7 @@ if (!processorInitialized) {
       })
       
       // Process the link with timeout and progress updates
-      const result = await Promise.race([
+      await Promise.race([
         processLink(data, async (progress) => {
           await job.progress(progress)
           console.log(`📊 Job ${job.id} progress: ${progress}%`)

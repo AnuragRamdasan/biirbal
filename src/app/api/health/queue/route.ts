@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { queueClient } from '@/lib/queue/client'
 import { workerHealthCheck } from '@/lib/queue/bull-worker'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     console.log('🏥 Bull queue health check requested')
     

@@ -171,12 +171,6 @@ declare global {
   }
 }
 
-// Extend gtag function interface
-declare function gtag(
-  command: 'config' | 'event' | 'set',
-  targetId: string,
-  config?: any
-): void
 
 // Export to make this a module
 export {}

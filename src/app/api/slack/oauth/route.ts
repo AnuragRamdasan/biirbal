@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { WebClient } from '@slack/web-api'
 import { getDbClient } from '@/lib/db'
 import { logger } from '@/lib/logger'
-import { handleApiError, ValidationError } from '@/lib/error-handler'
+import { ValidationError } from '@/lib/error-handler'
 import { getBaseUrl, getOAuthRedirectUri } from '@/lib/config'
 
 // Create WebClient only when needed, not at module level

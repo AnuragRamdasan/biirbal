@@ -86,7 +86,7 @@ class QueueClient {
   async healthCheck() {
     try {
       return await bullClient.healthCheck()
-    } catch (error) {
+    } catch {
       return {
         healthy: false,
         issues: ['Health check failed'],

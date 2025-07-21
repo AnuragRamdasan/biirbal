@@ -190,12 +190,12 @@ async function handleMessage(event: any, teamId: string) {
   }
 }
 
-async function handleAppMention(event: any, teamId: string) {
+async function handleAppMention(event: any) {
   // Handle app mentions for commands like help, status, etc.
   console.log('App mention received:', event)
 }
 
-async function handleMemberJoinedChannel(event: any, teamId: string) {
+async function handleMemberJoinedChannel(event: any) {
   // Update channel info when bot is added to a channel
   if (event.user === process.env.SLACK_BOT_USER_ID) {
     const db = await getDbClient()

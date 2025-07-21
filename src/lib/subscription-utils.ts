@@ -1,7 +1,7 @@
 import { getDbClient } from './db'
 import { PRICING_PLANS, getPlanById, checkUsageLimits } from './stripe'
 import { isExceptionTeam } from './exception-teams'
-import { trackUsageLimit, trackSubscriptionStarted, trackSubscriptionCancelled } from './analytics'
+import { trackSubscriptionStarted, trackSubscriptionCancelled } from './analytics'
 
 export interface UsageStats {
   currentLinks: number
@@ -144,7 +144,7 @@ export async function updateSubscriptionFromStripe(
     where: { teamId }
   })
 
-  const subscription = await db.subscription.upsert({
+  await db.subscription.upsert({
     where: { teamId },
     update: {
       stripeSubscriptionId,
