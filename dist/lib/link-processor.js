@@ -9,7 +9,7 @@ const web_api_1 = require("@slack/web-api");
 const subscription_utils_1 = require("./subscription-utils");
 const exception_teams_1 = require("./exception-teams");
 const analytics_1 = require("./analytics");
-async function processLink({ url, messageTs, channelId, teamId, slackTeamId }, updateProgress) {
+async function processLink({ url, messageTs, channelId, teamId }, updateProgress) {
     console.log(`🚀 Processing: ${url}`);
     const processingStartTime = Date.now();
     try {
@@ -87,7 +87,7 @@ async function processLink({ url, messageTs, channelId, teamId, slackTeamId }, u
             await updateProgress(60);
         // 3. Generate audio with OpenAI TTS
         console.log('🎤 Generating audio...');
-        const audioResult = await (0, text_to_speech_1.generateAudioSummary)(summary, extractedContent.title, 59);
+        const audioResult = await (0, text_to_speech_1.generateAudioSummary)(summary, extractedContent.title);
         if (updateProgress)
             await updateProgress(80);
         // 4. Upload to S3

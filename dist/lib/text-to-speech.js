@@ -7,7 +7,7 @@ exports.generateAudioSummary = generateAudioSummary;
 exports.uploadAudioToStorage = uploadAudioToStorage;
 const openai_1 = __importDefault(require("openai"));
 const client_s3_1 = require("@aws-sdk/client-s3");
-async function generateAudioSummary(text, title, maxDurationSeconds = 59) {
+async function generateAudioSummary(text, title) {
     if (!process.env.OPENAI_API_KEY) {
         throw new Error('OPENAI_API_KEY is required');
     }
@@ -15,8 +15,6 @@ async function generateAudioSummary(text, title, maxDurationSeconds = 59) {
     const openai = new openai_1.default({
         apiKey: process.env.OPENAI_API_KEY
     });
-    const wordsPerMinute = 150;
-    const maxWords = Math.floor((maxDurationSeconds / 60) * wordsPerMinute);
     const processedText = `Here's a summary of ${title}: ${text}`;
     console.log(`📝 Converting ${processedText.split(' ').length} words to speech`);
     const response = await openai.audio.speech.create({

@@ -48,7 +48,7 @@ if (!processorInitialized) {
                 setTimeout(() => reject(new Error('Job timed out after 4 minutes')), 4 * 60 * 1000);
             });
             // Process the link with timeout and progress updates
-            const result = await Promise.race([
+            await Promise.race([
                 (0, link_processor_1.processLink)(data, async (progress) => {
                     await job.progress(progress);
                     console.log(`📊 Job ${job.id} progress: ${progress}%`);

@@ -112,7 +112,7 @@ async function updateSubscriptionFromStripe(teamId, stripeSubscriptionId, planId
     const currentSubscription = await db.subscription.findUnique({
         where: { teamId }
     });
-    const subscription = await db.subscription.upsert({
+    await db.subscription.upsert({
         where: { teamId },
         update: {
             stripeSubscriptionId,
