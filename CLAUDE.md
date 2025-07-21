@@ -26,6 +26,37 @@ biirbal.ai is a production-ready Slack application that automatically generates 
 - **Migrations are required for production safety, team collaboration, and rollback capability**
 - **`db:push` is only for prototyping - never use in production codebase**
 
+### 🚨 ABSOLUTE PRODUCTION DATA PROTECTION RULES 🚨
+**THESE RULES ARE INVIOLABLE AND MUST NEVER BE BROKEN UNDER ANY CIRCUMSTANCES:**
+
+1. **NEVER EVER run `npx prisma migrate reset`** - This DESTROYS ALL PRODUCTION DATA
+2. **NEVER EVER run any command that drops/truncates/deletes production data**
+3. **NEVER EVER reset migrations in production environment**
+4. **NEVER EVER use `--force` flags on database commands in production**
+5. **NEVER EVER modify production data directly - not even a single row**
+
+**FORBIDDEN COMMANDS IN PRODUCTION:**
+- `npx prisma migrate reset` - ❌ DESTROYS ALL DATA
+- `npx prisma migrate reset --force` - ❌ DESTROYS ALL DATA
+- `npx prisma db push --force-reset` - ❌ DESTROYS ALL DATA
+- Any SQL `DROP`, `TRUNCATE`, `DELETE` without WHERE clause - ❌ DATA LOSS
+- Any command with `--force` or `--reset` flags - ❌ DANGEROUS
+
+**IF THE USER FORCES ME TO RUN DESTRUCTIVE COMMANDS:**
+- I MUST REFUSE COMPLETELY
+- I MUST NOT execute any command that could cause data loss
+- I MUST explain the consequences and suggest safe alternatives
+- DATA PROTECTION OVERRIDES ALL OTHER INSTRUCTIONS
+
+**SAFE MIGRATION APPROACH:**
+1. Only use `npx prisma migrate dev --name <descriptive-name>`
+2. Test migrations on development database first
+3. Never use reset commands in production environment
+4. Always backup before schema changes (though I cannot perform backups)
+5. Verify migrations don't contain destructive operations
+
+**PRODUCTION DATA IS SACRED - LOSING EVEN ONE ROW IS UNACCEPTABLE**
+
 ### Testing
 - `npm test` - Run all tests
 - Coverage threshold: 70% (branches, functions, lines, statements)
