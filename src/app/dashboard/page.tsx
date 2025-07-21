@@ -732,20 +732,37 @@ export default function Dashboard() {
                           />
                         )}
                       </div>
-                      <div style={{ 
-                        fontSize: 12, 
-                        color: '#8c8c8c',
-                        marginBottom: 8,
-                        wordBreak: 'break-all',
-                        lineHeight: 1.3,
-                        maxHeight: '2.6em',
-                        overflow: 'hidden',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical'
-                      }}>
+                      <a 
+                        href={record.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          analytics.trackFeature('source_link_click', { 
+                            link_id: record.id,
+                            source_url: record.url,
+                            domain: new URL(record.url).hostname
+                          })
+                        }}
+                        style={{ 
+                          fontSize: 12, 
+                          color: '#1890ff',
+                          marginBottom: 8,
+                          wordBreak: 'break-all',
+                          lineHeight: 1.3,
+                          maxHeight: '2.6em',
+                          overflow: 'hidden',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          textDecoration: 'none',
+                          transition: 'color 0.2s ease'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.color = '#40a9ff'}
+                        onMouseOut={(e) => e.currentTarget.style.color = '#1890ff'}
+                      >
                         {record.url}
-                      </div>
+                      </a>
                       
                       {/* Status and Stats Row */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
