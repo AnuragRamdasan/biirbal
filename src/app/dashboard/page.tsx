@@ -44,6 +44,11 @@ interface ProcessedLink {
   processingStatus: string
   listens: AudioListen[]
   ogImage?: string | null
+  source?: string | null
+  channel?: {
+    channelName: string | null
+    slackChannelId: string
+  }
 }
 
 interface AudioListen {
@@ -440,6 +445,23 @@ export default function Dashboard() {
     })
   }
 
+  const getSourceDisplay = (record: ProcessedLink) => {
+    if (record.source === 'chrome') {
+      return {
+        text: 'Chrome Extension',
+        icon: '🌐',
+        color: '#4285f4'
+      }
+    } else {
+      // Default to Slack source
+      return {
+        text: record.channel?.channelName ? `#${record.channel.channelName}` : 'Slack',
+        icon: '💬',
+        color: '#4a154b'
+      }
+    }
+  }
+
   const getListenCount = (link: ProcessedLink) => {
     return link.listens?.length || 0
   }
@@ -711,7 +733,7 @@ export default function Dashboard() {
                     
                     {/* Title and URL */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                      <div style={{ marginBottom: 6 }}>
                         <div style={{ 
                           fontSize: 16, 
                           fontWeight: 600, 
@@ -721,16 +743,46 @@ export default function Dashboard() {
                           textOverflow: 'ellipsis',
                           display: '-webkit-box',
                           WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical'
+                          WebkitBoxOrient: 'vertical',
+                          marginBottom: 4
                         }}>
                           {record.title || 'Untitled'}
                         </div>
-                        {hasUserListened(record) && (
-                          <Badge 
-                            count="✓" 
-                            style={{ backgroundColor: '#52c41a', fontSize: 10 }}
-                          />
-                        )}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div 
+                            style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: 4,
+                              fontSize: 11,
+                              color: getSourceDisplay(record).color,
+                              backgroundColor: `${getSourceDisplay(record).color}15`,
+                              padding: '2px 6px',
+                              borderRadius: '12px',
+                              fontWeight: 500,
+                              cursor: 'pointer'
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const source = getSourceDisplay(record)
+                              analytics.trackFeature('source_badge_click', { 
+                                link_id: record.id,
+                                source: record.source,
+                                channel_name: record.channel?.channelName,
+                                source_text: source.text
+                              })
+                            }}
+                          >
+                            <span>{getSourceDisplay(record).icon}</span>
+                            <span>{getSourceDisplay(record).text}</span>
+                          </div>
+                          {hasUserListened(record) && (
+                            <Badge 
+                              count="✓" 
+                              style={{ backgroundColor: '#52c41a', fontSize: 10 }}
+                            />
+                          )}
+                        </div>
                       </div>
                       <a 
                         href={record.url} 

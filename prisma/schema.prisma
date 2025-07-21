@@ -79,6 +79,7 @@ model ProcessedLink {
   ttsScript          String?
   ogImage            String?
   isAccessRestricted Boolean          @default(false)
+  source             String?          @default("slack")
   listens            AudioListen[]
   channel            Channel          @relation(fields: [channelId], references: [id], onDelete: Cascade)
   team               Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)

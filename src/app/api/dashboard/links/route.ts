@@ -35,6 +35,12 @@ export async function GET(request: NextRequest) {
         teamId: team.id
       },
       include: {
+        channel: {
+          select: {
+            channelName: true,
+            slackChannelId: true
+          }
+        },
         listens: slackUserId ? {
           where: {
             slackUserId: slackUserId
