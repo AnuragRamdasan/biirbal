@@ -2,13 +2,13 @@
 
 import { Typography, Card, Row, Col, Space, Divider } from 'antd'
 import {
-  ShieldCheckOutlined,
+  SecurityScanOutlined,
   DatabaseOutlined,
   ClockCircleOutlined,
   MailOutlined,
   GlobalOutlined
 } from '@ant-design/icons'
-import Layout from '@/components/layout/Layout'
+import { Layout } from '@/components/layout/Layout'
 
 const { Title, Text, Paragraph } = Typography
 
@@ -19,7 +19,7 @@ export default function PrivacyPage() {
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 60 }}>
           <Title level={1}>
-            <ShieldCheckOutlined /> Privacy Policy
+            <SecurityScanOutlined /> Privacy Policy
           </Title>
           <Paragraph style={{ fontSize: 18, color: '#666', maxWidth: 800, margin: '0 auto' }}>
             This Privacy Policy describes how biirbal.ai collects, uses, and protects your information 
@@ -214,7 +214,7 @@ export default function PrivacyPage() {
               {/* Security */}
               <Card>
                 <Title level={2}>
-                  <ShieldCheckOutlined /> Security Measures
+                  <SecurityScanOutlined /> Security Measures
                 </Title>
                 
                 <ul>
