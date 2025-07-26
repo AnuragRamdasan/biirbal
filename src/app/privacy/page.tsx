@@ -246,6 +246,18 @@ export default function PrivacyPage() {
                   material changes by posting the new policy on this page and updating the 
                   "Last Updated" date.
                 </Paragraph>
+
+                <div style={{ 
+                  background: '#f6f8fa', 
+                  padding: 16, 
+                  borderRadius: 8, 
+                  marginTop: 24,
+                  textAlign: 'center'
+                }}>
+                  <Text type="secondary">
+                    For our Terms of Service, please visit <a href="/terms">biirbal.ai/terms</a>
+                  </Text>
+                </div>
               </Card>
 
             </Space>

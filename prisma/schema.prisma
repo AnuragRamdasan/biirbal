@@ -28,24 +28,69 @@ model Team {
 
 model User {
   id              String        @id @default(cuid())
-  slackUserId     String        @unique
-  teamId          String
+  slackUserId     String?       @unique
+  teamId          String?
   name            String?
   displayName     String?
   realName        String?
-  email           String?
+  email           String?       @unique
   profileImage24  String?
   profileImage32  String?
   profileImage48  String?
   title           String?
   userAccessToken String?
+  password        String?
+  emailVerified   DateTime?
+  resetToken      String?       @unique
+  resetTokenExpiry DateTime?
   isActive        Boolean       @default(true)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   audioListens    AudioListen[]
-  team            Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  accounts        Account[]
+  sessions        Session[]
+  team            Team?         @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
 }
 
 model Channel {
@@ -116,8 +161,8 @@ model AudioListen {
   listenedAt      DateTime      @default(now())
   completed       Boolean       @default(false)
   listenDuration  Int?
-  resumePosition  Int?          @default(0)
   slackUserId     String?
+  resumePosition  Int?          @default(0)
   processedLink   ProcessedLink @relation(fields: [processedLinkId], references: [id], onDelete: Cascade)
   user            User?         @relation(fields: [slackUserId], references: [slackUserId])
 
