@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 
 interface LayoutProps {
   children: React.ReactNode
-  currentPage?: 'home' | 'dashboard' | 'profile' | 'pricing'
+  currentPage?: 'home' | 'dashboard' | 'profile' | 'pricing' | 'privacy' | 'contact'
   showHeader?: boolean
   className?: string
 }

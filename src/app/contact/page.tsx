@@ -172,7 +172,7 @@ export default function ContactPage() {
                   <div>
                     <Text strong><MailOutlined /> Email Support</Text>
                     <br />
-                    <Text copyable>support@biirbal.ai</Text>
+                    <Text copyable>founders@biirbal.com</Text>
                     <br />
                     <Text type="secondary">Response within 24 hours</Text>
                   </div>
@@ -198,7 +198,7 @@ export default function ContactPage() {
                     <Text strong style={{ marginLeft: 8 }}>Technical Issues</Text>
                     <br />
                     <Text type="secondary" style={{ paddingLeft: 24 }}>
-                      engineering@biirbal.ai
+                      founders@biirbal.com
                     </Text>
                   </div>
                   
@@ -207,7 +207,7 @@ export default function ContactPage() {
                     <Text strong style={{ marginLeft: 8 }}>Billing Support</Text>
                     <br />
                     <Text type="secondary" style={{ paddingLeft: 24 }}>
-                      billing@biirbal.ai
+                      founders@biirbal.com
                     </Text>
                   </div>
                   
@@ -216,7 +216,7 @@ export default function ContactPage() {
                     <Text strong style={{ marginLeft: 8 }}>Privacy & Data</Text>
                     <br />
                     <Text type="secondary" style={{ paddingLeft: 24 }}>
-                      privacy@biirbal.ai
+                      founders@biirbal.com
                     </Text>
                   </div>
                 </Space>
@@ -252,7 +252,7 @@ export default function ContactPage() {
                     <Text strong>How do I upgrade my plan?</Text>
                     <br />
                     <Text type="secondary">
-                      Visit our pricing page or contact billing@biirbal.ai for assistance.
+                      Visit our pricing page or contact founders@biirbal.com for assistance.
                     </Text>
                   </div>
                 </Space>
