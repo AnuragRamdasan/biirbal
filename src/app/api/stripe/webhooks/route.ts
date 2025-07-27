@@ -80,10 +80,40 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   // Get the subscription details from Stripe
   const stripe = new (require('stripe'))(process.env.STRIPE_SECRET_KEY!)
   const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+  console.log('💳 Subscription details:', {
+    id: subscription.id,
+    status: subscription.status,
+    current_period_end: subscription.current_period_end,
+    items: subscription.items.data.map(item => ({
+      price_id: item.price.id,
+      product: item.price.product
+    }))
+  })
 
   // Determine plan based on price ID
   const priceId = subscription.items.data[0]?.price.id
-  const plan = Object.values(PRICING_PLANS).find(p => p.stripePriceId === priceId)
+  console.log('🔍 Looking for plan with priceId:', priceId)
+  console.log('📋 Available plans:', Object.values(PRICING_PLANS).map(p => ({ id: p.id, name: p.name, stripePriceId: p.stripePriceId })))
+  
+  // Find plan by matching price ID (handle both old string format and new object format)
+  const plan = Object.values(PRICING_PLANS).find(p => {
+    if (!p.stripePriceId) return false
+    
+    // Handle object format (monthly/annual)
+    if (typeof p.stripePriceId === 'object') {
+      return p.stripePriceId.monthly === priceId || p.stripePriceId.annual === priceId
+    }
+    
+    // Handle old string format for backward compatibility
+    return p.stripePriceId === priceId
+  })
+  
+  if (!plan) {
+    console.error('❌ No plan found for priceId:', priceId)
+    console.error('❌ This means the Stripe price ID is not configured in PRICING_PLANS')
+    console.error('❌ Please check your environment variables for Stripe price IDs')
+    return
+  }
 
   // Get team info for notification - teamId from metadata should be internal DB ID
   const team = await prisma.team.findUnique({
@@ -171,7 +201,17 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 
   // Determine plan based on price ID
   const priceId = subscription.items.data[0]?.price.id
-  const plan = Object.values(PRICING_PLANS).find(p => p.stripePriceId === priceId)
+  const plan = Object.values(PRICING_PLANS).find(p => {
+    if (!p.stripePriceId) return false
+    
+    // Handle object format (monthly/annual)
+    if (typeof p.stripePriceId === 'object') {
+      return p.stripePriceId.monthly === priceId || p.stripePriceId.annual === priceId
+    }
+    
+    // Handle old string format for backward compatibility
+    return p.stripePriceId === priceId
+  })
   const previousPlan = currentSubscription?.planId ? Object.values(PRICING_PLANS).find(p => p.id === currentSubscription.planId) : null
 
   const status = mapStripeStatus(subscription.status)
