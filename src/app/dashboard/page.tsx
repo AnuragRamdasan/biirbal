@@ -75,6 +75,7 @@ export default function Dashboard() {
   const [usageWarning, setUsageWarning] = useState<string | null>(null)
   const [linkLimitExceeded, setLinkLimitExceeded] = useState<boolean>(false)
   const [isExceptionTeam, setIsExceptionTeam] = useState<boolean>(false)
+  const [userCanConsume, setUserCanConsume] = useState<boolean>(true)
   const [currentListenRecord, setCurrentListenRecord] = useState<string | null>(null)
   const [sourceFilter, setSourceFilter] = useState<string>('all')
   const audioStartTimes = useRef<Record<string, number>>({})
@@ -199,12 +200,20 @@ export default function Dashboard() {
 
   const checkUsageWarnings = async (teamId: string) => {
     try {
-      const response = await fetch(`/api/dashboard/usage?teamId=${teamId}`)
+      // Include userId in the request for user-specific access control
+      const userId = localStorage.getItem('biirbal_user_id')
+      const params = new URLSearchParams({ teamId })
+      if (userId) {
+        params.append('userId', userId)
+      }
+      
+      const response = await fetch(`/api/dashboard/usage?${params.toString()}`)
       if (response.ok) {
         const data = await response.json()
         setUsageWarning(data.warning)
         setLinkLimitExceeded(data.linkLimitExceeded || false)
         setIsExceptionTeam(data.isExceptionTeam || false)
+        setUserCanConsume(data.userCanConsume !== false) // Default to true if not provided
         
         // Set analytics user properties
         analytics.setUser({
@@ -615,8 +624,24 @@ export default function Dashboard() {
           />
         )}
 
+        {/* User Access Restricted Alert */}
+        {!userCanConsume && !isExceptionTeam && (
+          <Alert
+            message="Access Restricted"
+            description="Your access to audio playback has been disabled because the team has exceeded its seat limit. Contact your admin to upgrade the plan or deactivate other users."
+            type="error"
+            showIcon
+            style={{ marginBottom: 16 }}
+            action={
+              <Button size="small" href="/pricing" type="primary">
+                View Plans
+              </Button>
+            }
+          />
+        )}
+
         {/* Link Limit Exceeded Alert */}
-        {linkLimitExceeded && !isExceptionTeam && (
+        {linkLimitExceeded && !isExceptionTeam && userCanConsume && (
           <Alert
             message="Playback Restricted"
             description="You've exceeded your monthly link limit. Audio playback is disabled. Links will continue to be processed and posted to Slack."
@@ -755,6 +780,9 @@ export default function Dashboard() {
                 bodyStyle={{ padding: '16px' }}
                 onClick={async () => {
                   if (record.processingStatus === 'COMPLETED' && record.audioFileUrl) {
+                    // Check access restrictions
+                    if ((!userCanConsume || linkLimitExceeded) && !isExceptionTeam) return
+                    
                     if (currentlyPlaying === record.id) {
                       await handlePauseAudio()
                     } else {
@@ -914,17 +942,20 @@ export default function Dashboard() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         {/* Play Button */}
                         <Tooltip 
-                          title={(linkLimitExceeded && !isExceptionTeam) ? "Monthly limit exceeded. Upgrade your plan to access playback." : "Play audio summary"}
+                          title={
+                            (!userCanConsume && !isExceptionTeam) ? "Access disabled due to seat limit exceeded. Contact admin to upgrade plan." :
+                            ((linkLimitExceeded && !isExceptionTeam) ? "Monthly limit exceeded. Upgrade your plan to access playback." : "Play audio summary")
+                          }
                         >
                           <Button
                             type="primary"
                             shape="circle"
                             size="large"
-                            disabled={linkLimitExceeded && !isExceptionTeam}
+                            disabled={(!userCanConsume || linkLimitExceeded) && !isExceptionTeam}
                             icon={currentlyPlaying === record.id ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
                             onClick={async (e) => {
                               e.stopPropagation()
-                              if (linkLimitExceeded && !isExceptionTeam) return
+                              if ((!userCanConsume || linkLimitExceeded) && !isExceptionTeam) return
                               if (currentlyPlaying === record.id) {
                                 await handlePauseAudio()
                               } else {
@@ -932,9 +963,9 @@ export default function Dashboard() {
                               }
                             }}
                             style={{
-                              background: (linkLimitExceeded && !isExceptionTeam) ? '#d9d9d9' : (currentlyPlaying === record.id ? '#ff4d4f' : '#52c41a'),
-                              borderColor: (linkLimitExceeded && !isExceptionTeam) ? '#d9d9d9' : (currentlyPlaying === record.id ? '#ff4d4f' : '#52c41a'),
-                              opacity: (linkLimitExceeded && !isExceptionTeam) ? 0.6 : 1
+                              background: ((!userCanConsume || linkLimitExceeded) && !isExceptionTeam) ? '#d9d9d9' : (currentlyPlaying === record.id ? '#ff4d4f' : '#52c41a'),
+                              borderColor: ((!userCanConsume || linkLimitExceeded) && !isExceptionTeam) ? '#d9d9d9' : (currentlyPlaying === record.id ? '#ff4d4f' : '#52c41a'),
+                              opacity: ((!userCanConsume || linkLimitExceeded) && !isExceptionTeam) ? 0.6 : 1
                             }}
                           />
                         </Tooltip>

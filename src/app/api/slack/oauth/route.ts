@@ -4,6 +4,7 @@ import { getDbClient } from '@/lib/db'
 import { logger } from '@/lib/logger'
 import { ValidationError } from '@/lib/error-handler'
 import { getBaseUrl, getOAuthRedirectUri } from '@/lib/config'
+import { canAddNewUser } from '@/lib/subscription-utils'
 
 // Create WebClient only when needed, not at module level
 
@@ -150,6 +151,24 @@ export async function GET(request: NextRequest) {
     // Store user information if available
     if (userId && userAccessToken) {
       try {
+        // Check if existing user or if we can add a new user
+        const existingUser = await db.user.findUnique({
+          where: { slackUserId: userId }
+        })
+        
+        let userSeatAllowed = true
+        let userAccessDisabled = false
+        
+        if (!existingUser) {
+          // Check if we can add a new user
+          const canAdd = await canAddNewUser(teamId)
+          if (!canAdd.allowed) {
+            console.log('Cannot add new user due to seat limit:', canAdd.reason)
+            userSeatAllowed = false
+            userAccessDisabled = true
+          }
+        }
+        
         // Use the user access token to get detailed user info
         const userSlackClient = new WebClient(userAccessToken)
         const userInfo = await userSlackClient.users.info({ user: userId })
@@ -168,7 +187,7 @@ export async function GET(request: NextRequest) {
               profileImage48: userInfo.user.profile?.image_48,
               title: userInfo.user.profile?.title,
               userAccessToken,
-              isActive: true,
+              isActive: userSeatAllowed, // Disable if over seat limit
               updatedAt: new Date()
             },
             create: {
@@ -183,14 +202,16 @@ export async function GET(request: NextRequest) {
               profileImage48: userInfo.user.profile?.image_48,
               title: userInfo.user.profile?.title,
               userAccessToken,
-              isActive: true
+              isActive: userSeatAllowed // Disable if over seat limit
             }
           })
           
           console.log('User information stored:', {
             userId,
             name: userInfo.user.name,
-            email: userInfo.user.profile?.email
+            email: userInfo.user.profile?.email,
+            isActive: userSeatAllowed,
+            accessDisabled: userAccessDisabled
           })
         }
       } catch (error) {

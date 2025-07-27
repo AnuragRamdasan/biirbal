@@ -12,7 +12,7 @@ export const PRICING_PLANS = {
     id: 'free',
     name: 'Free',
     price: 0,
-    monthlyLinkLimit: 20,
+    monthlyLinkLimit: 20, // Keep link limit for free tier only
     userLimit: 1,
     stripePriceId: null
   },
@@ -21,7 +21,7 @@ export const PRICING_PLANS = {
     name: 'Starter',
     price: 9.00,
     annualPrice: 99.00,
-    monthlyLinkLimit: -1, // Unlimited links
+    monthlyLinkLimit: -1, // Unlimited links for all paid plans
     userLimit: 1,
     stripePriceId: {
       monthly: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID || 'price_starter_monthly',
@@ -33,7 +33,7 @@ export const PRICING_PLANS = {
     name: 'Pro',
     price: 39.00,
     annualPrice: 399.00,
-    monthlyLinkLimit: -1, // Unlimited links
+    monthlyLinkLimit: -1, // Unlimited links for all paid plans
     userLimit: 10,
     stripePriceId: {
       monthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID || 'price_pro_monthly',
@@ -45,7 +45,7 @@ export const PRICING_PLANS = {
     name: 'Business',
     price: 99.00,
     annualPrice: 900.00,
-    monthlyLinkLimit: -1, // Unlimited links
+    monthlyLinkLimit: -1, // Unlimited links for all paid plans
     userLimit: -1, // Unlimited users
     stripePriceId: {
       monthly: process.env.STRIPE_BUSINESS_MONTHLY_PRICE_ID || 'price_business_monthly',
@@ -86,13 +86,19 @@ export function getPlanPrice(plan: any, isAnnual: boolean): number {
 // Helper function to check if usage is within limits
 export function checkUsageLimits(plan: typeof PRICING_PLANS.FREE, currentLinks: number, currentUsers: number) {
   const linkLimitExceeded = plan.monthlyLinkLimit !== -1 && currentLinks >= plan.monthlyLinkLimit
-  const userLimitExceeded = plan.userLimit !== -1 && currentUsers >= plan.userLimit
+  const userLimitExceeded = plan.userLimit !== -1 && currentUsers > plan.userLimit
+  
+  // For paid plans, prioritize seat limits over link limits
+  const isPaidPlan = plan.id !== 'free'
+  const canProcessMore = isPaidPlan 
+    ? !userLimitExceeded // Paid plans: only check user limits
+    : !linkLimitExceeded && !userLimitExceeded // Free plan: check both
   
   return {
-    linkLimitExceeded,
+    linkLimitExceeded: isPaidPlan ? false : linkLimitExceeded, // Ignore link limits for paid plans
     userLimitExceeded,
-    canProcessMore: !linkLimitExceeded && !userLimitExceeded,
-    linkWarning: plan.monthlyLinkLimit !== -1 && currentLinks >= (plan.monthlyLinkLimit * 0.8), // 80% warning
+    canProcessMore,
+    linkWarning: isPaidPlan ? false : (plan.monthlyLinkLimit !== -1 && currentLinks >= (plan.monthlyLinkLimit * 0.8)), // 80% warning
     userWarning: plan.userLimit !== -1 && currentUsers >= (plan.userLimit * 0.8) // 80% warning
   }
 }
