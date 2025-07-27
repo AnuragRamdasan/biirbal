@@ -27,6 +27,9 @@ export async function processLink({
   console.log(`🚀 Processing: ${url}`)
   const processingStartTime = Date.now()
   
+  // Declare variables outside try block for use in catch block
+  let subscriptionTeamId: string
+  
   try {
     console.log('💾 Getting database client...')
     const db = await getDbClient()
@@ -46,7 +49,7 @@ export async function processLink({
 
     // Check if usage limits are exceeded (but don't block processing)
     // Use slackTeamId for subscription checks, fallback to team.slackTeamId if not provided
-    const subscriptionTeamId = slackTeamId || team.slackTeamId
+    subscriptionTeamId = slackTeamId || team.slackTeamId
     const usageCheck = await canProcessNewLink(subscriptionTeamId)
     const isExceptionTeamFlag = isExceptionTeam(subscriptionTeamId)
     const isLimitExceeded = !usageCheck.allowed && !isExceptionTeamFlag
@@ -203,7 +206,7 @@ export async function processLink({
     // Track failed link processing
     const processingTimeSeconds = (Date.now() - processingStartTime) / 1000
     trackLinkProcessed({
-      team_id: subscriptionTeamId, // Use Slack team ID for analytics consistency
+      team_id: subscriptionTeamId || slackTeamId || teamId, // Use Slack team ID, fallback to database ID
       link_id: 'failed',
       processing_time_seconds: processingTimeSeconds,
       success: false,
