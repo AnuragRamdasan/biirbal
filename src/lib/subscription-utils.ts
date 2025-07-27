@@ -105,7 +105,20 @@ export async function canUserConsume(teamId: string, userId: string): Promise<bo
     
     const db = await getDbClient()
     
-    // Get team and user info
+    // Get the specific user first to check if they're active
+    const user = await db.user.findFirst({
+      where: { 
+        slackUserId: userId,
+        team: { slackTeamId: teamId }
+      }
+    })
+
+    // If user doesn't exist or is disabled, they can't consume
+    if (!user || !user.isActive) {
+      return false
+    }
+    
+    // Get team and active user info
     const team = await db.team.findUnique({
       where: { slackTeamId: teamId },
       include: { 
@@ -123,13 +136,18 @@ export async function canUserConsume(teamId: string, userId: string): Promise<bo
 
     const plan = getPlanById(team.subscription.planId) || PRICING_PLANS.FREE
     
-    // Free plan or unlimited users plan
-    if (plan.id === 'free' || plan.userLimit === -1) {
-      return true
+    // Free plan: check both active status and basic access
+    if (plan.id === 'free') {
+      return user.isActive
     }
     
-    // Check if user is within the seat limit (first N users get access)
-    const userIndex = team.users.findIndex(user => user.slackUserId === userId)
+    // Unlimited users plan: just check if user is active
+    if (plan.userLimit === -1) {
+      return user.isActive
+    }
+    
+    // Check if user is within the seat limit (first N active users get access)
+    const userIndex = team.users.findIndex(u => u.slackUserId === userId)
     return userIndex !== -1 && userIndex < plan.userLimit
     
   } catch (error) {

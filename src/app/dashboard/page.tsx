@@ -628,14 +628,19 @@ export default function Dashboard() {
         {!userCanConsume && !isExceptionTeam && (
           <Alert
             message="Access Restricted"
-            description="Your access to audio playback has been disabled because the team has exceeded its seat limit. Contact your admin to upgrade the plan or deactivate other users."
+            description="Your access to audio playback has been disabled because the team has exceeded its seat limit. Contact your admin to upgrade the plan or manage team members."
             type="error"
             showIcon
             style={{ marginBottom: 16 }}
             action={
-              <Button size="small" href="/pricing" type="primary">
-                View Plans
-              </Button>
+              <Space>
+                <Button size="small" href="/team">
+                  Manage Team
+                </Button>
+                <Button size="small" href="/pricing" type="primary">
+                  View Plans
+                </Button>
+              </Space>
             }
           />
         )}

@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 interface HeaderProps {
   className?: string
   showNavigation?: boolean
-  currentPage?: 'home' | 'dashboard' | 'profile' | 'pricing'
+  currentPage?: 'home' | 'dashboard' | 'profile' | 'pricing' | 'team'
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -76,6 +76,15 @@ export const Header: React.FC<HeaderProps> = ({
                     )}
                   >
                     Dashboard
+                  </Link>
+                  <Link 
+                    href="/team" 
+                    className={cn(
+                      'text-white/80 hover:text-white transition-colors text-sm font-medium',
+                      currentPage === 'team' && 'text-white font-semibold'
+                    )}
+                  >
+                    Team
                   </Link>
                   <Link 
                     href="/profile" 
