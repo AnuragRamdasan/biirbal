@@ -706,51 +706,56 @@ export default function Dashboard() {
                     <Text type="secondary" style={{ fontSize: 10 }}>Min Listened</Text>
                   </div>
                 </Col>
-                <Col xs={24} sm={16}>
-                  <Row gutter={[8, 8]} align="middle" justify="end">
-                    <Col>
-                      <Space size="small">
-                        <Text style={{ fontSize: 12 }}>Source:</Text>
-                        <Select
-                          size="small"
-                          value={sourceFilter}
-                          onChange={(value) => {
-                            setSourceFilter(value)
-                            analytics.trackFeature('source_filter_change', { 
-                              source_filter: value 
-                            })
-                          }}
-                          style={{ width: 140 }}
-                          options={[
-                            { value: 'all', label: '🔗 All Sources' },
-                            ...getChannelOptions().map(channel => ({
-                              value: channel,
-                              label: channel === 'chrome' ? '🌐 Chrome' : `💬 #${channel}`
-                            }))
-                          ]}
-                        />
-                      </Space>
-                    </Col>
-                    <Col>
-                      <Space size="small">
-                        <Text style={{ fontSize: 12 }}>Show All</Text>
-                        <Switch
-                          size="small"
-                          checked={showListened}
-                          onChange={(checked) => {
-                            setShowListened(checked)
-                            analytics.trackFeature('toggle_show_listened', { 
-                              show_listened: checked 
-                            })
-                          }}
-                          checkedChildren={<EyeOutlined />}
-                          unCheckedChildren={<EyeInvisibleOutlined />}
-                        />
-                      </Space>
-                    </Col>
-                  </Row>
-                </Col>
               </Row>
+            </Col>
+          </Row>
+        </Card>
+
+        {/* Filter Controls Row */}
+        <Card size="small" style={{ marginBottom: 16 }}>
+          <Row justify="end">
+            <Col>
+              <Space size="large">
+                {/* Source Filter */}
+                <Space size="small">
+                  <Text style={{ fontSize: 14, fontWeight: 500 }}>Filter:</Text>
+                  <Select
+                    size="small"
+                    value={sourceFilter}
+                    onChange={(value) => {
+                      setSourceFilter(value)
+                      analytics.trackFeature('source_filter_change', { 
+                        source_filter: value 
+                      })
+                    }}
+                    style={{ width: 160 }}
+                    options={[
+                      { value: 'all', label: '🔗 All Sources' },
+                      ...getChannelOptions().map(channel => ({
+                        value: channel,
+                        label: channel === 'chrome' ? '🌐 Chrome' : `💬 #${channel}`
+                      }))
+                    ]}
+                  />
+                </Space>
+                
+                {/* Show Archived Toggle */}
+                <Space size="small">
+                  <Text style={{ fontSize: 14, fontWeight: 500 }}>Show Archived:</Text>
+                  <Switch
+                    size="small"
+                    checked={showListened}
+                    onChange={(checked) => {
+                      setShowListened(checked)
+                      analytics.trackFeature('toggle_show_listened', { 
+                        show_listened: checked 
+                      })
+                    }}
+                    checkedChildren={<EyeOutlined />}
+                    unCheckedChildren={<EyeInvisibleOutlined />}
+                  />
+                </Space>
+              </Space>
             </Col>
           </Row>
         </Card>
