@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { constructWebhookEvent, PRICING_PLANS } from '@/lib/stripe'
+import { adminNotifications } from '@/lib/admin-notifications'
 import Stripe from 'stripe'
 
 export async function POST(request: NextRequest) {
@@ -75,6 +76,16 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const priceId = subscription.items.data[0]?.price.id
   const plan = Object.values(PRICING_PLANS).find(p => p.stripePriceId === priceId)
 
+  // Get team info for notification
+  const team = await prisma.team.findFirst({
+    where: { 
+      OR: [
+        { id: teamId },
+        { slackTeamId: teamId }
+      ]
+    }
+  })
+
   await prisma.subscription.update({
     where: { teamId },
     data: {
@@ -88,6 +99,25 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     }
   })
 
+  // Send admin notification for new subscription
+  if (plan) {
+    try {
+      await adminNotifications.notifySubscriptionEvent({
+        event: 'subscription_started',
+        teamId: team?.slackTeamId || teamId,
+        teamName: team?.teamName,
+        planId: plan.id,
+        planName: plan.name,
+        amount: plan.price,
+        currency: 'USD',
+        stripeCustomerId: customerId,
+        stripeSubscriptionId: subscriptionId
+      })
+    } catch (error) {
+      console.error('Failed to send subscription started notification:', error)
+    }
+  }
+
   console.log(`Subscription activated for team: ${teamId}`)
 }
 
@@ -95,20 +125,64 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   const teamId = subscription.metadata?.teamId
   if (!teamId) return
 
+  // Get current subscription to check for plan changes
+  const currentSubscription = await prisma.subscription.findFirst({
+    where: { 
+      OR: [
+        { teamId },
+        { stripeSubscriptionId: subscription.id }
+      ]
+    }
+  })
+
   // Determine plan based on price ID
   const priceId = subscription.items.data[0]?.price.id
   const plan = Object.values(PRICING_PLANS).find(p => p.stripePriceId === priceId)
+  const previousPlan = currentSubscription?.planId ? Object.values(PRICING_PLANS).find(p => p.id === currentSubscription.planId) : null
 
   const status = mapStripeStatus(subscription.status)
+
+  // Get team info for notification
+  const team = await prisma.team.findFirst({
+    where: { 
+      OR: [
+        { id: teamId },
+        { slackTeamId: teamId }
+      ]
+    }
+  })
 
   await prisma.subscription.update({
     where: { teamId },
     data: {
       status,
       currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-      monthlyLinkLimit: plan?.monthlyLinkLimit || 100
+      monthlyLinkLimit: plan?.monthlyLinkLimit || 100,
+      planId: plan?.id
     }
   })
+
+  // Send admin notification for subscription change
+  if (plan && currentSubscription && plan.id !== currentSubscription.planId) {
+    try {
+      // Determine if upgrade or downgrade
+      const isUpgrade = plan.price > (previousPlan?.price || 0)
+      
+      await adminNotifications.notifySubscriptionEvent({
+        event: isUpgrade ? 'subscription_upgraded' : 'subscription_downgraded',
+        teamId: team?.slackTeamId || teamId,
+        teamName: team?.teamName,
+        planId: plan.id,
+        planName: plan.name,
+        previousPlan: previousPlan?.name,
+        amount: plan.price,
+        currency: 'USD',
+        stripeSubscriptionId: subscription.id
+      })
+    } catch (error) {
+      console.error('Failed to send subscription updated notification:', error)
+    }
+  }
 
   console.log(`Subscription updated for team: ${teamId}, status: ${status}`)
 }
@@ -116,6 +190,27 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const teamId = subscription.metadata?.teamId
   if (!teamId) return
+
+  // Get current subscription and team info for notification
+  const currentSubscription = await prisma.subscription.findFirst({
+    where: { 
+      OR: [
+        { teamId },
+        { stripeSubscriptionId: subscription.id }
+      ]
+    }
+  })
+
+  const team = await prisma.team.findFirst({
+    where: { 
+      OR: [
+        { id: teamId },
+        { slackTeamId: teamId }
+      ]
+    }
+  })
+
+  const plan = currentSubscription?.planId ? Object.values(PRICING_PLANS).find(p => p.id === currentSubscription.planId) : null
 
   await prisma.subscription.update({
     where: { teamId },
@@ -126,6 +221,23 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     }
   })
 
+  // Send admin notification for subscription cancellation
+  if (plan) {
+    try {
+      await adminNotifications.notifySubscriptionEvent({
+        event: 'subscription_cancelled',
+        teamId: team?.slackTeamId || teamId,
+        teamName: team?.teamName,
+        planId: plan.id,
+        planName: plan.name,
+        stripeCustomerId: subscription.customer as string,
+        stripeSubscriptionId: subscription.id
+      })
+    } catch (error) {
+      console.error('Failed to send subscription cancelled notification:', error)
+    }
+  }
+
   console.log(`Subscription canceled for team: ${teamId}`)
 }
 
@@ -135,7 +247,10 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
 
   // Reset monthly usage counter on successful payment
   const subscription = await prisma.subscription.findFirst({
-    where: { stripeSubscriptionId: subscriptionId }
+    where: { stripeSubscriptionId: subscriptionId },
+    include: {
+      team: true
+    }
   })
 
   if (subscription) {
@@ -146,6 +261,25 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
         status: 'ACTIVE'
       }
     })
+
+    // Send admin notification for successful payment
+    const plan = Object.values(PRICING_PLANS).find(p => p.id === subscription.planId)
+    if (plan) {
+      try {
+        await adminNotifications.notifySubscriptionEvent({
+          event: 'subscription_payment',
+          teamId: subscription.team?.slackTeamId || subscription.teamId,
+          teamName: subscription.team?.teamName,
+          planId: plan.id,
+          planName: plan.name,
+          amount: (invoice.amount_paid || 0) / 100, // Convert cents to dollars
+          currency: invoice.currency?.toUpperCase() || 'USD',
+          stripeCustomerId: invoice.customer as string
+        })
+      } catch (error) {
+        console.error('Failed to send payment succeeded notification:', error)
+      }
+    }
 
     console.log(`Payment succeeded, usage reset for subscription: ${subscriptionId}`)
   }
