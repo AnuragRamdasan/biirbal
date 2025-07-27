@@ -5,6 +5,7 @@ import { logger } from '@/lib/logger'
 import { ValidationError } from '@/lib/error-handler'
 import { getBaseUrl, getOAuthRedirectUri } from '@/lib/config'
 import { canAddNewUser } from '@/lib/subscription-utils'
+import { adminNotifications } from '@/lib/admin-notifications'
 
 // Create WebClient only when needed, not at module level
 
@@ -123,6 +124,15 @@ export async function GET(request: NextRequest) {
 
     // Store team information
     const db = await getDbClient()
+    
+    // Check if this is a new team
+    const existingTeam = await db.team.findUnique({
+      where: { slackTeamId: teamId },
+      include: { users: true }
+    })
+    
+    const isNewTeam = !existingTeam
+    
     const team = await db.team.upsert({
       where: { slackTeamId: teamId },
       update: {
@@ -147,6 +157,21 @@ export async function GET(request: NextRequest) {
         }
       }
     })
+
+    // Send admin notification for new team signup
+    if (isNewTeam) {
+      try {
+        await adminNotifications.notifyTeamSignup({
+          teamId: team.id,
+          teamName: teamName || undefined,
+          slackTeamId: teamId,
+          userCount: 1, // New team starts with 1 user
+          installationType: 'new'
+        })
+      } catch (error) {
+        console.error('Failed to send team signup notification:', error)
+      }
+    }
 
     // Store user information if available
     if (userId && userAccessToken) {
@@ -174,7 +199,10 @@ export async function GET(request: NextRequest) {
         const userInfo = await userSlackClient.users.info({ user: userId })
         
         if (userInfo.ok && userInfo.user) {
-          await db.user.upsert({
+          // Check if this is a new user
+          const isNewUser = !existingUser
+          
+          const user = await db.user.upsert({
             where: { slackUserId: userId },
             update: {
               teamId: team.id,
@@ -213,6 +241,22 @@ export async function GET(request: NextRequest) {
             isActive: userSeatAllowed,
             accessDisabled: userAccessDisabled
           })
+
+          // Send admin notification for new user signup
+          if (isNewUser) {
+            try {
+              await adminNotifications.notifyUserSignup({
+                userId: userId,
+                userName: userInfo.user.name || undefined,
+                userEmail: userInfo.user.profile?.email || undefined,
+                teamId: teamId,
+                teamName: teamName || undefined,
+                source: 'slack_oauth'
+              })
+            } catch (error) {
+              console.error('Failed to send user signup notification:', error)
+            }
+          }
         }
       } catch (error) {
         console.error('Failed to fetch/store user info:', error)
