@@ -76,15 +76,17 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const priceId = subscription.items.data[0]?.price.id
   const plan = Object.values(PRICING_PLANS).find(p => p.stripePriceId === priceId)
 
-  // Get team info for notification
-  const team = await prisma.team.findFirst({
-    where: { 
-      OR: [
-        { id: teamId },
-        { slackTeamId: teamId }
-      ]
-    }
+  // Get team info for notification - teamId from metadata should be internal DB ID
+  const team = await prisma.team.findUnique({
+    where: { id: teamId }
   })
+
+  if (!team) {
+    console.error(`Team not found for checkout completion: ${teamId}`)
+    return
+  }
+
+  console.log(`Processing checkout for team: ${team.teamName} (ID: ${team.id}, Slack ID: ${team.slackTeamId})`)
 
   await prisma.subscription.update({
     where: { teamId },
@@ -92,6 +94,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       stripeCustomerId: customerId,
       stripeSubscriptionId: subscriptionId,
       status: 'ACTIVE',
+      planId: plan?.id || 'free',
       currentPeriodEnd: new Date(subscription.current_period_end * 1000),
       monthlyLinkLimit: plan?.monthlyLinkLimit || 10,
       userLimit: plan?.userLimit || 2,
@@ -104,8 +107,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     try {
       await adminNotifications.notifySubscriptionEvent({
         event: 'subscription_started',
-        teamId: team?.slackTeamId || teamId,
-        teamName: team?.teamName,
+        teamId: team.slackTeamId || teamId,
+        teamName: team.teamName,
         planId: plan.id,
         planName: plan.name,
         amount: plan.price,
@@ -123,17 +126,27 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   const teamId = subscription.metadata?.teamId
-  if (!teamId) return
+  if (!teamId) {
+    console.error('No teamId in subscription metadata for update')
+    return
+  }
 
   // Get current subscription to check for plan changes
-  const currentSubscription = await prisma.subscription.findFirst({
-    where: { 
-      OR: [
-        { teamId },
-        { stripeSubscriptionId: subscription.id }
-      ]
-    }
+  const currentSubscription = await prisma.subscription.findUnique({
+    where: { teamId }
   })
+
+  // Also get team info
+  const team = await prisma.team.findUnique({
+    where: { id: teamId }
+  })
+
+  if (!team) {
+    console.error(`Team not found for subscription update: ${teamId}`)
+    return
+  }
+
+  console.log(`Updating subscription for team: ${team.teamName} (ID: ${team.id}, Slack ID: ${team.slackTeamId})`)
 
   // Determine plan based on price ID
   const priceId = subscription.items.data[0]?.price.id
@@ -142,23 +155,14 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 
   const status = mapStripeStatus(subscription.status)
 
-  // Get team info for notification
-  const team = await prisma.team.findFirst({
-    where: { 
-      OR: [
-        { id: teamId },
-        { slackTeamId: teamId }
-      ]
-    }
-  })
-
   await prisma.subscription.update({
     where: { teamId },
     data: {
       status,
+      planId: plan?.id || 'free',
       currentPeriodEnd: new Date(subscription.current_period_end * 1000),
       monthlyLinkLimit: plan?.monthlyLinkLimit || 100,
-      planId: plan?.id
+      userLimit: plan?.userLimit || 2
     }
   })
 
@@ -170,8 +174,8 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
       
       await adminNotifications.notifySubscriptionEvent({
         event: isUpgrade ? 'subscription_upgraded' : 'subscription_downgraded',
-        teamId: team?.slackTeamId || teamId,
-        teamName: team?.teamName,
+        teamId: team.slackTeamId,
+        teamName: team.teamName,
         planId: plan.id,
         planName: plan.name,
         previousPlan: previousPlan?.name,
@@ -189,26 +193,26 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const teamId = subscription.metadata?.teamId
-  if (!teamId) return
+  if (!teamId) {
+    console.error('No teamId in subscription metadata for deletion')
+    return
+  }
 
   // Get current subscription and team info for notification
-  const currentSubscription = await prisma.subscription.findFirst({
-    where: { 
-      OR: [
-        { teamId },
-        { stripeSubscriptionId: subscription.id }
-      ]
-    }
+  const currentSubscription = await prisma.subscription.findUnique({
+    where: { teamId }
   })
 
-  const team = await prisma.team.findFirst({
-    where: { 
-      OR: [
-        { id: teamId },
-        { slackTeamId: teamId }
-      ]
-    }
+  const team = await prisma.team.findUnique({
+    where: { id: teamId }
   })
+
+  if (!team) {
+    console.error(`Team not found for subscription deletion: ${teamId}`)
+    return
+  }
+
+  console.log(`Deleting subscription for team: ${team.teamName} (ID: ${team.id}, Slack ID: ${team.slackTeamId})`)
 
   const plan = currentSubscription?.planId ? Object.values(PRICING_PLANS).find(p => p.id === currentSubscription.planId) : null
 
@@ -216,7 +220,9 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     where: { teamId },
     data: {
       status: 'CANCELED',
+      planId: 'free',
       monthlyLinkLimit: 10, // Back to free tier limits
+      userLimit: 2, // Back to free tier limits
       stripeSubscriptionId: null
     }
   })
@@ -226,8 +232,8 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     try {
       await adminNotifications.notifySubscriptionEvent({
         event: 'subscription_cancelled',
-        teamId: team?.slackTeamId || teamId,
-        teamName: team?.teamName,
+        teamId: team.slackTeamId,
+        teamName: team.teamName,
         planId: plan.id,
         planName: plan.name,
         stripeCustomerId: subscription.customer as string,

@@ -11,8 +11,9 @@ interface ProcessLinkParams {
   url: string
   messageTs: string
   channelId: string
-  teamId: string
-  linkId?: string // Optional - for restarting existing stuck jobs
+  teamId: string        // Internal database ID
+  slackTeamId?: string  // Slack team ID - used for subscription checks
+  linkId?: string       // Optional - for restarting existing stuck jobs
 }
 
 export async function processLink({
@@ -20,6 +21,7 @@ export async function processLink({
   messageTs,
   channelId,
   teamId,
+  slackTeamId,
   linkId
 }: ProcessLinkParams, updateProgress?: (progress: number) => Promise<void>): Promise<void> {
   console.log(`🚀 Processing: ${url}`)
@@ -43,15 +45,17 @@ export async function processLink({
     }
 
     // Check if usage limits are exceeded (but don't block processing)
-    const usageCheck = await canProcessNewLink(teamId)
-    const isExceptionTeamFlag = isExceptionTeam(teamId)
+    // Use slackTeamId for subscription checks, fallback to team.slackTeamId if not provided
+    const subscriptionTeamId = slackTeamId || team.slackTeamId
+    const usageCheck = await canProcessNewLink(subscriptionTeamId)
+    const isExceptionTeamFlag = isExceptionTeam(subscriptionTeamId)
     const isLimitExceeded = !usageCheck.allowed && !isExceptionTeamFlag
     
     // Track link shared event
     try {
       const urlObj = new URL(url)
       trackLinkShared({
-        team_id: teamId,
+        team_id: subscriptionTeamId, // Use Slack team ID for analytics consistency
         channel_id: channelId,
         link_domain: urlObj.hostname,
         user_id: messageTs // Using messageTs as proxy for user identifier
@@ -185,7 +189,7 @@ export async function processLink({
     // Track successful link processing
     const processingTimeSeconds = (Date.now() - processingStartTime) / 1000
     trackLinkProcessed({
-      team_id: teamId,
+      team_id: subscriptionTeamId, // Use Slack team ID for analytics consistency
       link_id: processedLink.id,
       processing_time_seconds: processingTimeSeconds,
       success: true,
@@ -199,7 +203,7 @@ export async function processLink({
     // Track failed link processing
     const processingTimeSeconds = (Date.now() - processingStartTime) / 1000
     trackLinkProcessed({
-      team_id: teamId,
+      team_id: subscriptionTeamId, // Use Slack team ID for analytics consistency
       link_id: 'failed',
       processing_time_seconds: processingTimeSeconds,
       success: false,
