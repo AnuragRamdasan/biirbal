@@ -49,7 +49,99 @@ async function extractContentFromUrl(url) {
     }
     catch (error) {
         console.error('Content extraction failed:', error);
+        // Enhanced error handling for ScrapingBee issues
+        if (error.response) {
+            const status = error.response.status;
+            const statusText = error.response.statusText || 'Unknown error';
+            if (status === 500) {
+                console.error('🚨 ScrapingBee server error (500) - retrying with fallback strategy');
+                return await extractContentWithFallback(url);
+            }
+            else if (status === 429) {
+                console.error('🚨 ScrapingBee rate limit exceeded (429)');
+                throw new Error('Rate limit exceeded. Please try again later.');
+            }
+            else if (status >= 400 && status < 500) {
+                console.error(`🚨 ScrapingBee client error (${status}): ${statusText}`);
+                throw new Error(`Content extraction failed: Invalid request (${status})`);
+            }
+            else {
+                console.error(`🚨 ScrapingBee unexpected status (${status}): ${statusText}`);
+                throw new Error(`Content extraction failed: Service error (${status})`);
+            }
+        }
+        // Network or other errors
+        if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+            console.error('🚨 ScrapingBee timeout - trying fallback');
+            return await extractContentWithFallback(url);
+        }
         throw new Error(`Content extraction failed: ${error.message}`);
+    }
+}
+// Fallback extraction method with simpler parameters
+async function extractContentWithFallback(url) {
+    try {
+        console.log(`🔄 Trying fallback extraction for: ${url}`);
+        const response = await axios_1.default.get('https://app.scrapingbee.com/api/v1/', {
+            params: {
+                api_key: process.env.SCRAPINGBEE_API_KEY,
+                url: url,
+                render_js: '0', // Disable JS rendering for faster response
+                wait: '0' // No wait time
+            },
+            timeout: 20000, // Shorter timeout
+            responseType: 'arraybuffer'
+        });
+        if (response.status !== 200) {
+            throw new Error(`Fallback extraction failed with status ${response.status}`);
+        }
+        const html = response.data.toString();
+        const dom = new jsdom_1.JSDOM(html, { url });
+        const reader = new readability_1.Readability(dom.window.document);
+        const article = reader.parse();
+        if (!article || !article.textContent || article.textContent.length < 50) {
+            // More lenient content length for fallback
+            throw new Error('Insufficient content from fallback extraction');
+        }
+        const cleanText = cleanContent(article.textContent);
+        const title = article.title || extractTitleFromUrl(url);
+        const ogImage = extractOgImage(dom.window.document, url);
+        console.log(`✅ Fallback extracted ${cleanText.length} characters from: ${title}`);
+        return {
+            title: cleanTitle(title),
+            ogImage,
+            text: cleanText,
+            url
+        };
+    }
+    catch (error) {
+        console.error('Fallback extraction also failed:', error);
+        // Generate a minimal content object as last resort
+        return {
+            title: extractTitleFromUrl(url),
+            text: `Content extraction temporarily unavailable for this link. Please try visiting ${url} directly.`,
+            url,
+            ogImage: undefined
+        };
+    }
+}
+function extractTitleFromUrl(url) {
+    try {
+        const urlObj = new URL(url);
+        const hostname = urlObj.hostname.replace('www.', '');
+        const path = urlObj.pathname;
+        // Try to extract meaningful title from URL
+        if (path && path !== '/') {
+            const segments = path.split('/').filter(s => s.length > 0);
+            if (segments.length > 0) {
+                const lastSegment = segments[segments.length - 1];
+                return `${hostname}: ${lastSegment.replace(/[-_]/g, ' ')}`;
+            }
+        }
+        return `Content from ${hostname}`;
+    }
+    catch {
+        return 'Shared Link';
     }
 }
 function cleanContent(text) {

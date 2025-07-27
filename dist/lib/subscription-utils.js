@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getTeamUsageStats = getTeamUsageStats;
+exports.canUserConsume = canUserConsume;
+exports.canAddNewUser = canAddNewUser;
 exports.canProcessNewLink = canProcessNewLink;
 exports.updateSubscriptionFromStripe = updateSubscriptionFromStripe;
 exports.getUpgradeMessage = getUpgradeMessage;
@@ -76,24 +78,103 @@ async function getTeamUsageStats(teamId) {
         isExceptionTeam: false
     };
 }
-async function canProcessNewLink(teamId) {
+async function canUserConsume(teamId, userId) {
+    try {
+        // Exception teams are always allowed
+        if ((0, exception_teams_1.isExceptionTeam)(teamId)) {
+            return true;
+        }
+        const db = await (0, db_1.getDbClient)();
+        // Get team and user info
+        const team = await db.team.findUnique({
+            where: { slackTeamId: teamId },
+            include: {
+                subscription: true,
+                users: {
+                    where: { isActive: true },
+                    orderBy: { createdAt: 'asc' } // First users get priority
+                }
+            }
+        });
+        if (!team || !team.subscription) {
+            return false;
+        }
+        const plan = (0, stripe_1.getPlanById)(team.subscription.planId) || stripe_1.PRICING_PLANS.FREE;
+        // Free plan or unlimited users plan
+        if (plan.id === 'free' || plan.userLimit === -1) {
+            return true;
+        }
+        // Check if user is within the seat limit (first N users get access)
+        const userIndex = team.users.findIndex(user => user.slackUserId === userId);
+        return userIndex !== -1 && userIndex < plan.userLimit;
+    }
+    catch (error) {
+        console.error('Error checking user consumption access:', error);
+        return false;
+    }
+}
+async function canAddNewUser(teamId) {
     try {
         // Exception teams are always allowed
         if ((0, exception_teams_1.isExceptionTeam)(teamId)) {
             return { allowed: true };
         }
         const stats = await getTeamUsageStats(teamId);
-        if (stats.linkLimitExceeded) {
-            return {
-                allowed: false,
-                reason: `Monthly link limit of ${stats.plan.monthlyLinkLimit} reached. Upgrade your plan to process more links.`
-            };
-        }
         if (stats.userLimitExceeded) {
             return {
                 allowed: false,
                 reason: `User limit of ${stats.plan.userLimit} reached. Upgrade your plan to add more users.`
             };
+        }
+        return { allowed: true };
+    }
+    catch (error) {
+        console.error('Error checking if can add user:', error);
+        return { allowed: false, reason: 'Unable to verify user limits' };
+    }
+}
+async function canProcessNewLink(teamId, userId) {
+    try {
+        // Exception teams are always allowed
+        if ((0, exception_teams_1.isExceptionTeam)(teamId)) {
+            return { allowed: true };
+        }
+        const stats = await getTeamUsageStats(teamId);
+        // For paid plans, only check seat limits
+        const isPaidPlan = stats.plan.id !== 'free';
+        if (isPaidPlan) {
+            // For paid plans, check if user seat limit is exceeded
+            if (stats.userLimitExceeded) {
+                return {
+                    allowed: false,
+                    reason: `User limit of ${stats.plan.userLimit} reached. Upgrade your plan to add more users.`
+                };
+            }
+            // If a specific user is provided, check if they have access
+            if (userId) {
+                const hasAccess = await canUserConsume(teamId, userId);
+                if (!hasAccess) {
+                    return {
+                        allowed: false,
+                        reason: 'User access disabled due to seat limit exceeded. Contact admin to upgrade plan.'
+                    };
+                }
+            }
+        }
+        else {
+            // For free plan, check both link and user limits
+            if (stats.linkLimitExceeded) {
+                return {
+                    allowed: false,
+                    reason: `Monthly link limit of ${stats.plan.monthlyLinkLimit} reached. Upgrade your plan to process more links.`
+                };
+            }
+            if (stats.userLimitExceeded) {
+                return {
+                    allowed: false,
+                    reason: `User limit of ${stats.plan.userLimit} reached. Upgrade your plan to add more users.`
+                };
+            }
         }
         return { allowed: true };
     }
@@ -179,31 +260,36 @@ function mapStripeStatusToSubscriptionStatus(stripeStatus) {
     }
 }
 function getUpgradeMessage(stats) {
-    if (stats.linkLimitExceeded) {
-        if (stats.plan.id === 'free') {
+    // For paid plans, prioritize seat-based warnings
+    const isPaidPlan = stats.plan.id !== 'free';
+    if (isPaidPlan) {
+        if (stats.userLimitExceeded) {
+            if (stats.plan.id === 'starter') {
+                return 'Starter plan is for individual use only. Upgrade to Pro for up to 10 team members or Business for unlimited users.';
+            }
+            if (stats.plan.id === 'pro') {
+                return 'You\'ve reached your Pro plan limit of 10 users. Upgrade to Business for unlimited users.';
+            }
+        }
+        if (stats.userWarning) {
+            if (stats.plan.id === 'pro') {
+                return `You're approaching your user limit (${stats.currentUsers}/${stats.plan.userLimit}). Consider upgrading to Business for unlimited users.`;
+            }
+        }
+    }
+    else {
+        // Free plan - check both limits but prioritize links
+        if (stats.linkLimitExceeded) {
             return 'You\'ve reached your free plan limit of 20 links. Upgrade to Starter for unlimited links.';
         }
-    }
-    if (stats.userLimitExceeded) {
-        if (stats.plan.id === 'free') {
+        if (stats.userLimitExceeded) {
             return 'You\'ve reached your free plan limit of 1 user. Upgrade to Starter for individual use or Pro for up to 10 team members.';
         }
-        if (stats.plan.id === 'starter') {
-            return 'Starter plan is for individual use only. Upgrade to Pro for up to 10 team members or Business for unlimited users.';
+        if (stats.linkWarning) {
+            return `You've used ${stats.linkUsagePercentage}% of your free plan links. Consider upgrading to Starter for unlimited links.`;
         }
-        if (stats.plan.id === 'pro') {
-            return 'You\'ve reached your Pro plan limit of 10 users. Upgrade to Business for unlimited users.';
-        }
-    }
-    if (stats.linkWarning && stats.plan.id === 'free') {
-        return `You've used ${stats.linkUsagePercentage}% of your free plan links. Consider upgrading to Starter for unlimited links.`;
-    }
-    if (stats.userWarning) {
-        if (stats.plan.id === 'free') {
+        if (stats.userWarning) {
             return `You're approaching your user limit (${stats.currentUsers}/${stats.plan.userLimit}). Consider upgrading for more users.`;
-        }
-        if (stats.plan.id === 'pro') {
-            return `You're approaching your user limit (${stats.currentUsers}/${stats.plan.userLimit}). Consider upgrading to Business for unlimited users.`;
         }
     }
     return null;
