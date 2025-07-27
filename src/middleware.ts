@@ -1,40 +1,9 @@
-import { withAuth } from 'next-auth/middleware'
+import { NextRequest, NextResponse } from 'next/server'
 
-export default withAuth(
-  function middleware(req) {
-    // Add any additional middleware logic here
-  },
-  {
-    callbacks: {
-      authorized: ({ token, req }) => {
-        const { pathname } = req.nextUrl
-        
-        // Allow access to public routes
-        if (
-          pathname.startsWith('/auth/') ||
-          pathname.startsWith('/api/auth/') ||
-          pathname === '/' ||
-          pathname.startsWith('/pricing') ||
-          pathname.startsWith('/privacy') ||
-          pathname.startsWith('/contact') ||
-          pathname.startsWith('/terms') ||
-          pathname.startsWith('/_next') ||
-          pathname.startsWith('/favicon') ||
-          pathname.startsWith('/logo')
-        ) {
-          return true
-        }
-
-        // Protect dashboard and profile routes
-        if (pathname.startsWith('/dashboard') || pathname.startsWith('/profile')) {
-          return !!token
-        }
-
-        return true
-      },
-    },
-  }
-)
+export function middleware(req: NextRequest) {
+  // Allow all routes since we're only using Slack OAuth
+  return NextResponse.next()
+}
 
 export const config = {
   matcher: [

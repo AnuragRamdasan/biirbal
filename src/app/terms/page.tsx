@@ -4,7 +4,6 @@ import { Typography, Card, Space, Divider } from 'antd'
 import { 
   FileTextOutlined,
   ClockCircleOutlined,
-  ShieldCheckOutlined,
   WarningOutlined
 } from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
@@ -179,7 +178,7 @@ export default function TermsPage() {
               <section>
                 <Title level={2}>9. Disclaimers and Limitations</Title>
                 <Paragraph>
-                  <ShieldCheckOutlined style={{ color: '#52c41a', marginRight: 8 }} />
+                  <FileTextOutlined style={{ color: '#52c41a', marginRight: 8 }} />
                   <strong>AI-Generated Content:</strong> Our summaries are AI-generated and may contain errors or 
                   omissions. Users should verify important information independently.
                 </Paragraph>

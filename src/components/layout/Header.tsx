@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useSession, signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
 
@@ -19,7 +18,6 @@ export const Header: React.FC<HeaderProps> = ({
   currentPage 
 }) => {
   const [slackAuthenticated, setSlackAuthenticated] = useState(false)
-  const { data: session, status } = useSession()
   const router = useRouter()
 
   useEffect(() => {
@@ -28,15 +26,10 @@ export const Header: React.FC<HeaderProps> = ({
     setSlackAuthenticated(!!teamId)
   }, [])
 
-  const isAuthenticated = !!session || slackAuthenticated
+  const isAuthenticated = slackAuthenticated
 
   const handleLogout = async () => {
     try {
-      // Sign out from NextAuth if session exists
-      if (session) {
-        await signOut({ redirect: false })
-      }
-      
       // Clear all local storage items for Slack auth
       localStorage.removeItem('biirbal_visited_dashboard')
       localStorage.removeItem('biirbal_team_id')
@@ -113,28 +106,7 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   Logout
                 </Button>
-              ) : (
-                <div className="flex items-center space-x-2">
-                  <Link href="/auth/login">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className="text-white hover:bg-white/10"
-                    >
-                      Login
-                    </Button>
-                  </Link>
-                  <Link href="/auth/register">
-                    <Button 
-                      variant="secondary" 
-                      size="sm"
-                      className="bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-sm"
-                    >
-                      Sign Up
-                    </Button>
-                  </Link>
-                </div>
-              )}
+              ) : null}
             </nav>
           )}
         </div>
