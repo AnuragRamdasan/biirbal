@@ -30,6 +30,7 @@ import {
 } from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
 import { useAnalytics } from '@/hooks/useAnalytics'
+import { PRICING_PLANS } from '@/lib/stripe'
 
 const { Title, Text } = Typography
 
@@ -282,6 +283,53 @@ export default function TeamManagement() {
               >
                 Upgrade Plan
               </Button>
+            </Col>
+          </Row>
+        </Card>
+
+        {/* Current Plan */}
+        <Card title="Current Plan" style={{ marginBottom: 24 }}>
+          <Row gutter={[16, 16]} align="middle">
+            <Col xs={24} sm={12}>
+              {(() => {
+                const currentPlan = Object.values(PRICING_PLANS).find(p => p.id === teamData.subscription.planId) || PRICING_PLANS.FREE
+                return (
+                  <Space direction="vertical" size="small">
+                    <div>
+                      <Text strong style={{ fontSize: 18, color: currentPlan.id === 'free' ? '#ff4d4f' : '#1890ff' }}>
+                        {currentPlan.name}
+                      </Text>
+                      {currentPlan.id !== 'free' && (
+                        <Tag color="blue" style={{ marginLeft: 8 }}>Active</Tag>
+                      )}
+                    </div>
+                    <Text type="secondary">
+                      {currentPlan.id === 'free' 
+                        ? '20 links/month • 1 user' 
+                        : `Unlimited links • ${currentPlan.userLimit === -1 ? 'Unlimited' : currentPlan.userLimit} users`
+                      }
+                    </Text>
+                    {currentPlan.description && (
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        {currentPlan.description}
+                      </Text>
+                    )}
+                  </Space>
+                )
+              })()}
+            </Col>
+            <Col xs={24} sm={12} style={{ textAlign: 'right' }}>
+              <Space>
+                {teamData.subscription.planId === 'free' ? (
+                  <Button type="primary" href="/pricing">
+                    Upgrade Plan
+                  </Button>
+                ) : (
+                  <Button href="/pricing">
+                    Change Plan
+                  </Button>
+                )}
+              </Space>
             </Col>
           </Row>
         </Card>

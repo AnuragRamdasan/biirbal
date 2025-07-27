@@ -47,6 +47,7 @@ export default function PricingPage() {
   const [isAnnual, setIsAnnual] = useState(false)
   const [linksPerWeek, setLinksPerWeek] = useState(8)
   const [teamSize, setTeamSize] = useState(3)
+  const [currentPlan, setCurrentPlan] = useState<string | null>(null)
   
   // Initialize analytics
   const analytics = useAnalytics({
@@ -54,6 +55,26 @@ export default function PricingPage() {
     trackScrollDepth: true
   })
   
+  // Fetch current plan
+  useEffect(() => {
+    const fetchCurrentPlan = async () => {
+      try {
+        const teamId = localStorage.getItem('teamId')
+        if (!teamId) return
+        
+        const response = await fetch(`/api/dashboard/usage?teamId=${teamId}`)
+        if (response.ok) {
+          const data = await response.json()
+          setCurrentPlan(data.plan?.id || 'free')
+        }
+      } catch (error) {
+        console.error('Failed to fetch current plan:', error)
+      }
+    }
+    
+    fetchCurrentPlan()
+  }, [])
+
   // Track pricing page visit
   useEffect(() => {
     analytics.trackFeature('pricing_page_visit', {
@@ -385,16 +406,23 @@ export default function PricingPage() {
                       overflow: 'hidden',
                       padding: '8px',
                       margin: '8px',
-                      ...(plan.isPopular && {
+                      ...(plan.isPopular && !currentPlan && {
                         border: '2px solid #1890ff',
                         transform: 'scale(1.02)',
                         zIndex: 1,
                         boxShadow: '0 8px 32px rgba(24, 144, 255, 0.12)'
+                      }),
+                      ...(currentPlan === plan.id && {
+                        border: '2px solid #52c41a',
+                        background: 'linear-gradient(145deg, #f6ffed 0%, #fff 100%)',
+                        transform: 'scale(1.02)',
+                        zIndex: 2,
+                        boxShadow: '0 8px 32px rgba(82, 196, 26, 0.15)'
                       })
                     }}
                     hoverable
                   >
-                    {plan.isPopular && (
+                    {plan.isPopular && !currentPlan && (
                       <div style={{
                         position: 'absolute',
                         top: -8,
@@ -406,6 +434,28 @@ export default function PricingPage() {
                           count="Most Popular" 
                           style={{ 
                             backgroundColor: '#1890ff',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            borderRadius: '12px',
+                            padding: '4px 12px',
+                            height: 'auto'
+                          }} 
+                        />
+                      </div>
+                    )}
+
+                    {currentPlan === plan.id && (
+                      <div style={{
+                        position: 'absolute',
+                        top: -8,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        zIndex: 3
+                      }}>
+                        <Badge 
+                          count="Current Plan" 
+                          style={{ 
+                            backgroundColor: '#52c41a',
                             fontSize: '12px',
                             fontWeight: 'bold',
                             borderRadius: '12px',
@@ -459,7 +509,22 @@ export default function PricingPage() {
                     />
 
                     <div style={{ textAlign: 'center' }}>
-                      {plan.id === 'free' ? (
+                      {currentPlan === plan.id ? (
+                        <Button 
+                          type="primary" 
+                          size="large" 
+                          icon={<CheckOutlined />}
+                          disabled
+                          style={{ 
+                            width: '100%', 
+                            height: 48,
+                            background: '#52c41a',
+                            borderColor: '#52c41a'
+                          }}
+                        >
+                          Current Plan
+                        </Button>
+                      ) : plan.id === 'free' ? (
                         <Button 
                           type="default" 
                           size="large" 
@@ -471,7 +536,7 @@ export default function PricingPage() {
                         </Button>
                       ) : (
                         <Button 
-                          type={plan.isPopular ? 'primary' : 'default'}
+                          type={plan.isPopular && !currentPlan ? 'primary' : 'default'}
                           size="large" 
                           icon={loading === plan.id ? <LoadingOutlined /> : <CrownOutlined />}
                           loading={loading === plan.id}
@@ -479,13 +544,13 @@ export default function PricingPage() {
                           style={{ 
                             width: '100%', 
                             height: 48,
-                            ...(plan.isPopular && { 
+                            ...(plan.isPopular && !currentPlan && { 
                               background: '#1890ff',
                               borderColor: '#1890ff'
                             })
                           }}
                         >
-                          Get Started
+                          {currentPlan ? 'Change Plan' : 'Get Started'}
                         </Button>
                       )}
                     </div>

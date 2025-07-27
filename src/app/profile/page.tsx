@@ -27,6 +27,7 @@ import {
   ArrowUpOutlined
 } from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
+import { PRICING_PLANS } from '@/lib/stripe'
 
 const { Title, Text } = Typography
 
@@ -62,6 +63,7 @@ interface TeamData {
   }
   subscription: {
     status: string
+    planId: string
     monthlyLimit: number
     linksProcessed: number
     stripeCustomerId?: string
@@ -392,6 +394,29 @@ export default function ProfilePage() {
               
               {teamData.subscription && (
                 <div style={{ marginBottom: 12 }}>
+                  {/* Current Plan */}
+                  <div style={{ marginBottom: 12 }}>
+                    {(() => {
+                      const currentPlan = Object.values(PRICING_PLANS).find(p => p.id === teamData.subscription?.planId) || PRICING_PLANS.FREE
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                          <Text strong style={{ fontSize: 14, color: currentPlan.id === 'free' ? '#ff4d4f' : '#1890ff' }}>
+                            {currentPlan.name}
+                          </Text>
+                          <Tag color={currentPlan.id === 'free' ? 'red' : 'blue'} style={{ fontSize: 10 }}>
+                            {currentPlan.id === 'free' ? 'Free' : 'Paid'}
+                          </Tag>
+                        </div>
+                      )
+                    })()}
+                    <Text type="secondary" style={{ fontSize: 11 }}>
+                      {teamData.subscription.planId === 'free' 
+                        ? '20 links/month • 1 user' 
+                        : 'Unlimited links • Multiple users'
+                      }
+                    </Text>
+                  </div>
+                  
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                     <Tag color={getStatusColor(teamData.subscription.status)}>
                       <CrownOutlined /> {teamData.subscription.status}
