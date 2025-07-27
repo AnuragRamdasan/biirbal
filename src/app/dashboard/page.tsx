@@ -78,6 +78,7 @@ export default function Dashboard() {
   const [userCanConsume, setUserCanConsume] = useState<boolean>(true)
   const [currentListenRecord, setCurrentListenRecord] = useState<string | null>(null)
   const [sourceFilter, setSourceFilter] = useState<string>('all')
+  const [loadingAudio, setLoadingAudio] = useState<string | null>(null)
   const audioStartTimes = useRef<Record<string, number>>({})
   const progressUpdateInterval = useRef<NodeJS.Timeout | null>(null)
   
@@ -315,33 +316,43 @@ export default function Dashboard() {
   }
 
   const handlePlayAudio = async (linkId: string, audioUrl: string) => {
-    // Stop any currently playing audio
-    if (audioElement) {
-      audioElement.pause()
-      if (currentListenRecord && progressUpdateInterval.current) {
-        clearInterval(progressUpdateInterval.current)
-        await updateListenProgress(currentListenRecord, audioElement.duration, audioElement.currentTime, false)
-      }
-    }
-
-    // Reset progress state
-    setCurrentTime(0)
-    setProgress(0)
-    setDuration(0)
-
-    // Track listen and get resume position
-    const trackResult = await trackListen(linkId)
-    if (!trackResult) {
-      console.error('Failed to start tracking listen')
+    // Prevent multiple simultaneous play attempts
+    if (loadingAudio === linkId) {
       return
     }
+    
+    // Set loading state immediately
+    setLoadingAudio(linkId)
+    
+    try {
+      // Stop any currently playing audio
+      if (audioElement) {
+        audioElement.pause()
+        if (currentListenRecord && progressUpdateInterval.current) {
+          clearInterval(progressUpdateInterval.current)
+          await updateListenProgress(currentListenRecord, audioElement.duration, audioElement.currentTime, false)
+        }
+      }
 
-    const listenRecord = trackResult.listen
-    setCurrentListenRecord(listenRecord.id)
+      // Reset progress state
+      setCurrentTime(0)
+      setProgress(0)
+      setDuration(0)
 
-    // Create new audio element
-    const audio = new Audio(audioUrl)
-    audioStartTimes.current[linkId] = Date.now()
+      // Track listen and get resume position
+      const trackResult = await trackListen(linkId)
+      if (!trackResult) {
+        console.error('Failed to start tracking listen')
+        setLoadingAudio(null)
+        return
+      }
+
+      const listenRecord = trackResult.listen
+      setCurrentListenRecord(listenRecord.id)
+
+      // Create new audio element
+      const audio = new Audio(audioUrl)
+      audioStartTimes.current[linkId] = Date.now()
     
     // Add event listeners for progress tracking
     audio.addEventListener('loadedmetadata', () => {
@@ -391,53 +402,61 @@ export default function Dashboard() {
       setCurrentTime(0)
       setProgress(0)
       setDuration(0)
+      setLoadingAudio(null) // Clear loading state when track ends
     })
     
-    audio.addEventListener('error', () => {
-      console.error('Audio playback failed')
-      analytics.trackFeature('audio_play_error', { link_id: linkId })
-      setCurrentlyPlaying(null)
-      setAudioElement(null)
-      setCurrentListenRecord(null)
-      setCurrentTime(0)
-      setProgress(0)
-      setDuration(0)
-      if (progressUpdateInterval.current) {
-        clearInterval(progressUpdateInterval.current)
-      }
-    })
-
-    // Start playing
-    audio.play().then(() => {
-      setCurrentlyPlaying(linkId)
-      setAudioElement(audio)
-      
-      // Set up periodic progress updates
-      progressUpdateInterval.current = setInterval(async () => {
-        if (audio.duration > 0 && currentListenRecord) {
-          await updateListenProgress(currentListenRecord, audio.duration, audio.currentTime, false)
-          
-          // Refresh stats every minute of listening
-          const currentListenDuration = audioStartTimes.current[linkId] 
-            ? (Date.now() - audioStartTimes.current[linkId]) / 1000 
-            : 0
-          
-          if (currentListenDuration > 0 && Math.floor(currentListenDuration) % 60 === 0) {
-            await refreshStats()
-          }
+      audio.addEventListener('error', () => {
+        console.error('Audio playback failed')
+        analytics.trackFeature('audio_play_error', { link_id: linkId })
+        setCurrentlyPlaying(null)
+        setAudioElement(null)
+        setCurrentListenRecord(null)
+        setCurrentTime(0)
+        setProgress(0)
+        setDuration(0)
+        setLoadingAudio(null) // Clear loading state on error
+        if (progressUpdateInterval.current) {
+          clearInterval(progressUpdateInterval.current)
         }
-      }, 10000) // Update every 10 seconds
-      
-    }).catch((error) => {
-      console.error('Failed to play audio:', error)
-      analytics.trackFeature('audio_play_error', { link_id: linkId, error: error.message })
-      setCurrentlyPlaying(null)
-      setAudioElement(null)
-      setCurrentListenRecord(null)
-      setCurrentTime(0)
-      setProgress(0)
-      setDuration(0)
-    })
+      })
+
+      // Start playing
+      audio.play().then(() => {
+        setCurrentlyPlaying(linkId)
+        setAudioElement(audio)
+        setLoadingAudio(null) // Clear loading state on success
+        
+        // Set up periodic progress updates
+        progressUpdateInterval.current = setInterval(async () => {
+          if (audio.duration > 0 && currentListenRecord) {
+            await updateListenProgress(currentListenRecord, audio.duration, audio.currentTime, false)
+            
+            // Refresh stats every minute of listening
+            const currentListenDuration = audioStartTimes.current[linkId] 
+              ? (Date.now() - audioStartTimes.current[linkId]) / 1000 
+              : 0
+            
+            if (currentListenDuration > 0 && Math.floor(currentListenDuration) % 60 === 0) {
+              await refreshStats()
+            }
+          }
+        }, 10000) // Update every 10 seconds
+        
+      }).catch((error) => {
+        console.error('Failed to play audio:', error)
+        analytics.trackFeature('audio_play_error', { link_id: linkId, error: error.message })
+        setCurrentlyPlaying(null)
+        setAudioElement(null)
+        setCurrentListenRecord(null)
+        setCurrentTime(0)
+        setProgress(0)
+        setDuration(0)
+        setLoadingAudio(null) // Clear loading state on error
+      })
+    } catch (error) {
+      console.error('Error in handlePlayAudio:', error)
+      setLoadingAudio(null) // Clear loading state on any error
+    }
   }
 
   const handlePauseAudio = async () => {
@@ -834,8 +853,9 @@ export default function Dashboard() {
                 bodyStyle={{ padding: '16px' }}
                 onClick={async () => {
                   if (record.processingStatus === 'COMPLETED' && record.audioFileUrl) {
-                    // Check access restrictions
+                    // Check access restrictions and loading state
                     if ((!userCanConsume || linkLimitExceeded) && !isExceptionTeam) return
+                    if (loadingAudio === record.id) return
                     
                     if (currentlyPlaying === record.id) {
                       await handlePauseAudio()
@@ -1006,10 +1026,18 @@ export default function Dashboard() {
                             shape="circle"
                             size="large"
                             disabled={(!userCanConsume || linkLimitExceeded) && !isExceptionTeam}
-                            icon={currentlyPlaying === record.id ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
+                            loading={loadingAudio === record.id}
+                            icon={
+                              loadingAudio === record.id ? <LoadingOutlined /> :
+                              currentlyPlaying === record.id ? <PauseCircleOutlined /> : 
+                              <PlayCircleOutlined />
+                            }
                             onClick={async (e) => {
                               e.stopPropagation()
+                              // Prevent action if disabled, loading, or access restricted
                               if ((!userCanConsume || linkLimitExceeded) && !isExceptionTeam) return
+                              if (loadingAudio === record.id) return
+                              
                               if (currentlyPlaying === record.id) {
                                 await handlePauseAudio()
                               } else {

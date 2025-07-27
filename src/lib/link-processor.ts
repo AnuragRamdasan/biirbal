@@ -12,13 +12,15 @@ interface ProcessLinkParams {
   messageTs: string
   channelId: string
   teamId: string
+  linkId?: string // Optional - for restarting existing stuck jobs
 }
 
 export async function processLink({
   url,
   messageTs,
   channelId,
-  teamId
+  teamId,
+  linkId
 }: ProcessLinkParams, updateProgress?: (progress: number) => Promise<void>): Promise<void> {
   console.log(`🚀 Processing: ${url}`)
   const processingStartTime = Date.now()
@@ -87,26 +89,41 @@ export async function processLink({
       }
     })
 
-    // Create processing record
-    const processedLink = await db.processedLink.upsert({
-      where: {
-        url_messageTs_channelId: {
+    // Create or update processing record
+    let processedLink
+    if (linkId) {
+      // This is a restarted job - update the existing record
+      console.log(`🔄 Restarting existing link ID: ${linkId}`)
+      processedLink = await db.processedLink.update({
+        where: { id: linkId },
+        data: {
+          processingStatus: 'PROCESSING',
+          errorMessage: null, // Clear any previous error
+          updatedAt: new Date()
+        }
+      })
+    } else {
+      // Normal new job processing
+      processedLink = await db.processedLink.upsert({
+        where: {
+          url_messageTs_channelId: {
+            url,
+            messageTs,
+            channelId: channel.id
+          }
+        },
+        update: {
+          processingStatus: 'PROCESSING'
+        },
+        create: {
           url,
           messageTs,
-          channelId: channel.id
+          channelId: channel.id,
+          teamId,
+          processingStatus: 'PROCESSING'
         }
-      },
-      update: {
-        processingStatus: 'PROCESSING'
-      },
-      create: {
-        url,
-        messageTs,
-        channelId: channel.id,
-        teamId,
-        processingStatus: 'PROCESSING'
-      }
-    })
+      })
+    }
 
     if (updateProgress) await updateProgress(30)
 
