@@ -14,6 +14,7 @@ import {
   Empty,
   Badge,
   Tooltip,
+  Select,
 } from 'antd'
 import {
   PlayCircleOutlined,
@@ -75,6 +76,7 @@ export default function Dashboard() {
   const [linkLimitExceeded, setLinkLimitExceeded] = useState<boolean>(false)
   const [isExceptionTeam, setIsExceptionTeam] = useState<boolean>(false)
   const [currentListenRecord, setCurrentListenRecord] = useState<string | null>(null)
+  const [sourceFilter, setSourceFilter] = useState<string>('all')
   const audioStartTimes = useRef<Record<string, number>>({})
   const progressUpdateInterval = useRef<NodeJS.Timeout | null>(null)
   
@@ -115,6 +117,16 @@ export default function Dashboard() {
       }
     }
   }, [])
+
+  // Reset source filter if the selected option is no longer available
+  useEffect(() => {
+    if (sourceFilter !== 'all' && links.length > 0) {
+      const availableOptions = getChannelOptions()
+      if (!availableOptions.includes(sourceFilter)) {
+        setSourceFilter('all')
+      }
+    }
+  }, [links, sourceFilter])
 
   // Load audio durations for completed links
   useEffect(() => {
@@ -502,10 +514,36 @@ export default function Dashboard() {
 
 
 
-  // Filter links based on the toggle
-  const filteredLinks = showListened 
-    ? links  // Show all links when toggle is on
-    : links.filter(link => !hasUserListened(link))  // Show only unlistened links by default
+  // Get unique channel names for filter options
+  const getChannelOptions = () => {
+    const channels = new Set<string>()
+    links.forEach(link => {
+      if (link.source === 'chrome') {
+        channels.add('chrome')
+      } else if (link.channel?.channelName) {
+        channels.add(link.channel.channelName)
+      }
+    })
+    return Array.from(channels).sort()
+  }
+
+  // Filter links based on the toggle and source filter
+  const filteredLinks = links
+    .filter(link => {
+      // First apply the source filter
+      if (sourceFilter === 'all') {
+        return true
+      } else if (sourceFilter === 'chrome') {
+        return link.source === 'chrome'
+      } else {
+        // Filter by channel name
+        return link.channel?.channelName === sourceFilter
+      }
+    })
+    .filter(link => {
+      // Then apply the listened filter
+      return showListened ? true : !hasUserListened(link)
+    })
 
 
 
@@ -640,6 +678,29 @@ export default function Dashboard() {
                 </Col>
                 <Col xs={24} sm={16}>
                   <Row gutter={[8, 8]} align="middle" justify="end">
+                    <Col>
+                      <Space size="small">
+                        <Text style={{ fontSize: 12 }}>Source:</Text>
+                        <Select
+                          size="small"
+                          value={sourceFilter}
+                          onChange={(value) => {
+                            setSourceFilter(value)
+                            analytics.trackFeature('source_filter_change', { 
+                              source_filter: value 
+                            })
+                          }}
+                          style={{ width: 140 }}
+                          options={[
+                            { value: 'all', label: '🔗 All Sources' },
+                            ...getChannelOptions().map(channel => ({
+                              value: channel,
+                              label: channel === 'chrome' ? '🌐 Chrome' : `💬 #${channel}`
+                            }))
+                          ]}
+                        />
+                      </Space>
+                    </Col>
                     <Col>
                       <Space size="small">
                         <Text style={{ fontSize: 12 }}>Show All</Text>
