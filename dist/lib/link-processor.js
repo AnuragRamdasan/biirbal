@@ -9,7 +9,7 @@ const web_api_1 = require("@slack/web-api");
 const subscription_utils_1 = require("./subscription-utils");
 const exception_teams_1 = require("./exception-teams");
 const analytics_1 = require("./analytics");
-async function processLink({ url, messageTs, channelId, teamId }, updateProgress) {
+async function processLink({ url, messageTs, channelId, teamId, linkId }, updateProgress) {
     console.log(`🚀 Processing: ${url}`);
     const processingStartTime = Date.now();
     try {
@@ -71,26 +71,42 @@ async function processLink({ url, messageTs, channelId, teamId }, updateProgress
                 ...(channelName && { channelName })
             }
         });
-        // Create processing record
-        const processedLink = await db.processedLink.upsert({
-            where: {
-                url_messageTs_channelId: {
+        // Create or update processing record
+        let processedLink;
+        if (linkId) {
+            // This is a restarted job - update the existing record
+            console.log(`🔄 Restarting existing link ID: ${linkId}`);
+            processedLink = await db.processedLink.update({
+                where: { id: linkId },
+                data: {
+                    processingStatus: 'PROCESSING',
+                    errorMessage: null, // Clear any previous error
+                    updatedAt: new Date()
+                }
+            });
+        }
+        else {
+            // Normal new job processing
+            processedLink = await db.processedLink.upsert({
+                where: {
+                    url_messageTs_channelId: {
+                        url,
+                        messageTs,
+                        channelId: channel.id
+                    }
+                },
+                update: {
+                    processingStatus: 'PROCESSING'
+                },
+                create: {
                     url,
                     messageTs,
-                    channelId: channel.id
+                    channelId: channel.id,
+                    teamId,
+                    processingStatus: 'PROCESSING'
                 }
-            },
-            update: {
-                processingStatus: 'PROCESSING'
-            },
-            create: {
-                url,
-                messageTs,
-                channelId: channel.id,
-                teamId,
-                processingStatus: 'PROCESSING'
-            }
-        });
+            });
+        }
         if (updateProgress)
             await updateProgress(30);
         // 1. Extract content with ScrapingBee
