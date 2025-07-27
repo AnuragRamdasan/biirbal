@@ -6,10 +6,12 @@ import Stripe from 'stripe'
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🎯 Stripe webhook received')
     const body = await request.text()
     const signature = request.headers.get('stripe-signature')
 
     if (!signature) {
+      console.error('❌ Missing stripe signature')
       return NextResponse.json(
         { error: 'Missing stripe signature' },
         { status: 400 }
@@ -18,6 +20,7 @@ export async function POST(request: NextRequest) {
 
     // Check if Stripe is configured
     if (!process.env.STRIPE_SECRET_KEY) {
+      console.error('❌ Stripe not configured')
       return NextResponse.json(
         { error: 'Stripe is not configured' },
         { status: 503 }
@@ -25,6 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     const event = constructWebhookEvent(body, signature)
+    console.log(`📩 Processing webhook event: ${event.type}`)
 
     switch (event.type) {
       case 'checkout.session.completed':
@@ -62,8 +66,13 @@ export async function POST(request: NextRequest) {
 }
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+  console.log('🎉 Processing checkout completion:', session.id)
   const teamId = session.metadata?.teamId
-  if (!teamId) return
+  console.log('📋 Checkout metadata teamId:', teamId)
+  if (!teamId) {
+    console.error('❌ No teamId in checkout session metadata')
+    return
+  }
 
   const subscriptionId = session.subscription as string
   const customerId = session.customer as string
@@ -87,6 +96,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }
 
   console.log(`Processing checkout for team: ${team.teamName} (ID: ${team.id}, Slack ID: ${team.slackTeamId})`)
+  console.log(`Plan to activate: ${plan?.name} (${plan?.id})`)
 
   await prisma.subscription.update({
     where: { teamId },
@@ -121,7 +131,18 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     }
   }
 
-  console.log(`Subscription activated for team: ${teamId}`)
+  console.log(`✅ Subscription activated successfully for team: ${teamId} with plan: ${plan?.id}`)
+  
+  // Verify the update worked
+  const updatedSubscription = await prisma.subscription.findUnique({
+    where: { teamId }
+  })
+  console.log('🔍 Updated subscription:', {
+    teamId: updatedSubscription?.teamId,
+    planId: updatedSubscription?.planId,
+    status: updatedSubscription?.status,
+    userLimit: updatedSubscription?.userLimit
+  })
 }
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
