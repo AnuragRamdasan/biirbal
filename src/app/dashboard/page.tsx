@@ -198,6 +198,33 @@ export default function Dashboard() {
     }
   }
 
+  const refreshStats = async () => {
+    try {
+      // Get team and user IDs from localStorage
+      const teamId = localStorage.getItem('biirbal_team_id')
+      const slackUserId = localStorage.getItem('biirbal_user_id')
+      
+      if (!teamId) return
+
+      // Build URL with query parameters for user-specific filtering
+      const params = new URLSearchParams({
+        teamId: teamId
+      })
+      
+      if (slackUserId) {
+        params.append('slackUserId', slackUserId)
+      }
+
+      const response = await fetch(`/api/dashboard/links?${params.toString()}`)
+      if (response.ok) {
+        const data = await response.json()
+        setLinks(data.links)
+      }
+    } catch (err) {
+      console.error('Failed to refresh stats:', err)
+    }
+  }
+
   const checkUsageWarnings = async (teamId: string) => {
     try {
       // Include userId in the request for user-specific access control
@@ -355,6 +382,9 @@ export default function Dashboard() {
         }
       }
       
+      // Refresh stats to update listen counts and minutes listened
+      await refreshStats()
+      
       setCurrentlyPlaying(null)
       setAudioElement(null)
       setCurrentListenRecord(null)
@@ -383,9 +413,18 @@ export default function Dashboard() {
       setAudioElement(audio)
       
       // Set up periodic progress updates
-      progressUpdateInterval.current = setInterval(() => {
+      progressUpdateInterval.current = setInterval(async () => {
         if (audio.duration > 0 && currentListenRecord) {
-          updateListenProgress(currentListenRecord, audio.duration, audio.currentTime, false)
+          await updateListenProgress(currentListenRecord, audio.duration, audio.currentTime, false)
+          
+          // Refresh stats every minute of listening
+          const currentListenDuration = audioStartTimes.current[linkId] 
+            ? (Date.now() - audioStartTimes.current[linkId]) / 1000 
+            : 0
+          
+          if (currentListenDuration > 0 && Math.floor(currentListenDuration) % 60 === 0) {
+            await refreshStats()
+          }
         }
       }, 10000) // Update every 10 seconds
       
@@ -419,6 +458,11 @@ export default function Dashboard() {
       // Track partial completion if user listened to some of the audio
       if (completionPercentage > 10) {
         analytics.trackAudioComplete(currentlyPlaying, completionPercentage, listenDuration)
+      }
+      
+      // Refresh stats if user listened for more than 30 seconds or 50% completion
+      if (listenDuration > 30 || completionPercentage > 50) {
+        await refreshStats()
       }
       
       analytics.trackFeature('audio_paused', { 
