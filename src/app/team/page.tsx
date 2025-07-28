@@ -17,7 +17,10 @@ import {
   message,
   Tooltip,
   Progress,
-  Divider
+  Divider,
+  Modal,
+  Form,
+  Input
 } from 'antd'
 import {
   UserOutlined,
@@ -26,7 +29,9 @@ import {
   CheckCircleOutlined,
   DeleteOutlined,
   TeamOutlined,
-  SettingOutlined
+  SettingOutlined,
+  UserAddOutlined,
+  MailOutlined
 } from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
 import { useAnalytics } from '@/hooks/useAnalytics'
@@ -67,6 +72,9 @@ export default function TeamManagement() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [inviteModalVisible, setInviteModalVisible] = useState(false)
+  const [inviteLoading, setInviteLoading] = useState(false)
+  const [inviteForm] = Form.useForm()
   
   // Initialize analytics
   const analytics = useAnalytics({
@@ -111,20 +119,23 @@ export default function TeamManagement() {
     try {
       setActionLoading(userId)
       const teamId = localStorage.getItem('biirbal_team_id')
+      const currentUserId = localStorage.getItem('biirbal_user_id')
       
-      const response = await fetch(`/api/team/members?teamId=${teamId}`, {
-        method: 'PATCH',
+      const response = await fetch('/api/team/remove', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           userId,
-          action
+          teamId,
+          removedBy: currentUserId
         }),
       })
 
       if (!response.ok) {
-        throw new Error('Failed to update member')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to update member')
       }
 
       const result = await response.json()
@@ -140,10 +151,56 @@ export default function TeamManagement() {
       // Refresh the data
       await fetchTeamData()
     } catch (error) {
-      message.error('Failed to update member')
+      message.error(error instanceof Error ? error.message : 'Failed to update member')
       console.error('Member action error:', error)
     } finally {
       setActionLoading(null)
+    }
+  }
+
+  const handleInviteUser = async (values: { email: string }) => {
+    try {
+      setInviteLoading(true)
+      const teamId = localStorage.getItem('biirbal_team_id')
+      const currentUserId = localStorage.getItem('biirbal_user_id')
+      
+      const response = await fetch('/api/team/invite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: values.email,
+          teamId,
+          invitedBy: currentUserId
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to send invitation')
+      }
+
+      const result = await response.json()
+      message.success('Invitation sent successfully!')
+      
+      // Track the invitation
+      analytics.trackFeature('user_invitation_sent', {
+        team_id: teamId,
+        invited_email: values.email
+      })
+      
+      // Reset form and close modal
+      inviteForm.resetFields()
+      setInviteModalVisible(false)
+      
+      // Refresh the data to show any updates
+      await fetchTeamData()
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : 'Failed to send invitation')
+      console.error('Invite error:', error)
+    } finally {
+      setInviteLoading(false)
     }
   }
 
@@ -276,13 +333,23 @@ export default function TeamManagement() {
               </Space>
             </Col>
             <Col>
-              <Button 
-                type="primary" 
-                icon={<SettingOutlined />}
-                href="/pricing"
-              >
-                Upgrade Plan
-              </Button>
+              <Space>
+                <Button 
+                  type="default" 
+                  icon={<UserAddOutlined />}
+                  onClick={() => setInviteModalVisible(true)}
+                  disabled={teamData?.subscription.userLimitExceeded}
+                >
+                  Invite Member
+                </Button>
+                <Button 
+                  type="primary" 
+                  icon={<SettingOutlined />}
+                  href="/pricing"
+                >
+                  Upgrade Plan
+                </Button>
+              </Space>
             </Col>
           </Row>
         </Card>
@@ -456,6 +523,68 @@ export default function TeamManagement() {
             showIcon
           />
         </Card>
+
+        {/* Invite Member Modal */}
+        <Modal
+          title="Invite Team Member"
+          open={inviteModalVisible}
+          onCancel={() => {
+            setInviteModalVisible(false)
+            inviteForm.resetFields()
+          }}
+          footer={null}
+          width={480}
+        >
+          <Form
+            form={inviteForm}
+            layout="vertical"
+            onFinish={handleInviteUser}
+            style={{ marginTop: 16 }}
+          >
+            <Form.Item
+              label="Email Address"
+              name="email"
+              rules={[
+                { required: true, message: 'Please enter an email address' },
+                { type: 'email', message: 'Please enter a valid email address' }
+              ]}
+            >
+              <Input
+                prefix={<MailOutlined />}
+                placeholder="colleague@company.com"
+                size="large"
+              />
+            </Form.Item>
+
+            <div style={{ marginBottom: 16, padding: 12, background: '#f6f8fa', borderRadius: 6 }}>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                An invitation email will be sent with a secure link that expires in 7 days. 
+                The invitee will be able to join your team and access audio summaries.
+              </Text>
+            </div>
+
+            <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
+              <Space>
+                <Button 
+                  onClick={() => {
+                    setInviteModalVisible(false)
+                    inviteForm.resetFields()
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={inviteLoading}
+                  icon={<UserAddOutlined />}
+                >
+                  {inviteLoading ? 'Sending Invitation...' : 'Send Invitation'}
+                </Button>
+              </Space>
+            </Form.Item>
+          </Form>
+        </Modal>
       </div>
     </Layout>
   )

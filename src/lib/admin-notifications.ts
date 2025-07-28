@@ -2,7 +2,9 @@ import { WebClient } from '@slack/web-api'
 
 // Admin Slack configuration
 const ADMIN_SLACK_TOKEN = process.env.ADMIN_SLACK_TOKEN
-const ADMIN_CHANNEL_ID = process.env.ADMIN_CHANNEL_ID || '#biirbal-admin'
+const ADMIN_SUBSCRIPTION_CHANNEL = process.env.ADMIN_SUBSCRIPTION_CHANNEL || '#biirbal-subscriptions'
+const ADMIN_TEAM_CHANNEL = process.env.ADMIN_TEAM_CHANNEL || '#biirbal-teams'
+const ADMIN_USER_CHANNEL = process.env.ADMIN_USER_CHANNEL || '#biirbal-users'
 
 interface BaseNotificationData {
   event: string
@@ -42,7 +44,24 @@ interface SubscriptionEventData extends BaseNotificationData {
   stripeSubscriptionId?: string
 }
 
-type AdminNotificationData = UserSignupData | TeamSignupData | SubscriptionEventData
+interface UserInvitationData extends BaseNotificationData {
+  event: 'user_invited' | 'user_removed'
+  teamId: string
+  teamName?: string
+  email: string
+  invitedBy?: string
+  invitedByName?: string
+}
+
+interface TeamDeletionData extends BaseNotificationData {
+  event: 'team_deleted'
+  teamId: string
+  teamName?: string
+  deletedBy?: string
+  reason?: string
+}
+
+type AdminNotificationData = UserSignupData | TeamSignupData | SubscriptionEventData | UserInvitationData | TeamDeletionData
 
 class AdminNotificationService {
   private slackClient: WebClient | null = null
@@ -64,19 +83,40 @@ class AdminNotificationService {
     try {
       const message = this.formatMessage(data)
       const blocks = this.formatBlocks(data)
+      const channel = this.getChannelForEvent(data.event)
 
       await this.slackClient.chat.postMessage({
-        channel: ADMIN_CHANNEL_ID,
+        channel,
         text: message,
         blocks,
         username: 'Biirbal Admin Bot',
         icon_emoji: ':robot_face:'
       })
 
-      console.log('✅ Admin notification sent:', data.event)
+      console.log('✅ Admin notification sent:', data.event, 'to', channel)
     } catch (error) {
       console.error('❌ Failed to send admin notification:', error)
     }
+  }
+
+  private getChannelForEvent(event: string): string {
+    // Subscription events
+    if (event.startsWith('subscription_')) {
+      return ADMIN_SUBSCRIPTION_CHANNEL
+    }
+    
+    // Team events
+    if (event === 'team_signup' || event === 'team_deleted') {
+      return ADMIN_TEAM_CHANNEL
+    }
+    
+    // User events
+    if (event === 'user_signup' || event === 'user_invited' || event === 'user_removed') {
+      return ADMIN_USER_CHANNEL
+    }
+    
+    // Default to team channel
+    return ADMIN_TEAM_CHANNEL
   }
 
   private formatMessage(data: AdminNotificationData): string {
@@ -103,6 +143,15 @@ class AdminNotificationService {
       
       case 'subscription_payment':
         return `${env}💰 Payment received: ${data.teamName || data.teamId} paid $${data.amount} for ${data.planName}`
+      
+      case 'user_invited':
+        return `${env}📧 User invited: ${data.email} invited to team ${data.teamName || data.teamId}`
+      
+      case 'user_removed':
+        return `${env}🚫 User removed: ${data.email} removed from team ${data.teamName || data.teamId}`
+      
+      case 'team_deleted':
+        return `${env}🗑️ Team deleted: ${data.teamName || data.teamId} was deleted`
       
       default:
         return `${env}📊 Admin event: ${data.event}`
@@ -222,6 +271,51 @@ class AdminNotificationService {
           }
         ]
         break
+
+      case 'user_invited':
+        emoji = '📧'
+        color = '#36a64f'
+        fields = [
+          {
+            type: 'mrkdwn',
+            text: `*Email:* ${data.email}\n*Team:* ${data.teamName || data.teamId}`
+          },
+          {
+            type: 'mrkdwn',
+            text: `*Invited By:* ${data.invitedByName || data.invitedBy || 'Unknown'}\n*Status:* Invitation Sent`
+          }
+        ]
+        break
+
+      case 'user_removed':
+        emoji = '🚫'
+        color = '#ff9500'
+        fields = [
+          {
+            type: 'mrkdwn',
+            text: `*Email:* ${data.email}\n*Team:* ${data.teamName || data.teamId}`
+          },
+          {
+            type: 'mrkdwn',
+            text: `*Removed By:* ${data.invitedByName || data.invitedBy || 'Unknown'}\n*Status:* User Removed`
+          }
+        ]
+        break
+
+      case 'team_deleted':
+        emoji = '🗑️'
+        color = '#ff0000'
+        fields = [
+          {
+            type: 'mrkdwn',
+            text: `*Team:* ${data.teamName || data.teamId}\n*Deleted By:* ${data.deletedBy || 'Unknown'}`
+          },
+          {
+            type: 'mrkdwn',
+            text: `*Reason:* ${data.reason || 'Not specified'}\n*Status:* Permanently Deleted`
+          }
+        ]
+        break
     }
 
     return [
@@ -256,7 +350,10 @@ class AdminNotificationService {
       'subscription_upgraded': 'Subscription Upgraded',
       'subscription_downgraded': 'Subscription Downgraded',
       'subscription_cancelled': 'Subscription Cancelled',
-      'subscription_payment': 'Payment Received'
+      'subscription_payment': 'Payment Received',
+      'user_invited': 'User Invited',
+      'user_removed': 'User Removed',
+      'team_deleted': 'Team Deleted'
     }
     return titles[event] || event
   }
@@ -287,6 +384,33 @@ class AdminNotificationService {
       environment: process.env.NODE_ENV || 'development'
     })
   }
+
+  async notifyUserInvited(data: Omit<UserInvitationData, 'event' | 'timestamp'>): Promise<void> {
+    return this.sendNotification({
+      ...data,
+      event: 'user_invited',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development'
+    })
+  }
+
+  async notifyUserRemoved(data: Omit<UserInvitationData, 'event' | 'timestamp'>): Promise<void> {
+    return this.sendNotification({
+      ...data,
+      event: 'user_removed',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development'
+    })
+  }
+
+  async notifyTeamDeleted(data: Omit<TeamDeletionData, 'event' | 'timestamp'>): Promise<void> {
+    return this.sendNotification({
+      ...data,
+      event: 'team_deleted',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development'
+    })
+  }
 }
 
 // Export singleton instance
@@ -297,5 +421,7 @@ export type {
   UserSignupData,
   TeamSignupData,
   SubscriptionEventData,
+  UserInvitationData,
+  TeamDeletionData,
   AdminNotificationData
 }
