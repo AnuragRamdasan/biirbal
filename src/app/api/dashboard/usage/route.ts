@@ -20,7 +20,9 @@ export async function GET(request: NextRequest) {
     // Check if specific user can consume (for dashboard access control)
     let userCanConsume = true
     if (userId) {
+      console.log(`[DEBUG] Checking canUserConsume for teamId: ${teamId}, userId: ${userId}`)
       userCanConsume = await canUserConsume(teamId, userId)
+      console.log(`[DEBUG] canUserConsume result: ${userCanConsume}`)
     }
 
     return NextResponse.json({

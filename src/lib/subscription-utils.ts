@@ -28,7 +28,10 @@ export async function getTeamUsageStats(teamId: string): Promise<UsageStats> {
     where: { slackTeamId: teamId },
     include: { 
       subscription: true,
-      users: { where: { isActive: true } },
+      users: { 
+        where: { isActive: true },
+        orderBy: { createdAt: 'asc' }
+      },
       processedLinks: {
         where: {
           createdAt: {
