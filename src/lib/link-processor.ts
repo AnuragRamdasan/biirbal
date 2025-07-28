@@ -178,13 +178,55 @@ export async function processLink({
     console.log('📱 Notifying Slack...')
     const slackClient = new WebClient(team.accessToken)
     const baseMessage = `🎧 Audio summary ready: ${getDashboardUrl(processedLink.id)}`
-    const limitMessage = isLimitExceeded ? `\n\n⚠️ Note: You've exceeded your monthly limit. Upgrade to access playback on dashboard.` : ''
+    const limitMessage = isLimitExceeded ? `\n\n⚠️ Note: You've exceeded your monthly limit. Upgrade to access playbook on dashboard.` : ''
+    const fullMessage = baseMessage + limitMessage
     
-    await slackClient.chat.postMessage({
-      channel: channelId,
-      thread_ts: messageTs,
-      text: baseMessage + limitMessage
-    })
+    if (team.sendSummaryAsDM) {
+      // Send as DM to all active team members
+      console.log('📨 Sending DMs to team members...')
+      
+      // Get all active team members
+      const activeUsers = await db.user.findMany({
+        where: {
+          teamId: team.id,
+          isActive: true,
+          slackUserId: { not: null }
+        },
+        select: {
+          slackUserId: true,
+          name: true
+        }
+      })
+      
+      console.log(`📨 Found ${activeUsers.length} active users to notify`)
+      
+      // Send DM to each active user
+      const dmPromises = activeUsers.map(async (user) => {
+        if (!user.slackUserId) return
+        
+        try {
+          await slackClient.chat.postMessage({
+            channel: user.slackUserId, // DM channel is the user ID
+            text: fullMessage
+          })
+          console.log(`✅ Sent DM to ${user.name} (${user.slackUserId})`)
+        } catch (error) {
+          console.error(`❌ Failed to send DM to ${user.name} (${user.slackUserId}):`, error)
+        }
+      })
+      
+      await Promise.all(dmPromises)
+      console.log('📨 Finished sending DMs to team members')
+      
+    } else {
+      // Send as channel reply (original behavior)
+      console.log('📱 Sending channel reply...')
+      await slackClient.chat.postMessage({
+        channel: channelId,
+        thread_ts: messageTs,
+        text: fullMessage
+      })
+    }
 
     if (updateProgress) await updateProgress(100)
     console.log(`✅ Successfully processed: ${url}`)

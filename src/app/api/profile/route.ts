@@ -287,7 +287,8 @@ export async function GET(request: NextRequest) {
         teamName: team.teamName,
         isActive: team.isActive,
         createdAt: team.createdAt,
-        totalLinks: team._count.processedLinks
+        totalLinks: team._count.processedLinks,
+        sendSummaryAsDM: team.sendSummaryAsDM
       },
       subscription: team.subscription,
       usage: {

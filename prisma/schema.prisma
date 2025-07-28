@@ -16,6 +16,7 @@ model Team {
   accessToken    String
   botUserId      String?
   isActive       Boolean         @default(true)
+  sendSummaryAsDM Boolean        @default(false)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   channels       Channel[]

@@ -17,14 +17,18 @@ import {
   Alert,
   Tag,
   Descriptions,
-  Table
+  Table,
+  Switch,
+  message
 } from 'antd'
 import {
   UserOutlined,
   TeamOutlined,
   CrownOutlined,
   LogoutOutlined,
-  ArrowUpOutlined
+  ArrowUpOutlined,
+  SettingOutlined,
+  MessageOutlined
 } from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
 import { PRICING_PLANS } from '@/lib/stripe'
@@ -60,6 +64,7 @@ interface TeamData {
     isActive: boolean
     createdAt: string
     totalLinks: number
+    sendSummaryAsDM: boolean
   }
   subscription: {
     status: string
@@ -175,6 +180,45 @@ export default function ProfilePage() {
         return 'error'
       default:
         return 'default'
+    }
+  }
+
+  const handleDMPreferenceChange = async (checked: boolean) => {
+    try {
+      const teamId = localStorage.getItem('biirbal_team_id')
+      if (!teamId) {
+        throw new Error('Team ID not found')
+      }
+
+      const response = await fetch(`/api/team/dm-preference?teamId=${teamId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sendSummaryAsDM: checked }),
+      })
+
+      if (response.ok) {
+        // Update local state
+        setTeamData(prev => prev ? {
+          ...prev,
+          team: {
+            ...prev.team,
+            sendSummaryAsDM: checked
+          }
+        } : null)
+        
+        message.success(
+          checked 
+            ? 'Summary links will now be sent as direct messages' 
+            : 'Summary links will now be sent as channel replies'
+        )
+      } else {
+        throw new Error('Failed to update preference')
+      }
+    } catch (error) {
+      message.error('Failed to update DM preference')
+      console.error('Error updating DM preference:', error)
     }
   }
 
@@ -500,6 +544,36 @@ export default function ProfilePage() {
               </Card>
             </Col>
           )}
+
+          {/* Team Settings */}
+          <Col xs={24}>
+            <Card size="small">
+              <div style={{ marginBottom: 12 }}>
+                <Text strong style={{ fontSize: 14 }}>
+                  <SettingOutlined /> Team Settings
+                </Text>
+              </div>
+              
+              <div style={{ padding: '8px 0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                      <MessageOutlined style={{ color: '#1890ff' }} />
+                      <Text strong style={{ fontSize: 13 }}>Send Summaries as Direct Messages</Text>
+                    </div>
+                    <Text type="secondary" style={{ fontSize: 11 }}>
+                      When enabled, audio summary links will be sent as DMs to team members instead of channel replies
+                    </Text>
+                  </div>
+                  <Switch
+                    checked={teamData.team.sendSummaryAsDM}
+                    onChange={handleDMPreferenceChange}
+                    size="small"
+                  />
+                </div>
+              </div>
+            </Card>
+          </Col>
 
           {/* Team Members Table */}
           {teamData.teamMembers && teamData.teamMembers.length > 0 && (
