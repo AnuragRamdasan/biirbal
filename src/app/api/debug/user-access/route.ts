@@ -42,9 +42,21 @@ export async function GET(request: NextRequest) {
     // Get plan details
     const plan = getPlanById(team.subscription?.planId || 'free')
     
-    // Get active users
+    // Get active users (using same query as canUserConsume)
+    const teamWithActiveUsers = await db.team.findUnique({
+      where: { slackTeamId: teamId },
+      include: { 
+        users: { 
+          where: { isActive: true },
+          orderBy: { createdAt: 'asc' }
+        }
+      }
+    })
+    
     const activeUsers = team.users.filter(u => u.isActive)
+    const activeUsersFromQuery = teamWithActiveUsers?.users || []
     const userIndex = activeUsers.findIndex(u => u.slackUserId === userId)
+    const userIndexFromQuery = activeUsersFromQuery.findIndex(u => u.slackUserId === userId)
     
     return NextResponse.json({
       debug: {
@@ -65,13 +77,17 @@ export async function GET(request: NextRequest) {
         users: {
           total: team.users.length,
           active: activeUsers.length,
+          activeFromQuery: activeUsersFromQuery.length,
           activeUserIds: activeUsers.map(u => u.slackUserId),
+          activeUserIdsFromQuery: activeUsersFromQuery.map(u => u.slackUserId),
           userIndex,
+          userIndexFromQuery,
           requestedUser: team.users.find(u => u.slackUserId === userId)
         },
         calculations: {
           isUserActive: activeUsers.some(u => u.slackUserId === userId),
           userIndexCheck: userIndex !== -1 && userIndex < (plan?.userLimit || 0),
+          userIndexCheckFromQuery: userIndexFromQuery !== -1 && userIndexFromQuery < (plan?.userLimit || 0),
           userCanConsume,
           userLimitExceeded: usageStats.userLimitExceeded
         }

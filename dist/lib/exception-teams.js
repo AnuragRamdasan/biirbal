@@ -6,9 +6,9 @@ exports.EXCEPTION_TEAMS = void 0;
 exports.isExceptionTeam = isExceptionTeam;
 exports.getExceptionTeamMessage = getExceptionTeamMessage;
 exports.EXCEPTION_TEAMS = [
-    // Add Slack team IDs here for teams that should bypass all limits
-    // Example: 'T1234567890',
-    'T08F83XV0QG'
+// Add Slack team IDs here for teams that should bypass all limits
+// Example: 'T1234567890',
+// 'T08F83XV0QG'
 ];
 function isExceptionTeam(teamId) {
     return exports.EXCEPTION_TEAMS.includes(teamId);

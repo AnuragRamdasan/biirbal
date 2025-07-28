@@ -9,9 +9,11 @@ const web_api_1 = require("@slack/web-api");
 const subscription_utils_1 = require("./subscription-utils");
 const exception_teams_1 = require("./exception-teams");
 const analytics_1 = require("./analytics");
-async function processLink({ url, messageTs, channelId, teamId, linkId }, updateProgress) {
+async function processLink({ url, messageTs, channelId, teamId, slackTeamId, linkId }, updateProgress) {
     console.log(`🚀 Processing: ${url}`);
     const processingStartTime = Date.now();
+    // Declare variables outside try block for use in catch block
+    let subscriptionTeamId;
     try {
         console.log('💾 Getting database client...');
         const db = await (0, db_1.getDbClient)();
@@ -27,14 +29,16 @@ async function processLink({ url, messageTs, channelId, teamId, linkId }, update
             throw new Error('Team not found');
         }
         // Check if usage limits are exceeded (but don't block processing)
-        const usageCheck = await (0, subscription_utils_1.canProcessNewLink)(teamId);
-        const isExceptionTeamFlag = (0, exception_teams_1.isExceptionTeam)(teamId);
+        // Use slackTeamId for subscription checks, fallback to team.slackTeamId if not provided
+        subscriptionTeamId = slackTeamId || team.slackTeamId;
+        const usageCheck = await (0, subscription_utils_1.canProcessNewLink)(subscriptionTeamId);
+        const isExceptionTeamFlag = (0, exception_teams_1.isExceptionTeam)(subscriptionTeamId);
         const isLimitExceeded = !usageCheck.allowed && !isExceptionTeamFlag;
         // Track link shared event
         try {
             const urlObj = new URL(url);
             (0, analytics_1.trackLinkShared)({
-                team_id: teamId,
+                team_id: subscriptionTeamId, // Use Slack team ID for analytics consistency
                 channel_id: channelId,
                 link_domain: urlObj.hostname,
                 user_id: messageTs // Using messageTs as proxy for user identifier
@@ -160,7 +164,7 @@ async function processLink({ url, messageTs, channelId, teamId, linkId }, update
         // Track successful link processing
         const processingTimeSeconds = (Date.now() - processingStartTime) / 1000;
         (0, analytics_1.trackLinkProcessed)({
-            team_id: teamId,
+            team_id: subscriptionTeamId, // Use Slack team ID for analytics consistency
             link_id: processedLink.id,
             processing_time_seconds: processingTimeSeconds,
             success: true,
@@ -173,7 +177,7 @@ async function processLink({ url, messageTs, channelId, teamId, linkId }, update
         // Track failed link processing
         const processingTimeSeconds = (Date.now() - processingStartTime) / 1000;
         (0, analytics_1.trackLinkProcessed)({
-            team_id: teamId,
+            team_id: subscriptionTeamId || slackTeamId || teamId, // Use Slack team ID, fallback to database ID
             link_id: 'failed',
             processing_time_seconds: processingTimeSeconds,
             success: false,

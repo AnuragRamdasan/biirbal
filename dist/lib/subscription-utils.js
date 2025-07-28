@@ -19,7 +19,10 @@ async function getTeamUsageStats(teamId) {
         where: { slackTeamId: teamId },
         include: {
             subscription: true,
-            users: { where: { isActive: true } },
+            users: {
+                where: { isActive: true },
+                orderBy: { createdAt: 'asc' }
+            },
             processedLinks: {
                 where: {
                     createdAt: {
@@ -40,7 +43,7 @@ async function getTeamUsageStats(teamId) {
     const plan = (0, stripe_1.getPlanById)(subscription.planId) || stripe_1.PRICING_PLANS.FREE;
     // Calculate current usage
     const currentLinks = team.processedLinks.length;
-    const currentUsers = team.users.length;
+    const currentUsers = team.users.filter(user => user.isActive).length;
     // For exception teams, bypass all limits
     if (isException) {
         return {
@@ -121,7 +124,12 @@ async function canUserConsume(teamId, userId) {
         }
         // Check if user is within the seat limit (first N active users get access)
         const userIndex = team.users.findIndex(u => u.slackUserId === userId);
-        return userIndex !== -1 && userIndex < plan.userLimit;
+        const result = userIndex !== -1 && userIndex < plan.userLimit;
+        console.log(`[DEBUG canUserConsume] teamId: ${teamId}, userId: ${userId}`);
+        console.log(`[DEBUG canUserConsume] plan: ${plan.id}, userLimit: ${plan.userLimit}`);
+        console.log(`[DEBUG canUserConsume] active users: ${team.users.length}, userIds: [${team.users.map(u => u.slackUserId).join(', ')}]`);
+        console.log(`[DEBUG canUserConsume] userIndex: ${userIndex}, result: ${result}`);
+        return result;
     }
     catch (error) {
         console.error('Error checking user consumption access:', error);
