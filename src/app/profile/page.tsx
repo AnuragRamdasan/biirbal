@@ -64,14 +64,13 @@ interface TeamData {
   subscription: {
     status: string
     planId: string
-    monthlyLimit: number
-    linksProcessed: number
+    monthlyLinkLimit: number
     stripeCustomerId?: string
   } | null
   usage: {
     monthlyUsage: number
     totalListens: number
-    monthlyLimit: number
+    monthlyLinkLimit: number
   }
   currentUser?: {
     id: string
@@ -216,8 +215,8 @@ export default function ProfilePage() {
     return null
   }
 
-  const usagePercentage = teamData.usage && teamData.usage.monthlyLimit > 0 
-    ? Math.round((teamData.usage.monthlyUsage / teamData.usage.monthlyLimit) * 100)
+  const usagePercentage = teamData.usage && teamData.usage.monthlyLinkLimit > 0 
+    ? Math.round((teamData.usage.monthlyUsage / teamData.usage.monthlyLinkLimit) * 100)
     : 0
 
   // Team members table columns
@@ -422,14 +421,14 @@ export default function ProfilePage() {
                       <CrownOutlined /> {teamData.subscription.status}
                     </Tag>
                     <Text style={{ fontSize: 12 }}>
-                      {teamData.subscription.monthlyLimit} links/month
+                      {teamData.subscription.monthlyLinkLimit === -1 ? 'Unlimited' : `${teamData.subscription.monthlyLinkLimit}`} links/month
                     </Text>
                   </div>
                   <Progress 
                     percent={usagePercentage} 
                     size="small"
                     status={usagePercentage > 90 ? 'exception' : usagePercentage > 70 ? 'active' : 'success'}
-                    format={() => `${teamData.usage?.monthlyUsage}/${teamData.subscription?.monthlyLimit}`}
+                    format={() => `${teamData.usage?.monthlyUsage}/${teamData.subscription?.monthlyLinkLimit === -1 ? '∞' : teamData.subscription?.monthlyLinkLimit}`}
                   />
                 </div>
               )}

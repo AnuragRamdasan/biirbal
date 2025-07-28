@@ -102,7 +102,6 @@ export default function DebugTeamPage() {
                       <Descriptions.Item label="Plan">{teamData.team.subscription.planId}</Descriptions.Item>
                       <Descriptions.Item label="Status">{teamData.team.subscription.status}</Descriptions.Item>
                       <Descriptions.Item label="Monthly Limit">{teamData.team.subscription.monthlyLinkLimit}</Descriptions.Item>
-                      <Descriptions.Item label="Links This Month">{teamData.team.subscription.linksProcessed}</Descriptions.Item>
                     </>
                   )}
                 </Descriptions>

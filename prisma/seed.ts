@@ -21,8 +21,7 @@ async function main() {
     data: {
       teamId: testTeam.id,
       status: 'TRIAL',
-      monthlyLimit: 50,
-      linksProcessed: 15,
+      monthlyLinkLimit: 50,
     },
   })
 

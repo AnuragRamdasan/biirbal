@@ -112,8 +112,7 @@ export async function POST(request: NextRequest) {
             status: 'TRIAL',
             planId: 'free',
             monthlyLinkLimit: 10,
-            userLimit: 2,
-            linksProcessed: 0
+            userLimit: 2
           }
         })
         console.log(`✅ Updated subscription with customer ID`)

@@ -50,7 +50,6 @@ export async function GET(request: NextRequest) {
             select: {
               planId: true,
               status: true,
-              linksProcessed: true,
               monthlyLinkLimit: true
             }
           },

@@ -16,7 +16,6 @@ jest.mock('@/lib/prisma', () => ({
         slackTeamId: 'T123',
         isActive: true,
         subscription: {
-          linksProcessed: 10,
           monthlyLinkLimit: 100,
           updatedAt: new Date()
         }

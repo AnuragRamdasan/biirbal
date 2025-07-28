@@ -48,8 +48,7 @@ export async function POST(request: NextRequest) {
         planId: plan.id,
         status: 'ACTIVE',
         monthlyLinkLimit: plan.monthlyLinkLimit,
-        userLimit: plan.userLimit,
-        linksProcessed: 0 // Reset usage
+        userLimit: plan.userLimit
       }
     })
 

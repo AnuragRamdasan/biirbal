@@ -151,8 +151,7 @@ export async function GET(request: NextRequest) {
         subscription: {
           create: {
             status: 'TRIAL',
-            monthlyLinkLimit: 10,
-            linksProcessed: 0
+            monthlyLinkLimit: 10
           }
         }
       }

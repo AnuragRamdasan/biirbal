@@ -102,8 +102,6 @@ model Subscription {
   stripeSubscriptionId String?
   status               SubscriptionStatus @default(TRIAL)
   currentPeriodEnd     DateTime?
-  linksProcessed       Int                @default(0)
-  monthlyLimit         Int                @default(50)
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
   planId               String             @default("free")

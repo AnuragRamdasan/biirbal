@@ -148,8 +148,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       planId: plan?.id || 'free',
       currentPeriodEnd,
       monthlyLinkLimit: plan?.monthlyLinkLimit || 10,
-      userLimit: plan?.userLimit || 2,
-      linksProcessed: 0 // Reset counter on new subscription
+      userLimit: plan?.userLimit || 2
     }
   })
 
@@ -340,7 +339,6 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
     await prisma.subscription.update({
       where: { id: subscription.id },
       data: {
-        linksProcessed: 0,
         status: 'ACTIVE'
       }
     })
