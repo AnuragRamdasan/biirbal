@@ -84,6 +84,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     id: subscription.id,
     status: subscription.status,
     current_period_end: subscription.current_period_end,
+    current_period_end_date: subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null,
     items: subscription.items.data.map(item => ({
       price_id: item.price.id,
       product: item.price.product
@@ -128,6 +129,16 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   console.log(`Processing checkout for team: ${team.teamName} (ID: ${team.id}, Slack ID: ${team.slackTeamId})`)
   console.log(`Plan to activate: ${plan?.name} (${plan?.id})`)
 
+  // Handle currentPeriodEnd safely
+  const currentPeriodEnd = subscription.current_period_end 
+    ? new Date(subscription.current_period_end * 1000)
+    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // Default to 30 days from now
+
+  console.log('📅 Current period end:', {
+    raw: subscription.current_period_end,
+    date: currentPeriodEnd
+  })
+
   await prisma.subscription.update({
     where: { teamId },
     data: {
@@ -135,7 +146,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       stripeSubscriptionId: subscriptionId,
       status: 'ACTIVE',
       planId: plan?.id || 'free',
-      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+      currentPeriodEnd,
       monthlyLinkLimit: plan?.monthlyLinkLimit || 10,
       userLimit: plan?.userLimit || 2,
       linksProcessed: 0 // Reset counter on new subscription
@@ -216,12 +227,17 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 
   const status = mapStripeStatus(subscription.status)
 
+  // Handle currentPeriodEnd safely
+  const currentPeriodEnd = subscription.current_period_end 
+    ? new Date(subscription.current_period_end * 1000)
+    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // Default to 30 days from now
+
   await prisma.subscription.update({
     where: { teamId },
     data: {
       status,
       planId: plan?.id || 'free',
-      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+      currentPeriodEnd,
       monthlyLinkLimit: plan?.monthlyLinkLimit || 100,
       userLimit: plan?.userLimit || 2
     }
