@@ -151,14 +151,7 @@ export async function canUserConsume(teamId: string, userId: string): Promise<bo
     
     // Check if user is within the seat limit (first N active users get access)
     const userIndex = team.users.findIndex(u => u.slackUserId === userId)
-    const result = userIndex !== -1 && userIndex < plan.userLimit
-    
-    console.log(`[DEBUG canUserConsume] teamId: ${teamId}, userId: ${userId}`)
-    console.log(`[DEBUG canUserConsume] plan: ${plan.id}, userLimit: ${plan.userLimit}`)
-    console.log(`[DEBUG canUserConsume] active users: ${team.users.length}, userIds: [${team.users.map(u => u.slackUserId).join(', ')}]`)
-    console.log(`[DEBUG canUserConsume] userIndex: ${userIndex}, result: ${result}`)
-    
-    return result
+    return userIndex !== -1 && userIndex < plan.userLimit
     
   } catch (error) {
     console.error('Error checking user consumption access:', error)
