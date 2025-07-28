@@ -52,6 +52,15 @@ interface ProcessedLink {
   }
 }
 
+interface DashboardStats {
+  totalLinks: number
+  completedLinks: number
+  totalListens: number
+  totalMinutesCurated: number
+  totalMinutesListened: number
+  timestamp: string
+}
+
 interface AudioListen {
   id: string
   listenedAt: string
@@ -62,6 +71,7 @@ interface AudioListen {
 
 export default function Dashboard() {
   const [links, setLinks] = useState<ProcessedLink[]>([])
+  const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null)
@@ -81,6 +91,7 @@ export default function Dashboard() {
   const [loadingAudio, setLoadingAudio] = useState<string | null>(null)
   const audioStartTimes = useRef<Record<string, number>>({})
   const progressUpdateInterval = useRef<NodeJS.Timeout | null>(null)
+  const refreshInterval = useRef<NodeJS.Timeout | null>(null)
   
   // Initialize analytics
   const analytics = useAnalytics({
@@ -90,7 +101,12 @@ export default function Dashboard() {
   })
 
   useEffect(() => {
-    fetchLinks()
+    fetchData()
+    
+    // Set up auto-refresh every 30 seconds
+    refreshInterval.current = setInterval(() => {
+      fetchData()
+    }, 30000) // 30 seconds
     
     // Check if mobile
     const checkIfMobile = () => setIsMobile(window.innerWidth <= 768)
@@ -116,6 +132,9 @@ export default function Dashboard() {
       window.removeEventListener('resize', checkIfMobile)
       if (progressUpdateInterval.current) {
         clearInterval(progressUpdateInterval.current)
+      }
+      if (refreshInterval.current) {
+        clearInterval(refreshInterval.current)
       }
     }
   }, [])
@@ -201,26 +220,7 @@ export default function Dashboard() {
 
   const refreshStats = async () => {
     try {
-      // Get team and user IDs from localStorage
-      const teamId = localStorage.getItem('biirbal_team_id')
-      const slackUserId = localStorage.getItem('biirbal_user_id')
-      
-      if (!teamId) return
-
-      // Build URL with query parameters for user-specific filtering
-      const params = new URLSearchParams({
-        teamId: teamId
-      })
-      
-      if (slackUserId) {
-        params.append('slackUserId', slackUserId)
-      }
-
-      const response = await fetch(`/api/dashboard/links?${params.toString()}`)
-      if (response.ok) {
-        const data = await response.json()
-        setLinks(data.links)
-      }
+      await fetchData() // This will refresh both links and stats
     } catch (err) {
       console.error('Failed to refresh stats:', err)
     }
@@ -266,6 +266,34 @@ export default function Dashboard() {
     } catch (error) {
       console.error('Failed to check usage warnings:', error)
     }
+  }
+
+  const fetchStats = async () => {
+    try {
+      const teamId = localStorage.getItem('biirbal_team_id')
+      const slackUserId = localStorage.getItem('biirbal_user_id')
+      
+      if (!teamId) {
+        return
+      }
+
+      const params = new URLSearchParams({ teamId })
+      if (slackUserId) {
+        params.append('slackUserId', slackUserId)
+      }
+
+      const response = await fetch(`/api/dashboard/stats?${params}`)
+      if (response.ok) {
+        const data = await response.json()
+        setStats(data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch stats:', error)
+    }
+  }
+
+  const fetchData = async () => {
+    await Promise.all([fetchLinks(), fetchStats()])
   }
 
   const trackListen = async (linkId: string): Promise<{ listen: any } | null> => {
@@ -554,35 +582,7 @@ export default function Dashboard() {
     return link.listens && link.listens.length > 0
   }
 
-  const getMinutesCurated = () => {
-    return Math.round(
-      links
-        .filter(link => link.processingStatus === 'COMPLETED')
-        .reduce((total, link) => {
-          const trackDuration = audioDurations[link.id]
-          return trackDuration ? total + trackDuration : total
-        }, 0) / 60
-    )
-  }
-
-  const getMinutesListened = () => {
-    return Math.round(
-      links.reduce((total, link) => {
-        // Sum up the actual listen durations from completed listens
-        const listenTime = link.listens.reduce((linkTotal, listen) => {
-          if (listen.listenDuration && listen.listenDuration > 0) {
-            return linkTotal + listen.listenDuration
-          }
-          // Fallback to track duration for completed listens without duration
-          if (listen.completed && audioDurations[link.id]) {
-            return linkTotal + audioDurations[link.id]
-          }
-          return linkTotal
-        }, 0)
-        return total + listenTime
-      }, 0) / 60
-    )
-  }
+  // Stats are now fetched from API and stored in stats state
 
 
 
@@ -642,7 +642,7 @@ export default function Dashboard() {
             type="error"
             showIcon
             action={
-              <Button type="primary" size="small" onClick={fetchLinks}>
+              <Button type="primary" size="small" onClick={fetchData}>
                 Retry
               </Button>
             }
@@ -740,7 +740,7 @@ export default function Dashboard() {
                 <Col xs={6} sm={4}>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: 16, fontWeight: 'bold', color: '#1890ff' }}>
-                      {links.length}
+                      {stats?.totalLinks ?? links.length}
                     </div>
                     <Text type="secondary" style={{ fontSize: 10 }}>Total</Text>
                   </div>
@@ -748,7 +748,7 @@ export default function Dashboard() {
                 <Col xs={6} sm={4}>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: 16, fontWeight: 'bold', color: '#722ed1' }}>
-                      {links.reduce((total, link) => total + getListenCount(link), 0)}
+                      {stats?.totalListens ?? links.reduce((total, link) => total + getListenCount(link), 0)}
                     </div>
                     <Text type="secondary" style={{ fontSize: 10 }}>Listens</Text>
                   </div>
@@ -756,7 +756,7 @@ export default function Dashboard() {
                 <Col xs={6} sm={4}>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: 16, fontWeight: 'bold', color: '#52c41a' }}>
-                      {getMinutesCurated()}
+                      {stats?.totalMinutesCurated ?? 0}
                     </div>
                     <Text type="secondary" style={{ fontSize: 10 }}>Min Curated</Text>
                   </div>
@@ -764,7 +764,7 @@ export default function Dashboard() {
                 <Col xs={6} sm={4}>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: 16, fontWeight: 'bold', color: '#fa8c16' }}>
-                      {getMinutesListened()}
+                      {stats?.totalMinutesListened ?? 0}
                     </div>
                     <Text type="secondary" style={{ fontSize: 10 }}>Min Listened</Text>
                   </div>
