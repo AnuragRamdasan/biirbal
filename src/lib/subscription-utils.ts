@@ -53,7 +53,7 @@ export async function getTeamUsageStats(teamId: string): Promise<UsageStats> {
   
   // Calculate current usage
   const currentLinks = team.processedLinks.length
-  const currentUsers = team.users.length
+  const currentUsers = team.users.filter(user => user.isActive).length
 
   // For exception teams, bypass all limits
   if (isException) {
