@@ -356,6 +356,8 @@ export default function Dashboard() {
         ? (Date.now() - audioStartTimes.current[currentlyPlaying!]) / 1000 
         : currentTime
 
+      console.log('📡 Updating listen progress:', { listenId, actualListenDuration, currentTime, completed })
+
       await fetch('/api/dashboard/complete-listen', {
         method: 'POST',
         headers: {
@@ -437,6 +439,7 @@ export default function Dashboard() {
     })
     
     audio.addEventListener('ended', async () => {
+      console.log('🎵 Audio ended event fired for link:', linkId)
       const listenDuration = audioStartTimes.current[linkId] 
         ? (Date.now() - audioStartTimes.current[linkId]) / 1000 
         : audio.duration
@@ -446,6 +449,7 @@ export default function Dashboard() {
       
       // Mark listen as completed
       if (currentListenRecord) {
+        console.log('🎧 Marking listen as completed:', currentListenRecord)
         await updateListenProgress(currentListenRecord, audio.duration, true)
         if (progressUpdateInterval.current) {
           clearInterval(progressUpdateInterval.current)
@@ -611,7 +615,14 @@ export default function Dashboard() {
 
   const hasUserListened = (link: ProcessedLink) => {
     // Only consider articles as "listened" if they have at least one completed listen
-    return link.listens && link.listens.some(listen => listen.completed === true)
+    const hasCompleted = link.listens && link.listens.some(listen => listen.completed === true)
+    
+    // Debug logging to see what's happening
+    if (link.listens && link.listens.length > 0) {
+      console.log(`Link ${link.id} - Listens:`, link.listens.length, 'Completed:', link.listens.filter(l => l.completed).length)
+    }
+    
+    return hasCompleted
   }
 
   // Stats are now fetched from API and stored in stats state

@@ -37,6 +37,9 @@ export async function POST(request: NextRequest) {
       data: updateData
     })
 
+    // Debug logging
+    console.log(`🎧 Listen updated - ID: ${listenId}, Duration: ${updateData.listenDuration}, Completed: ${updateData.completed}`)
+
     return NextResponse.json({ listen: updatedListen })
   } catch (error) {
     console.error('Failed to update listen progress:', error)
