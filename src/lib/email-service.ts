@@ -1,4 +1,4 @@
-import * as brevo from '@getbrevo/brevo'
+const brevo = require('@getbrevo/brevo')
 
 // Brevo configuration
 const BREVO_API_KEY = process.env.BREVO_API_KEY
@@ -14,17 +14,22 @@ interface EmailOptions {
 
 class EmailService {
   private initialized: boolean = false
-  private apiInstance: brevo.TransactionalEmailsApi
+  private apiInstance: any
 
   constructor() {
     if (BREVO_API_KEY) {
-      const defaultClient = brevo.ApiClient.instance
-      const apiKey = defaultClient.authentications['api-key']
-      apiKey.apiKey = BREVO_API_KEY
-      
-      this.apiInstance = new brevo.TransactionalEmailsApi()
-      this.initialized = true
-      console.log('✅ Brevo email service initialized')
+      try {
+        let defaultClient = brevo.ApiClient.instance
+        let apiKey = defaultClient.authentications['api-key']
+        apiKey.apiKey = BREVO_API_KEY
+        
+        this.apiInstance = new brevo.TransactionalEmailsApi()
+        this.initialized = true
+        console.log('✅ Brevo email service initialized')
+      } catch (error) {
+        console.error('❌ Failed to initialize Brevo email service:', error)
+        this.initialized = false
+      }
     } else {
       console.warn('⚠️ BREVO_API_KEY not configured - email service disabled')
     }
