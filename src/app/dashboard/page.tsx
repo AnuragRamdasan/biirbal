@@ -323,8 +323,13 @@ export default function Dashboard() {
     }
   }
 
-  const updateListenProgress = async (listenId: string, duration: number, currentTime: number, completed: boolean = false) => {
+  const updateListenProgress = async (listenId: string, currentTime: number, completed: boolean = false) => {
     try {
+      // Calculate actual listening duration from start time
+      const actualListenDuration = audioStartTimes.current[currentlyPlaying!] 
+        ? (Date.now() - audioStartTimes.current[currentlyPlaying!]) / 1000 
+        : currentTime
+
       await fetch('/api/dashboard/complete-listen', {
         method: 'POST',
         headers: {
@@ -333,7 +338,7 @@ export default function Dashboard() {
         body: JSON.stringify({
           linkId: currentlyPlaying,
           listenId: listenId,
-          duration: duration,
+          duration: actualListenDuration, // Use actual listening time, not audio file duration
           currentTime: currentTime,
           completed: completed
         }),
@@ -358,7 +363,7 @@ export default function Dashboard() {
         audioElement.pause()
         if (currentListenRecord && progressUpdateInterval.current) {
           clearInterval(progressUpdateInterval.current)
-          await updateListenProgress(currentListenRecord, audioElement.duration, audioElement.currentTime, false)
+          await updateListenProgress(currentListenRecord, audioElement.currentTime, false)
         }
       }
 
@@ -415,7 +420,7 @@ export default function Dashboard() {
       
       // Mark listen as completed
       if (currentListenRecord) {
-        await updateListenProgress(currentListenRecord, audio.duration, audio.duration, true)
+        await updateListenProgress(currentListenRecord, audio.duration, true)
         if (progressUpdateInterval.current) {
           clearInterval(progressUpdateInterval.current)
         }
@@ -457,7 +462,7 @@ export default function Dashboard() {
         // Set up periodic progress updates
         progressUpdateInterval.current = setInterval(async () => {
           if (audio.duration > 0 && currentListenRecord) {
-            await updateListenProgress(currentListenRecord, audio.duration, audio.currentTime, false)
+            await updateListenProgress(currentListenRecord, audio.currentTime, false)
             
             // Refresh stats every minute of listening
             const currentListenDuration = audioStartTimes.current[linkId] 
@@ -496,7 +501,7 @@ export default function Dashboard() {
       
       // Save current progress
       if (currentListenRecord) {
-        await updateListenProgress(currentListenRecord, audioElement.duration, audioElement.currentTime, false)
+        await updateListenProgress(currentListenRecord, audioElement.currentTime, false)
         if (progressUpdateInterval.current) {
           clearInterval(progressUpdateInterval.current)
         }
