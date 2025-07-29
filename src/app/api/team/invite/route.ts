@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDbClient } from '@/lib/db'
 import { emailService } from '@/lib/email-service'
 import { adminNotifications } from '@/lib/admin-notifications'
-import { canAddNewUser } from '@/lib/subscription-utils'
 import crypto from 'crypto'
 
 export async function POST(request: NextRequest) {

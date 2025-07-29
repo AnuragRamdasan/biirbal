@@ -367,7 +367,6 @@ export default function TeamManagement() {
                   type="default" 
                   icon={<UserAddOutlined />}
                   onClick={() => setInviteModalVisible(true)}
-                  disabled={teamData?.subscription.userLimitExceeded}
                 >
                   Invite Member
                 </Button>
