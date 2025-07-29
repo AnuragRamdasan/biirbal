@@ -40,7 +40,7 @@ Transform this text into a compelling audio story that extracts and emphasizes k
 
 {text}`,
   
-  generateExcerpt: (text: string, maxWords: number = 50) => `Create a brief excerpt from this article that prioritizes key data points, notable quotes, and core insights. Focus on extracting the most important facts, statistics, and actionable takeaways. Keep it under ${maxWords} words and make it engaging:
+  generateExcerpt: (text: string, maxWords: number = 50) => `Create a concise excerpt that covers multiple key points from this article. Prioritize data points, notable quotes, and core insights. Use succinct language to maximize coverage of important facts, statistics, and actionable takeaways within the ${maxWords} word limit. Focus on breadth of coverage over detailed explanation:
 
 {text}`
 } as const 
