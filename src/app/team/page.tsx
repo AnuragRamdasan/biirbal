@@ -52,8 +52,20 @@ interface TeamMember {
   updatedAt: string
 }
 
+interface PendingInvitation {
+  id: string
+  email: string
+  invitedBy: string | null
+  status: string
+  expiresAt: string
+  createdAt: string
+}
+
+type TeamMemberOrInvitation = (TeamMember & { type: 'member' }) | (PendingInvitation & { type: 'invitation' })
+
 interface TeamData {
   members: TeamMember[]
+  pendingInvitations: PendingInvitation[]
   teamInfo: {
     id: string
     slackTeamId: string
@@ -82,6 +94,23 @@ export default function TeamManagement() {
     trackScrollDepth: true,
     trackTimeOnPage: true
   })
+
+  // Combine members and pending invitations for display
+  const getCombinedMembersList = (): TeamMemberOrInvitation[] => {
+    if (!teamData) return []
+    
+    const members: TeamMemberOrInvitation[] = teamData.members.map(member => ({
+      ...member,
+      type: 'member' as const
+    }))
+    
+    const invitations: TeamMemberOrInvitation[] = teamData.pendingInvitations.map(invitation => ({
+      ...invitation,
+      type: 'invitation' as const
+    }))
+    
+    return [...members, ...invitations]
+  }
 
   useEffect(() => {
     fetchTeamData()
@@ -456,55 +485,105 @@ export default function TeamManagement() {
           title={
             <Space>
               <UserOutlined />
-              Team Members ({teamData.members.length})
+              Team Members ({teamData.members.length + teamData.pendingInvitations.length})
             </Space>
           }
         >
           <List
-            dataSource={teamData.members}
-            renderItem={(member, index) => (
-              <List.Item
-                actions={[getActionButtons(member, index)]}
-                style={{ 
-                  opacity: member.isActive ? 1 : 0.6,
-                  backgroundColor: index === 0 ? '#f6ffed' : 'transparent',
-                  padding: '16px',
-                  marginBottom: '8px',
-                  borderRadius: '8px',
-                  border: index === 0 ? '1px solid #b7eb8f' : '1px solid #f0f0f0'
-                }}
-              >
-                <List.Item.Meta
-                  avatar={
-                    <Avatar 
-                      src={member.profileImage32} 
-                      icon={<UserOutlined />}
-                      size={48}
+            dataSource={getCombinedMembersList()}
+            renderItem={(item, index) => {
+              if (item.type === 'invitation') {
+                return (
+                  <List.Item
+                    style={{ 
+                      opacity: 0.7,
+                      backgroundColor: '#fafafa',
+                      padding: '16px',
+                      marginBottom: '8px',
+                      borderRadius: '8px',
+                      border: '1px solid #e6f7ff'
+                    }}
+                  >
+                    <List.Item.Meta
+                      avatar={
+                        <Avatar 
+                          icon={<MailOutlined />}
+                          size={48}
+                          style={{ backgroundColor: '#1890ff' }}
+                        />
+                      }
+                      title={
+                        <Space>
+                          {item.email}
+                          <Tag color="blue">Invitation Sent</Tag>
+                        </Space>
+                      }
+                      description={
+                        <div>
+                          <div style={{ fontSize: 12, color: '#8c8c8c' }}>
+                            Invited: {new Date(item.createdAt).toLocaleDateString()}
+                          </div>
+                          <div style={{ fontSize: 12, color: '#8c8c8c' }}>
+                            Expires: {new Date(item.expiresAt).toLocaleDateString()}
+                          </div>
+                          <div style={{ fontSize: 12, color: '#fa8c16' }}>
+                            ⏳ Waiting for user to accept invitation
+                          </div>
+                        </div>
+                      }
                     />
-                  }
-                  title={
-                    <Space>
-                      {member.displayName || member.realName || member.name || 'Unknown User'}
-                      {index === 0 && (
-                        <Tooltip title="Team Admin (first member)">
-                          <CrownOutlined style={{ color: '#faad14' }} />
-                        </Tooltip>
-                      )}
-                      {getStatusTag(member, index)}
-                    </Space>
-                  }
-                  description={
-                    <div>
-                      <div>@{member.name}</div>
-                      {member.email && <div style={{ fontSize: 12, color: '#8c8c8c' }}>{member.email}</div>}
-                      <div style={{ fontSize: 12, color: '#8c8c8c' }}>
-                        Joined: {new Date(member.createdAt).toLocaleDateString()}
+                  </List.Item>
+                )
+              }
+              
+              // Render regular member
+              const member = item as TeamMember & { type: 'member' }
+              const memberIndex = teamData.members.findIndex(m => m.id === member.id)
+              const isAdmin = memberIndex === 0
+              return (
+                <List.Item
+                  actions={[getActionButtons(member, memberIndex)]}
+                  style={{ 
+                    opacity: member.isActive ? 1 : 0.6,
+                    backgroundColor: isAdmin ? '#f6ffed' : 'transparent',
+                    padding: '16px',
+                    marginBottom: '8px',
+                    borderRadius: '8px',
+                    border: isAdmin ? '1px solid #b7eb8f' : '1px solid #f0f0f0'
+                  }}
+                >
+                  <List.Item.Meta
+                    avatar={
+                      <Avatar 
+                        src={member.profileImage32} 
+                        icon={<UserOutlined />}
+                        size={48}
+                      />
+                    }
+                    title={
+                      <Space>
+                        {member.displayName || member.realName || member.name || 'Unknown User'}
+                        {isAdmin && (
+                          <Tooltip title="Team Admin (first member)">
+                            <CrownOutlined style={{ color: '#faad14' }} />
+                          </Tooltip>
+                        )}
+                        {getStatusTag(member, memberIndex)}
+                      </Space>
+                    }
+                    description={
+                      <div>
+                        <div>@{member.name}</div>
+                        {member.email && <div style={{ fontSize: 12, color: '#8c8c8c' }}>{member.email}</div>}
+                        <div style={{ fontSize: 12, color: '#8c8c8c' }}>
+                          Joined: {new Date(member.createdAt).toLocaleDateString()}
+                        </div>
                       </div>
-                    </div>
-                  }
-                />
-              </List.Item>
-            )}
+                    }
+                  />
+                </List.Item>
+              )
+            }}
           />
           
           <Divider />

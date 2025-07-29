@@ -66,14 +66,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check team limits before creating invitation
-    const canAdd = await canAddNewUser(teamId)
-    if (!canAdd.allowed) {
-      return NextResponse.json(
-        { error: canAdd.reason || 'Cannot add new user due to plan limits' },
-        { status: 403 }
-      )
-    }
+    // Note: We allow unlimited invitations regardless of plan limits
+    // Access control is handled when users actually try to use features
 
     // Check for existing pending invitation
     const existingInvitation = await db.teamInvitation.findFirst({

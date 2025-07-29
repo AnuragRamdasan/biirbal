@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
     const db = await getDbClient()
     
-    // Get team with users and subscription info
+    // Get team with users, pending invitations, and subscription info
     const team = await db.team.findUnique({
       where: { slackTeamId: teamId },
       include: {
@@ -35,6 +35,23 @@ export async function GET(request: NextRequest) {
             updatedAt: true
           }
         },
+        teamInvitations: {
+          where: {
+            status: 'PENDING',
+            expiresAt: {
+              gt: new Date() // Only non-expired invitations
+            }
+          },
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            email: true,
+            invitedBy: true,
+            status: true,
+            expiresAt: true,
+            createdAt: true
+          }
+        },
         subscription: true
       }
     })
@@ -51,6 +68,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       members: team.users,
+      pendingInvitations: team.teamInvitations,
       teamInfo: {
         id: team.id,
         slackTeamId: team.slackTeamId,
