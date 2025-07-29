@@ -101,7 +101,28 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + 7)
 
-    // Create invitation record
+    // Generate invitation URL
+    const baseUrl = process.env.NEXTAUTH_URL || 'https://www.biirbal.com'
+    const inviteUrl = `${baseUrl}/invite/${token}`
+
+    // Try to send invitation email FIRST
+    const emailSent = await emailService.sendTeamInvitation({
+      email: email,
+      teamName: team.teamName || 'Your Team',
+      inviterName: invitingUser.realName || invitingUser.name || 'A team member',
+      inviteUrl: inviteUrl,
+      expiresAt: expiresAt
+    })
+
+    // If email sending fails, don't create the invitation
+    if (!emailSent) {
+      return NextResponse.json(
+        { error: 'Failed to send invitation email. Please check that email service is configured properly and try again.' },
+        { status: 500 }
+      )
+    }
+
+    // Only create invitation record if email was sent successfully
     const invitation = await db.teamInvitation.create({
       data: {
         teamId: team.id,
@@ -111,23 +132,6 @@ export async function POST(request: NextRequest) {
         expiresAt: expiresAt
       }
     })
-
-    // Generate invitation URL
-    const baseUrl = process.env.NEXTAUTH_URL || 'https://www.biirbal.com'
-    const inviteUrl = `${baseUrl}/invite/${token}`
-
-    // Send invitation email
-    const emailSent = await emailService.sendTeamInvitation({
-      email: email,
-      teamName: team.teamName || 'Your Team',
-      inviterName: invitingUser.realName || invitingUser.name || 'A team member',
-      inviteUrl: inviteUrl,
-      expiresAt: expiresAt
-    })
-
-    if (!emailSent) {
-      console.warn('Failed to send invitation email, but invitation was created')
-    }
 
     // Send admin notification
     await adminNotifications.notifyUserInvited({
