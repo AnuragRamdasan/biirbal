@@ -439,7 +439,11 @@ export default function Dashboard() {
     })
     
     audio.addEventListener('ended', async () => {
-      console.log('🎵 Audio ended event fired for link:', linkId)
+      console.log('🎧 Audio ended event fired for link:', linkId)
+      console.log('🎧 currentListenRecord:', currentListenRecord)
+      console.log('🎧 audio.currentTime:', audio.currentTime)
+      console.log('🎧 audio.duration:', audio.duration)
+      
       const listenDuration = audioStartTimes.current[linkId] 
         ? (Date.now() - audioStartTimes.current[linkId]) / 1000 
         : audio.duration
@@ -450,10 +454,17 @@ export default function Dashboard() {
       // Mark listen as completed
       if (currentListenRecord) {
         console.log('🎧 Marking listen as completed:', currentListenRecord)
-        await updateListenProgress(currentListenRecord, audio.duration, true)
+        try {
+          await updateListenProgress(currentListenRecord, audio.currentTime, true)
+          console.log('🎧 Listen completion updated successfully')
+        } catch (error) {
+          console.error('🚨 Failed to update listen completion:', error)
+        }
         if (progressUpdateInterval.current) {
           clearInterval(progressUpdateInterval.current)
         }
+      } else {
+        console.warn('🚨 No currentListenRecord found - cannot mark as completed')
       }
       
       // Refresh stats to update listen counts and minutes listened
