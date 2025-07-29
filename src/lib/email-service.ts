@@ -1,7 +1,7 @@
-import sgMail from '@sendgrid/mail'
+import * as brevo from '@getbrevo/brevo'
 
-// SendGrid configuration
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY
+// Brevo configuration
+const BREVO_API_KEY = process.env.BREVO_API_KEY
 const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@biirbal.com'
 const FROM_NAME = process.env.FROM_NAME || 'Biirbal Team'
 
@@ -14,42 +14,44 @@ interface EmailOptions {
 
 class EmailService {
   private initialized: boolean = false
+  private apiInstance: brevo.TransactionalEmailsApi
 
   constructor() {
-    if (SENDGRID_API_KEY) {
-      sgMail.setApiKey(SENDGRID_API_KEY)
+    if (BREVO_API_KEY) {
+      const defaultClient = brevo.ApiClient.instance
+      const apiKey = defaultClient.authentications['api-key']
+      apiKey.apiKey = BREVO_API_KEY
+      
+      this.apiInstance = new brevo.TransactionalEmailsApi()
       this.initialized = true
-      console.log('✅ SendGrid email service initialized')
+      console.log('✅ Brevo email service initialized')
     } else {
-      console.warn('⚠️ SENDGRID_API_KEY not configured - email service disabled')
+      console.warn('⚠️ BREVO_API_KEY not configured - email service disabled')
     }
   }
 
   async sendEmail(options: EmailOptions): Promise<boolean> {
     if (!this.initialized) {
-      console.log('📧 Email (SendGrid not configured):', options.subject, 'to', options.to)
+      console.log('📧 Email (Brevo not configured):', options.subject, 'to', options.to)
       return false
     }
 
     try {
-      const msg = {
-        to: options.to,
-        from: {
-          email: FROM_EMAIL,
-          name: FROM_NAME
-        },
-        subject: options.subject,
-        html: options.html,
-        text: options.text || this.htmlToText(options.html),
-      }
+      const sendSmtpEmail = new brevo.SendSmtpEmail()
+      
+      sendSmtpEmail.to = [{ email: options.to }]
+      sendSmtpEmail.sender = { email: FROM_EMAIL, name: FROM_NAME }
+      sendSmtpEmail.subject = options.subject
+      sendSmtpEmail.htmlContent = options.html
+      sendSmtpEmail.textContent = options.text || this.htmlToText(options.html)
 
-      const response = await sgMail.send(msg)
-      console.log('✅ Email sent via SendGrid:', options.subject, 'to', options.to, 'Status:', response[0].statusCode)
+      const response = await this.apiInstance.sendTransacEmail(sendSmtpEmail)
+      console.log('✅ Email sent via Brevo:', options.subject, 'to', options.to, 'Message ID:', response.messageId)
       return true
     } catch (error) {
-      console.error('❌ Failed to send email via SendGrid:', error)
+      console.error('❌ Failed to send email via Brevo:', error)
       if (error.response) {
-        console.error('SendGrid error details:', error.response.body)
+        console.error('Brevo error details:', error.response.text || error.response.body)
       }
       return false
     }

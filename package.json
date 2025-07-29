@@ -16,9 +16,9 @@
   "dependencies": {
     "@ant-design/icons": "^6.0.0",
     "@aws-sdk/client-s3": "^3.719.0",
+    "@getbrevo/brevo": "^2.5.0",
     "@mozilla/readability": "^0.6.0",
     "@prisma/client": "^6.10.1",
-    "@sendgrid/mail": "^8.1.5",
     "@slack/bolt": "^4.4.0",
     "@slack/web-api": "^7.9.3",
     "antd": "^5.26.5",
