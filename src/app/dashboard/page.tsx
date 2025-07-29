@@ -1,6 +1,29 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+
+// Add CSS animation for slide down effect
+const slideDownKeyframes = `
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+      max-height: 0;
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+      max-height: 500px;
+    }
+  }
+`
+
+// Inject the keyframes into the document head
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style')
+  style.textContent = slideDownKeyframes
+  document.head.appendChild(style)
+}
 import { 
   Card, 
   Row, 
@@ -28,6 +51,8 @@ import {
   LoadingOutlined,
   ExclamationCircleOutlined,
   CalendarOutlined,
+  ReadOutlined,
+  CloseOutlined,
 } from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
 import { useAnalytics } from '@/hooks/useAnalytics'
@@ -89,6 +114,7 @@ export default function Dashboard() {
   const [currentListenRecord, setCurrentListenRecord] = useState<string | null>(null)
   const [sourceFilter, setSourceFilter] = useState<string>('all')
   const [loadingAudio, setLoadingAudio] = useState<string | null>(null)
+  const [expandedSummary, setExpandedSummary] = useState<string | null>(null)
   const audioStartTimes = useRef<Record<string, number>>({})
   const progressUpdateInterval = useRef<NodeJS.Timeout | null>(null)
   const refreshInterval = useRef<NodeJS.Timeout | null>(null)
@@ -1018,66 +1044,96 @@ export default function Dashboard() {
                   {/* Right Column - Audio Controls */}
                   <div style={{ flexShrink: 0, minWidth: 120 }}>
                     {record.processingStatus === 'COMPLETED' && record.audioFileUrl ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        {/* Play Button */}
-                        <Tooltip 
-                          title={
-                            (!userCanConsume && !isExceptionTeam) ? "Access disabled due to seat limit exceeded. Contact admin to upgrade plan." :
-                            ((linkLimitExceeded && !isExceptionTeam) ? "Monthly limit exceeded. Upgrade your plan to access playback." : "Play audio summary")
-                          }
-                        >
-                          <Button
-                            type="primary"
-                            shape="circle"
-                            size="large"
-                            disabled={(!userCanConsume || linkLimitExceeded) && !isExceptionTeam}
-                            loading={loadingAudio === record.id}
-                            icon={
-                              loadingAudio === record.id ? <LoadingOutlined /> :
-                              currentlyPlaying === record.id ? <PauseCircleOutlined /> : 
-                              <PlayCircleOutlined />
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          {/* Play Button */}
+                          <Tooltip 
+                            title={
+                              (!userCanConsume && !isExceptionTeam) ? "Access disabled due to seat limit exceeded. Contact admin to upgrade plan." :
+                              ((linkLimitExceeded && !isExceptionTeam) ? "Monthly limit exceeded. Upgrade your plan to access playback." : "Play audio summary")
                             }
-                            onClick={async (e) => {
-                              e.stopPropagation()
-                              // Prevent action if disabled, loading, or access restricted
-                              if ((!userCanConsume || linkLimitExceeded) && !isExceptionTeam) return
-                              if (loadingAudio === record.id) return
-                              
-                              if (currentlyPlaying === record.id) {
-                                await handlePauseAudio()
-                              } else {
-                                await handlePlayAudio(record.id, record.audioFileUrl!)
+                          >
+                            <Button
+                              type="primary"
+                              shape="circle"
+                              size="large"
+                              disabled={(!userCanConsume || linkLimitExceeded) && !isExceptionTeam}
+                              loading={loadingAudio === record.id}
+                              icon={
+                                loadingAudio === record.id ? <LoadingOutlined /> :
+                                currentlyPlaying === record.id ? <PauseCircleOutlined /> : 
+                                <PlayCircleOutlined />
                               }
-                            }}
-                            style={{
-                              background: ((!userCanConsume || linkLimitExceeded) && !isExceptionTeam) ? '#d9d9d9' : (currentlyPlaying === record.id ? '#ff4d4f' : '#52c41a'),
-                              borderColor: ((!userCanConsume || linkLimitExceeded) && !isExceptionTeam) ? '#d9d9d9' : (currentlyPlaying === record.id ? '#ff4d4f' : '#52c41a'),
-                              opacity: ((!userCanConsume || linkLimitExceeded) && !isExceptionTeam) ? 0.6 : 1
-                            }}
-                          />
-                        </Tooltip>
-                        
-                        {/* Progress Info */}
-                        <div style={{ textAlign: 'center', minWidth: 80 }}>
-                          <div style={{ fontSize: 12, color: '#8c8c8c' }}>
-                            {currentlyPlaying === record.id ? formatTime(currentTime) : '0:00'} / {currentlyPlaying === record.id && duration > 0 ? formatTime(duration) : (audioDurations[record.id] ? formatTime(audioDurations[record.id]) : '--:--')}
-                          </div>
-                          <div style={{ 
-                            width: '100%', 
-                            height: 4, 
-                            backgroundColor: '#f0f0f0', 
-                            borderRadius: 2,
-                            marginTop: 4
-                          }}>
+                              onClick={async (e) => {
+                                e.stopPropagation()
+                                // Prevent action if disabled, loading, or access restricted
+                                if ((!userCanConsume || linkLimitExceeded) && !isExceptionTeam) return
+                                if (loadingAudio === record.id) return
+                                
+                                if (currentlyPlaying === record.id) {
+                                  await handlePauseAudio()
+                                } else {
+                                  await handlePlayAudio(record.id, record.audioFileUrl!)
+                                }
+                              }}
+                              style={{
+                                background: ((!userCanConsume || linkLimitExceeded) && !isExceptionTeam) ? '#d9d9d9' : (currentlyPlaying === record.id ? '#ff4d4f' : '#52c41a'),
+                                borderColor: ((!userCanConsume || linkLimitExceeded) && !isExceptionTeam) ? '#d9d9d9' : (currentlyPlaying === record.id ? '#ff4d4f' : '#52c41a'),
+                                opacity: ((!userCanConsume || linkLimitExceeded) && !isExceptionTeam) ? 0.6 : 1
+                              }}
+                            />
+                          </Tooltip>
+                          
+                          {/* Progress Info */}
+                          <div style={{ textAlign: 'center', minWidth: 80 }}>
+                            <div style={{ fontSize: 12, color: '#8c8c8c' }}>
+                              {currentlyPlaying === record.id ? formatTime(currentTime) : '0:00'} / {currentlyPlaying === record.id && duration > 0 ? formatTime(duration) : (audioDurations[record.id] ? formatTime(audioDurations[record.id]) : '--:--')}
+                            </div>
                             <div style={{ 
-                              width: currentlyPlaying === record.id ? `${progress * 100}%` : '0%', 
-                              height: '100%', 
-                              backgroundColor: '#1890ff', 
+                              width: '100%', 
+                              height: 4, 
+                              backgroundColor: '#f0f0f0', 
                               borderRadius: 2,
-                              transition: 'width 0.1s ease'
-                            }} />
+                              marginTop: 4
+                            }}>
+                              <div style={{ 
+                                width: currentlyPlaying === record.id ? `${progress * 100}%` : '0%', 
+                                height: '100%', 
+                                backgroundColor: '#1890ff', 
+                                borderRadius: 2,
+                                transition: 'width 0.1s ease'
+                              }} />
+                            </div>
                           </div>
                         </div>
+                        
+                        {/* Read Summary Button */}
+                        {record.ttsScript && (
+                          <Tooltip title="Read text summary">
+                            <Button
+                              type="default"
+                              size="small"
+                              icon={<ReadOutlined />}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setExpandedSummary(expandedSummary === record.id ? null : record.id)
+                                analytics.trackFeature('read_summary_toggle', { 
+                                  link_id: record.id,
+                                  expanded: expandedSummary !== record.id
+                                })
+                              }}
+                              style={{
+                                fontSize: 12,
+                                height: 28,
+                                background: expandedSummary === record.id ? '#1890ff' : 'transparent',
+                                color: expandedSummary === record.id ? 'white' : '#1890ff',
+                                borderColor: '#1890ff'
+                              }}
+                            >
+                              Read Summary
+                            </Button>
+                          </Tooltip>
+                        )}
                       </div>
                     ) : (
                       <div style={{ 
@@ -1109,6 +1165,137 @@ export default function Dashboard() {
                     )}
                   </div>
                 </div>
+                
+                {/* Expandable Summary Panel */}
+                {expandedSummary === record.id && record.ttsScript && (
+                  <div style={{
+                    marginTop: 16,
+                    paddingTop: 16,
+                    borderTop: '1px solid #f0f0f0',
+                    animation: 'slideDown 0.3s ease-out',
+                    opacity: 1,
+                    transform: 'translateY(0)'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <ReadOutlined style={{ color: '#1890ff', fontSize: 16 }} />
+                        <Text strong style={{ fontSize: 14, color: '#262626' }}>
+                          Text Summary
+                        </Text>
+                      </div>
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<CloseOutlined />}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setExpandedSummary(null)
+                        }}
+                        style={{ color: '#8c8c8c' }}
+                      />
+                    </div>
+                    
+                    <div style={{ 
+                      display: 'flex', 
+                      flexDirection: isMobile ? 'column' : 'row',
+                      gap: 16,
+                      alignItems: 'flex-start'
+                    }}>
+                      {/* Summary Text */}
+                      <div style={{ 
+                        flex: 1,
+                        backgroundColor: '#fafafa',
+                        padding: 16,
+                        borderRadius: 8,
+                        border: '1px solid #f0f0f0'
+                      }}>
+                        <Text style={{ 
+                          fontSize: 13, 
+                          lineHeight: 1.6, 
+                          color: '#595959',
+                          whiteSpace: 'pre-wrap'
+                        }}>
+                          {record.ttsScript}
+                        </Text>
+                      </div>
+                      
+                      {/* Original Link Card */}
+                      <div style={{ 
+                        width: isMobile ? '100%' : 200,
+                        flexShrink: 0,
+                        backgroundColor: '#fff',
+                        border: '1px solid #e6f7ff',
+                        borderRadius: 8,
+                        padding: 12
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                          <LinkOutlined style={{ color: '#1890ff', fontSize: 14 }} />
+                          <Text style={{ fontSize: 12, fontWeight: 600, color: '#1890ff' }}>
+                            Original Article
+                          </Text>
+                        </div>
+                        
+                        {record.ogImage && (
+                          <img 
+                            src={record.ogImage} 
+                            alt={record.title || 'Article'}
+                            style={{ 
+                              width: '100%', 
+                              height: 80, 
+                              objectFit: 'cover',
+                              borderRadius: 4,
+                              marginBottom: 8
+                            }}
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none'
+                            }}
+                          />
+                        )}
+                        
+                        <div style={{ 
+                          fontSize: 12, 
+                          fontWeight: 500, 
+                          color: '#262626',
+                          marginBottom: 6,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical'
+                        }}>
+                          {record.title || 'Untitled'}
+                        </div>
+                        
+                        <a 
+                          href={record.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            analytics.trackFeature('summary_panel_link_click', { 
+                              link_id: record.id,
+                              source_url: record.url
+                            })
+                          }}
+                          style={{ 
+                            fontSize: 11, 
+                            color: '#1890ff',
+                            textDecoration: 'none',
+                            wordBreak: 'break-all',
+                            lineHeight: 1.3,
+                            maxHeight: '2.6em',
+                            overflow: 'hidden',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical'
+                          }}
+                        >
+                          Read Full Article →
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </Card>
             ))
           )}
