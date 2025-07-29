@@ -3,10 +3,10 @@ import { getDbClient } from '@/lib/db'
 import { getTeamUsageStats } from '@/lib/subscription-utils'
 
 export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url)
+  const teamId = searchParams.get('teamId')
+  
   try {
-    const { searchParams } = new URL(request.url)
-    const teamId = searchParams.get('teamId')
-
     if (!teamId) {
       return NextResponse.json(
         { error: 'teamId is required' },
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
             updatedAt: true
           }
         },
-        teamInvitations: {
+        invitations: {
           where: {
             status: 'PENDING',
             expiresAt: {
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       members: team.users,
-      pendingInvitations: team.teamInvitations,
+      pendingInvitations: team.invitations,
       teamInfo: {
         id: team.id,
         slackTeamId: team.slackTeamId,
