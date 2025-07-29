@@ -11,33 +11,44 @@ const stripe_1 = require("./stripe");
 const exception_teams_1 = require("./exception-teams");
 const analytics_1 = require("./analytics");
 async function getTeamUsageStats(teamId) {
+    console.log(`🔍 getTeamUsageStats called for team: ${teamId}`);
     const db = await (0, db_1.getDbClient)();
     // Check if this is an exception team first
     const isException = (0, exception_teams_1.isExceptionTeam)(teamId);
+    console.log(`🔍 isException: ${isException}`);
     // Get team subscription - teamId is actually the Slack team ID
-    const team = await db.team.findUnique({
-        where: { slackTeamId: teamId },
-        include: {
-            subscription: true,
-            users: {
-                where: { isActive: true },
-                orderBy: { createdAt: 'asc' }
-            },
-            processedLinks: {
-                where: {
-                    createdAt: {
-                        gte: getFirstDayOfCurrentMonth()
+    let team, subscription;
+    try {
+        team = await db.team.findUnique({
+            where: { slackTeamId: teamId },
+            include: {
+                subscription: true,
+                users: {
+                    where: { isActive: true },
+                    orderBy: { createdAt: 'asc' }
+                },
+                processedLinks: {
+                    where: {
+                        createdAt: {
+                            gte: getFirstDayOfCurrentMonth()
+                        }
                     }
                 }
             }
+        });
+        console.log(`🔍 Team found: ${!!team}`);
+        if (!team) {
+            throw new Error('Team not found');
         }
-    });
-    if (!team) {
-        throw new Error('Team not found');
+        subscription = team.subscription;
+        console.log(`🔍 Subscription found: ${!!subscription}`);
+        if (!subscription) {
+            throw new Error('Team subscription not found');
+        }
     }
-    const subscription = team.subscription;
-    if (!subscription) {
-        throw new Error('Team subscription not found');
+    catch (error) {
+        console.error(`🚨 Error in getTeamUsageStats for team ${teamId}:`, error);
+        throw error;
     }
     // Get plan details
     const plan = (0, stripe_1.getPlanById)(subscription.planId) || stripe_1.PRICING_PLANS.FREE;
