@@ -54,6 +54,7 @@ function HomeContent() {
       }
       if (userId) {
         localStorage.setItem('biirbal_user_id', userId)
+        localStorage.setItem('biirbal_slack_user', 'true') // Mark as Slack OAuth user
       }
     }
     if (searchParams.get('error')) {

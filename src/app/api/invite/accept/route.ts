@@ -114,6 +114,7 @@ export async function POST(request: NextRequest) {
         id: user.id,
         name: user.name,
         email: user.email,
+        teamId: invitation.team.slackTeamId, // This is the Slack team ID needed for localStorage
         teamName: invitation.team.teamName
       },
       redirectUrl: '/dashboard'

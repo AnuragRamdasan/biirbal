@@ -6,6 +6,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const teamId = searchParams.get('teamId')
     const slackUserId = searchParams.get('slackUserId')
+    const userId = searchParams.get('userId')
 
     if (!teamId) {
       return NextResponse.json(
@@ -44,6 +45,13 @@ export async function GET(request: NextRequest) {
         listens: slackUserId ? {
           where: {
             slackUserId: slackUserId
+          },
+          orderBy: {
+            listenedAt: 'desc'
+          }
+        } : userId ? {
+          where: {
+            userId: userId
           },
           orderBy: {
             listenedAt: 'desc'

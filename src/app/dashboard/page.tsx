@@ -210,7 +210,8 @@ export default function Dashboard() {
     try {
       // Get team and user IDs from localStorage
       const teamId = localStorage.getItem('biirbal_team_id')
-      const slackUserId = localStorage.getItem('biirbal_user_id')
+      const userId = localStorage.getItem('biirbal_user_id')
+      const isSlackUser = localStorage.getItem('biirbal_slack_user') === 'true'
       
       if (!teamId) {
         throw new Error('No team found. Please install the bot first.')
@@ -221,8 +222,12 @@ export default function Dashboard() {
         teamId: teamId
       })
       
-      if (slackUserId) {
-        params.append('slackUserId', slackUserId)
+      if (userId) {
+        if (isSlackUser) {
+          params.append('slackUserId', userId)
+        } else {
+          params.append('userId', userId)
+        }
       }
 
       const response = await fetch(`/api/dashboard/links?${params.toString()}`)
@@ -233,10 +238,9 @@ export default function Dashboard() {
       setLinks(data.links)
       
       // Check usage stats and warnings
-      await checkUsageWarnings(teamId)
+      await checkUsageWarnings(teamId, userId)
       
       // Track dashboard visit with analytics
-      const userId = localStorage.getItem('biirbal_user_id')
       analytics.trackDashboard(teamId, userId || undefined)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
@@ -253,10 +257,9 @@ export default function Dashboard() {
     }
   }
 
-  const checkUsageWarnings = async (teamId: string) => {
+  const checkUsageWarnings = async (teamId: string, userId: string | null) => {
     try {
       // Include userId in the request for user-specific access control
-      const userId = localStorage.getItem('biirbal_user_id')
       const params = new URLSearchParams({ teamId })
       if (userId) {
         params.append('userId', userId)
@@ -326,17 +329,25 @@ export default function Dashboard() {
   const trackListen = async (linkId: string): Promise<{ listen: any } | null> => {
     try {
       // Get the current user ID from localStorage if available
-      const slackUserId = localStorage.getItem('biirbal_user_id')
+      const userId = localStorage.getItem('biirbal_user_id')
+      const isSlackUser = localStorage.getItem('biirbal_slack_user') === 'true'
+      
+      const requestBody: any = { linkId: linkId }
+      
+      if (userId) {
+        if (isSlackUser) {
+          requestBody.slackUserId = userId
+        } else {
+          requestBody.userId = userId
+        }
+      }
       
       const response = await fetch('/api/dashboard/track-listen', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          linkId: linkId,
-          slackUserId: slackUserId
-        }),
+        body: JSON.stringify(requestBody),
       })
       
       if (!response.ok) {

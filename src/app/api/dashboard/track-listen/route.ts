@@ -21,8 +21,10 @@ export async function POST(request: NextRequest) {
     // Check if user already has an incomplete listen record for this link
     const db = await getDbClient()
     
+    let existingListen = null
+    
     if (slackUserId) {
-      const existingListen = await db.audioListen.findFirst({
+      existingListen = await db.audioListen.findFirst({
         where: {
           processedLinkId: linkId,
           slackUserId: slackUserId,
@@ -30,11 +32,20 @@ export async function POST(request: NextRequest) {
         },
         orderBy: { listenedAt: 'desc' }
       })
+    } else if (userId) {
+      existingListen = await db.audioListen.findFirst({
+        where: {
+          processedLinkId: linkId,
+          userId: userId,
+          completed: false
+        },
+        orderBy: { listenedAt: 'desc' }
+      })
+    }
 
-      if (existingListen) {
-        // Return existing incomplete listen record to resume from
-        return NextResponse.json({ listen: existingListen })
-      }
+    if (existingListen) {
+      // Return existing incomplete listen record to resume from
+      return NextResponse.json({ listen: existingListen })
     }
 
     // Create a new listen record
