@@ -1,5 +1,3 @@
-const brevo = require('@getbrevo/brevo')
-
 // Brevo configuration
 const BREVO_API_KEY = process.env.BREVO_API_KEY
 const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@biirbal.com'
@@ -14,50 +12,52 @@ interface EmailOptions {
 
 class EmailService {
   private initialized: boolean = false
-  private apiInstance: any
+  private apiKey: string | null = null
 
   constructor() {
     if (BREVO_API_KEY) {
-      try {
-        let defaultClient = brevo.ApiClient.instance
-        let apiKey = defaultClient.authentications['api-key']
-        apiKey.apiKey = BREVO_API_KEY
-        
-        this.apiInstance = new brevo.TransactionalEmailsApi()
-        this.initialized = true
-        console.log('✅ Brevo email service initialized')
-      } catch (error) {
-        console.error('❌ Failed to initialize Brevo email service:', error)
-        this.initialized = false
-      }
+      this.apiKey = BREVO_API_KEY
+      this.initialized = true
+      console.log('✅ Brevo email service initialized')
     } else {
       console.warn('⚠️ BREVO_API_KEY not configured - email service disabled')
     }
   }
 
   async sendEmail(options: EmailOptions): Promise<boolean> {
-    if (!this.initialized) {
+    if (!this.initialized || !this.apiKey) {
       console.log('📧 Email (Brevo not configured):', options.subject, 'to', options.to)
       return false
     }
 
     try {
-      const sendSmtpEmail = new brevo.SendSmtpEmail()
-      
-      sendSmtpEmail.to = [{ email: options.to }]
-      sendSmtpEmail.sender = { email: FROM_EMAIL, name: FROM_NAME }
-      sendSmtpEmail.subject = options.subject
-      sendSmtpEmail.htmlContent = options.html
-      sendSmtpEmail.textContent = options.text || this.htmlToText(options.html)
+      const emailData = {
+        sender: { email: FROM_EMAIL, name: FROM_NAME },
+        to: [{ email: options.to }],
+        subject: options.subject,
+        htmlContent: options.html,
+        textContent: options.text || this.htmlToText(options.html)
+      }
 
-      const response = await this.apiInstance.sendTransacEmail(sendSmtpEmail)
-      console.log('✅ Email sent via Brevo:', options.subject, 'to', options.to, 'Message ID:', response.messageId)
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': this.apiKey
+        },
+        body: JSON.stringify(emailData)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.text()
+        throw new Error(`Brevo API error: ${response.status} ${response.statusText} - ${errorData}`)
+      }
+
+      const result = await response.json()
+      console.log('✅ Email sent via Brevo:', options.subject, 'to', options.to, 'Message ID:', result.messageId)
       return true
     } catch (error) {
       console.error('❌ Failed to send email via Brevo:', error)
-      if (error.response) {
-        console.error('Brevo error details:', error.response.text || error.response.body)
-      }
       return false
     }
   }
