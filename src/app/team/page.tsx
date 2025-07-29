@@ -41,7 +41,7 @@ const { Title, Text } = Typography
 
 interface TeamMember {
   id: string
-  slackUserId: string
+  slackUserId: string | null
   name: string
   displayName?: string
   realName?: string
@@ -95,6 +95,11 @@ export default function TeamManagement() {
     trackTimeOnPage: true
   })
 
+  // Helper function to get unique identifier for member
+  const getMemberUniqueId = (member: TeamMember): string => {
+    return member.slackUserId || member.id
+  }
+
   // Combine members and pending invitations for display
   const getCombinedMembersList = (): TeamMemberOrInvitation[] => {
     if (!teamData) return []
@@ -144,11 +149,16 @@ export default function TeamManagement() {
     }
   }
 
-  const handleMemberAction = async (userId: string, action: 'disable' | 'enable' | 'remove') => {
+  const handleMemberAction = async (member: TeamMember, action: 'disable' | 'enable' | 'remove') => {
     try {
-      setActionLoading(userId)
+      // Use slackUserId for Slack OAuth users, email for invited users
+      const userId = member.slackUserId || member.email
+      const uniqueId = member.slackUserId || member.id // For loading state
+      
+      setActionLoading(uniqueId)
       const teamId = localStorage.getItem('biirbal_team_id')
       const currentUserId = localStorage.getItem('biirbal_user_id')
+      // Note: currentUserId is either slackUserId (for Slack OAuth users) or database id (for invited users)
       
       const response = await fetch('/api/team/remove', {
         method: 'POST',
@@ -255,14 +265,14 @@ export default function TeamManagement() {
           <Popconfirm
             title="Disable user access?"
             description="This will prevent the user from playing audio summaries."
-            onConfirm={() => handleMemberAction(member.slackUserId, 'disable')}
+            onConfirm={() => handleMemberAction(member, 'disable')}
             okText="Disable"
             cancelText="Cancel"
           >
             <Button 
               size="small" 
               icon={<StopOutlined />}
-              loading={actionLoading === member.slackUserId}
+              loading={actionLoading === getMemberUniqueId(member)}
               disabled={isFirstUser}
             >
               Disable
@@ -272,8 +282,8 @@ export default function TeamManagement() {
           <Button 
             size="small" 
             icon={<CheckCircleOutlined />}
-            onClick={() => handleMemberAction(member.slackUserId, 'enable')}
-            loading={actionLoading === member.slackUserId}
+            onClick={() => handleMemberAction(member, 'enable')}
+            loading={actionLoading === getMemberUniqueId(member)}
             disabled={isOverLimit}
           >
             Enable
@@ -283,7 +293,7 @@ export default function TeamManagement() {
         <Popconfirm
           title="Remove user from team?"
           description="This will permanently remove the user and disable their access."
-          onConfirm={() => handleMemberAction(member.slackUserId, 'remove')}
+          onConfirm={() => handleMemberAction(member, 'remove')}
           okText="Remove"
           cancelText="Cancel"
           okButtonProps={{ danger: true }}
@@ -292,7 +302,7 @@ export default function TeamManagement() {
             size="small" 
             danger 
             icon={<DeleteOutlined />}
-            loading={actionLoading === member.slackUserId}
+            loading={actionLoading === getMemberUniqueId(member)}
             disabled={isFirstUser}
           >
             Remove

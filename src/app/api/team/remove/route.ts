@@ -32,7 +32,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if removing user is part of the team and active
-    const removingUser = team.users.find(u => u.slackUserId === removedBy)
+    // First try to find by slackUserId, then by database id for invited users
+    let removingUser = team.users.find(u => u.slackUserId === removedBy)
+    if (!removingUser) {
+      removingUser = team.users.find(u => u.id === removedBy)
+    }
     if (!removingUser) {
       return NextResponse.json(
         { error: 'Only team members can remove users' },
@@ -68,7 +72,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Prevent self-removal
-    if (userToRemove.slackUserId === removedBy) {
+    if (userToRemove.slackUserId === removedBy || userToRemove.id === removedBy) {
       return NextResponse.json(
         { error: 'Users cannot remove themselves' },
         { status: 403 }
