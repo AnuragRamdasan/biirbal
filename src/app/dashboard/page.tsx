@@ -610,7 +610,8 @@ export default function Dashboard() {
   }
 
   const hasUserListened = (link: ProcessedLink) => {
-    return link.listens && link.listens.length > 0
+    // Only consider articles as "listened" if they have at least one completed listen
+    return link.listens && link.listens.some(listen => listen.completed === true)
   }
 
   // Stats are now fetched from API and stored in stats state
