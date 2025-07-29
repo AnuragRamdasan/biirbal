@@ -18,47 +18,37 @@ export interface UsageStats {
 }
 
 export async function getTeamUsageStats(teamId: string): Promise<UsageStats> {
-  console.log(`🔍 getTeamUsageStats called for team: ${teamId}`)
   const db = await getDbClient()
   
   // Check if this is an exception team first
   const isException = isExceptionTeam(teamId)
-  console.log(`🔍 isException: ${isException}`)
   
   // Get team subscription - teamId is actually the Slack team ID
-  let team, subscription
-  try {
-    team = await db.team.findUnique({
-      where: { slackTeamId: teamId },
-      include: { 
-        subscription: true,
-        users: { 
-          where: { isActive: true },
-          orderBy: { createdAt: 'asc' }
-        },
-        processedLinks: {
-          where: {
-            createdAt: {
-              gte: getFirstDayOfCurrentMonth()
-            }
+  const team = await db.team.findUnique({
+    where: { slackTeamId: teamId },
+    include: { 
+      subscription: true,
+      users: { 
+        where: { isActive: true },
+        orderBy: { createdAt: 'asc' }
+      },
+      processedLinks: {
+        where: {
+          createdAt: {
+            gte: getFirstDayOfCurrentMonth()
           }
         }
       }
-    })
-    console.log(`🔍 Team found: ${!!team}`)
-
-    if (!team) {
-      throw new Error('Team not found')
     }
+  })
 
-    subscription = team.subscription
-    console.log(`🔍 Subscription found: ${!!subscription}`)
-    if (!subscription) {
-      throw new Error('Team subscription not found')
-    }
-  } catch (error) {
-    console.error(`🚨 Error in getTeamUsageStats for team ${teamId}:`, error)
-    throw error
+  if (!team) {
+    throw new Error('Team not found')
+  }
+
+  const subscription = team.subscription
+  if (!subscription) {
+    throw new Error('Team subscription not found')
   }
 
   // Get plan details
