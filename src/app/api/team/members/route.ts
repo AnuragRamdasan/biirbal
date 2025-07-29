@@ -64,7 +64,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Get usage stats for seat information
+    console.log(`📊 Getting usage stats for team: ${teamId}`)
     const usageStats = await getTeamUsageStats(teamId)
+    console.log(`📊 Usage stats retrieved:`, usageStats)
 
     return NextResponse.json({
       members: team.users,
@@ -82,9 +84,9 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('Failed to get team members:', error)
+    console.error('Failed to get team members for team:', teamId, error)
     return NextResponse.json(
-      { error: 'Failed to get team members' },
+      { error: 'Failed to get team members', details: error.message },
       { status: 500 }
     )
   }
