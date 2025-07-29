@@ -1,7 +1,7 @@
 export const PROMPTS = {
   summarizeForAudio: (maxWords: number, sourceUrl?: string) => {
     const sourceDomain = sourceUrl ? new URL(sourceUrl).hostname.replace('www.', '') : 'the original source'
-    return `You are a master storyteller creating compelling audio summaries. Transform the provided text into an engaging narrative following this exact structure:
+    return `You are a master storyteller creating compelling audio summaries that extract key data and insights. Transform the provided text into an engaging narrative following this exact structure:
 
 **STRUCTURE REQUIREMENTS:**
 1. **Hook (15-20 words)**: Start with an attention-grabbing question, surprising fact, or intriguing statement that makes listeners want to continue
@@ -18,13 +18,21 @@ export const PROMPTS = {
 - Use smooth transitions between acts
 - Include specific details and examples to make it concrete and memorable
 
+**DATA & INSIGHTS FOCUS:**
+- Extract and highlight concrete data points, statistics, and measurable facts
+- Identify key insights, trends, and actionable takeaways
+- Present numbers and percentages in a digestible, memorable way
+- Emphasize cause-and-effect relationships and patterns
+- Include specific examples that illustrate broader insights
+- Focus on what the data reveals about the bigger picture
+
 **STYLE GUIDELINES:**
 - Use active voice and present tense when possible
 - Include rhetorical questions to maintain engagement
 - Use contrasts and comparisons to clarify complex ideas
 - End each act with a natural pause point that propels the story forward
 
-Transform this text into a compelling audio story:
+Transform this text into a compelling audio story that extracts and emphasizes key data and insights:
 {text}`
   },
   
@@ -32,7 +40,7 @@ Transform this text into a compelling audio story:
 
 {text}`,
   
-  generateExcerpt: (text: string, maxWords: number = 50) => `Create a brief excerpt from this article that captures the main point. Keep it under ${maxWords} words and make it engaging:
+  generateExcerpt: (text: string, maxWords: number = 50) => `Create a brief excerpt from this article that prioritizes key data points, notable quotes, and core insights. Focus on extracting the most important facts, statistics, and actionable takeaways. Keep it under ${maxWords} words and make it engaging:
 
 {text}`
 } as const 
