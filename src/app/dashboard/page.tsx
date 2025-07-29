@@ -118,6 +118,7 @@ export default function Dashboard() {
   const audioStartTimes = useRef<Record<string, number>>({})
   const progressUpdateInterval = useRef<NodeJS.Timeout | null>(null)
   const refreshInterval = useRef<NodeJS.Timeout | null>(null)
+  const completedListens = useRef<Set<string>>(new Set())
   
   // Initialize analytics
   const analytics = useAnalytics({
@@ -412,6 +413,11 @@ export default function Dashboard() {
       // Create new audio element
       const audio = new Audio(audioUrl)
       audioStartTimes.current[linkId] = Date.now()
+      
+      // Clean up completion tracking for this audio
+      if (listenRecord.id) {
+        completedListens.current.delete(listenRecord.id)
+      }
     
     // Add event listeners for progress tracking
     audio.addEventListener('loadedmetadata', () => {
@@ -429,10 +435,36 @@ export default function Dashboard() {
       analytics.trackAudioPlay(linkId, audio.duration, 'dashboard')
     })
     
-    audio.addEventListener('timeupdate', () => {
+    audio.addEventListener('timeupdate', async () => {
       setCurrentTime(audio.currentTime)
       if (audio.duration > 0) {
+        const progressPercentage = (audio.currentTime / audio.duration) * 100
         setProgress(audio.currentTime / audio.duration)
+        
+        // Mark as completed when user reaches 85% of the audio
+        if (progressPercentage >= 85 && currentListenRecord && !completedListens.current.has(currentListenRecord)) {
+          completedListens.current.add(currentListenRecord)
+          
+          const listenRecord = await fetch(`/api/dashboard/complete-listen`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              linkId: linkId,
+              listenId: currentListenRecord,
+              duration: (Date.now() - audioStartTimes.current[linkId]) / 1000,
+              currentTime: audio.currentTime,
+              completed: true
+            }),
+          })
+          
+          if (listenRecord.ok) {
+            // Clear the record so we don't mark it completed multiple times
+            setCurrentListenRecord(null)
+            
+            // Refresh stats to update listen counts
+            await refreshStats()
+          }
+        }
       }
     })
     
@@ -444,8 +476,9 @@ export default function Dashboard() {
       // Track audio completion
       analytics.trackAudioComplete(linkId, 100, listenDuration)
       
-      // Mark listen as completed
-      if (currentListenRecord) {
+      // Mark listen as completed (only if not already marked at 85%)
+      if (currentListenRecord && !completedListens.current.has(currentListenRecord)) {
+        completedListens.current.add(currentListenRecord)
         try {
           await updateListenProgress(currentListenRecord, audio.currentTime, true)
         } catch (error) {
