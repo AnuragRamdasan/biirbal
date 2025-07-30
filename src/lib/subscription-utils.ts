@@ -1,4 +1,5 @@
 import { getDbClient } from './db'
+import type { SubscriptionStatus } from '@prisma/client'
 import { PRICING_PLANS, getPlanById, checkUsageLimits } from './stripe'
 import { isExceptionTeam } from './exception-teams'
 import { trackSubscriptionStarted, trackSubscriptionCancelled } from './analytics'
@@ -362,7 +363,7 @@ export async function canAddMoreUsers(teamId: string): Promise<boolean> {
 
 export async function updateSubscription(teamId: string, data: {
   planId?: string
-  status?: string
+  status?: SubscriptionStatus
   stripeCustomerId?: string
   stripeSubscriptionId?: string
 }): Promise<{ success: boolean, error?: string }> {

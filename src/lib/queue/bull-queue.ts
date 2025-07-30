@@ -340,7 +340,7 @@ export async function getQueueStats() {
   // In test environment, use mocked methods
   if (process.env.NODE_ENV === 'test') {
     try {
-      const mockStats = await linkProcessingQueue.getStats()
+      const mockStats = await (linkProcessingQueue as any).getStats()
       if (mockStats) {
         return mockStats
       }
