@@ -3,7 +3,14 @@ import { getDbClient } from '@/lib/db'
 
 export async function POST(request: NextRequest) {
   try {
-    const { linkId, listenId, duration, currentTime, completed = true } = await request.json()
+    const { 
+      linkId, 
+      listenId, 
+      currentTime, 
+      duration, 
+      completed = false,
+      completionPercentage 
+    } = await request.json()
 
     if (!linkId || !listenId) {
       return NextResponse.json(
@@ -12,34 +19,44 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Update the listen record with progress and completion status
+    if (typeof currentTime !== 'number' || currentTime < 0) {
+      return NextResponse.json(
+        { error: 'Valid currentTime is required' },
+        { status: 400 }
+      )
+    }
+
     const db = await getDbClient()
-    const updateData: {
-      listenDuration?: number
-      resumePosition?: number
-      completed?: boolean
-    } = {}
     
-    if (typeof duration === 'number') {
+    // Prepare update data
+    const updateData: {
+      resumePosition: number
+      listenDuration?: number
+      completed?: boolean
+    } = {
+      resumePosition: Math.round(currentTime)
+    }
+
+    // Add duration if provided
+    if (typeof duration === 'number' && duration > 0) {
       updateData.listenDuration = Math.round(duration)
     }
-    
-    if (typeof currentTime === 'number') {
-      updateData.resumePosition = Math.round(currentTime)
-    }
-    
-    if (completed === true) {
+
+    // Mark as completed if specified or if completion percentage >= 85%
+    const isCompleted = completed || (completionPercentage && completionPercentage >= 85)
+    if (isCompleted) {
       updateData.completed = true
     }
 
+    // Update the listen record
     const updatedListen = await db.audioListen.update({
       where: { id: listenId },
       data: updateData
     })
 
-    // If marked as completed, archive the link
+    // If marked as completed, check if we should archive the link
     let archivedLink = null
-    if (completed === true) {
+    if (isCompleted) {
       try {
         // Get the processed link to check if it should be archived
         const processedLink = await db.processedLink.findUnique({
@@ -71,8 +88,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       listen: updatedListen,
       archived: !!archivedLink,
-      message: completed ? 'Listen completed and link archived' : 'Progress updated'
+      message: isCompleted ? 'Listen completed and link archived' : 'Progress updated'
     })
+
   } catch (error) {
     console.error('Failed to update listen progress:', error)
     return NextResponse.json(
