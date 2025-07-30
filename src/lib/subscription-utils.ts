@@ -365,3 +365,94 @@ export function getUpgradeMessage(stats: UsageStats): string | null {
 
   return null
 }
+
+// Additional functions expected by tests
+export async function getCurrentPlan(teamId: string) {
+  try {
+    const stats = await getTeamUsageStats(teamId)
+    return stats.plan
+  } catch (error) {
+    return PRICING_PLANS.FREE
+  }
+}
+
+export async function canProcessMoreLinks(teamId: string): Promise<boolean> {
+  try {
+    const result = await canProcessNewLink(teamId)
+    return result.allowed
+  } catch (error) {
+    return false
+  }
+}
+
+export async function canAddMoreUsers(teamId: string): Promise<boolean> {
+  try {
+    const result = await canAddNewUser(teamId)
+    return result.allowed
+  } catch (error) {
+    return false
+  }
+}
+
+export async function updateSubscription(teamId: string, data: {
+  planId?: string
+  status?: string
+  stripeCustomerId?: string
+  stripeSubscriptionId?: string
+}): Promise<{ success: boolean, error?: string }> {
+  try {
+    const db = await getDbClient()
+    
+    await db.subscription.upsert({
+      where: { teamId },
+      update: {
+        ...(data.planId && { planId: data.planId }),
+        ...(data.status && { status: data.status }),
+        ...(data.stripeCustomerId && { stripeCustomerId: data.stripeCustomerId }),
+        ...(data.stripeSubscriptionId && { stripeSubscriptionId: data.stripeSubscriptionId })
+      },
+      create: {
+        teamId,
+        planId: data.planId || 'free',
+        status: data.status || 'ACTIVE',
+        stripeCustomerId: data.stripeCustomerId,
+        stripeSubscriptionId: data.stripeSubscriptionId,
+        monthlyLinkLimit: 20,
+        userLimit: 1,
+        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      }
+    })
+    
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+  }
+}
+
+export async function cancelSubscription(teamId: string): Promise<{ success: boolean, error?: string }> {
+  try {
+    const db = await getDbClient()
+    
+    await db.subscription.update({
+      where: { teamId },
+      data: {
+        status: 'CANCELED',
+        planId: 'free',
+        monthlyLinkLimit: 20,
+        userLimit: 1
+      }
+    })
+    
+    trackSubscriptionCancelled({
+      team_id: teamId,
+      plan_type: 'free' as any,
+      previous_plan: undefined,
+      currency: 'USD',
+      value: 0
+    })
+    
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+  }
+}

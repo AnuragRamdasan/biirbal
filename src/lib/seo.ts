@@ -39,9 +39,7 @@ const defaultSEO: SEOConfig = {
 export function generateMetadata(config: Partial<SEOConfig> = {}): Metadata {
   const seo = { ...defaultSEO, ...config }
   
-  const title = config.title 
-    ? `${config.title} | Biirbal`
-    : seo.title
+  const title = config.title || seo.title
 
   return {
     title,
@@ -119,7 +117,20 @@ export function generateMetadata(config: Partial<SEOConfig> = {}): Metadata {
   }
 }
 
-export function generateStructuredData(type: 'Organization' | 'Product' | 'SoftwareApplication' | 'WebSite', data: any = {}) {
+export function generateStructuredData(typeOrConfig: 'Organization' | 'Product' | 'SoftwareApplication' | 'WebSite' | 'Article' | any, data: any = {}) {
+  // Handle both old signature and new signature for backward compatibility
+  let type: string
+  let config: any = {}
+  
+  if (typeof typeOrConfig === 'string') {
+    // Old signature: generateStructuredData('Organization', data)
+    type = typeOrConfig
+    config = data
+  } else {
+    // New signature: generateStructuredData({ type: 'Organization', ...data })
+    type = typeOrConfig.type
+    config = typeOrConfig
+  }
   const baseData = {
     '@context': 'https://schema.org',
     '@type': type,
@@ -144,7 +155,7 @@ export function generateStructuredData(type: 'Organization' | 'Product' | 'Softw
           contactType: 'customer service',
           email: 'support@biirbal.com'
         },
-        ...data
+        ...config
       }
 
     case 'SoftwareApplication':
@@ -170,7 +181,7 @@ export function generateStructuredData(type: 'Organization' | 'Product' | 'Softw
         description: 'Transform Slack links into AI-powered audio summaries',
         url: baseUrl,
         screenshot: `${baseUrl}/app-screenshot.png`,
-        ...data
+        ...config
       }
 
     case 'WebSite':
@@ -191,7 +202,16 @@ export function generateStructuredData(type: 'Organization' | 'Product' | 'Softw
           },
           'query-input': 'required name=search_term_string'
         },
-        ...data
+        ...config
+      }
+
+    case 'WebPage':
+      return {
+        ...baseData,
+        name: config.name || 'Page',
+        description: config.description || 'Page description',
+        url: config.url || baseUrl,
+        ...config
       }
 
     case 'Product':
@@ -215,7 +235,17 @@ export function generateStructuredData(type: 'Organization' | 'Product' | 'Softw
           ratingValue: '4.9',
           ratingCount: '250'
         },
-        ...data
+        ...config
+      }
+
+    case 'Article':
+      return {
+        ...baseData,
+        headline: config.headline || 'Article Title',
+        author: config.author || 'Biirbal Team',
+        datePublished: config.datePublished || new Date().toISOString(),
+        description: config.description || 'Article description',
+        ...config
       }
 
     default:
@@ -228,4 +258,54 @@ export const jsonLd = {
   website: generateStructuredData('WebSite'),
   software: generateStructuredData('SoftwareApplication'),
   product: generateStructuredData('Product'),
+}
+
+// Additional functions expected by tests
+export function generateOpenGraphTags(config: {
+  title: string
+  description: string
+  url?: string
+  image?: string
+  type?: string
+}): Record<string, string> {
+  return {
+    'og:title': config.title,
+    'og:description': config.description,
+    'og:url': config.url || baseUrl,
+    'og:image': config.image || `${baseUrl}/og-image.png`,
+    'og:type': config.type || 'website',
+    'og:site_name': 'Biirbal'
+  }
+}
+
+export function generateTwitterTags(config: {
+  title: string
+  description: string
+  image?: string
+  card?: string
+  site?: string
+}): Record<string, string> {
+  // Use large image card when image is provided, unless card is explicitly set
+  const cardType = config.card || (config.image ? 'summary_large_image' : 'summary')
+  
+  return {
+    'twitter:card': cardType,
+    'twitter:site': config.site || '@biirbal',
+    'twitter:creator': '@biirbal',
+    'twitter:title': config.title,
+    'twitter:description': config.description,
+    'twitter:image': config.image || `${baseUrl}/og-image.png`
+  }
+}
+
+export function generateCanonicalUrl(path: string): string {
+  // Handle absolute URLs
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path.replace(/\/$/, '') // Remove trailing slash
+  }
+  
+  // Normalize relative paths
+  const normalizedPath = path.replace(/^\/+/, '/').replace(/\/+$/, '').replace(/\?.*$/, '') // Remove query params
+  
+  return `${baseUrl}${normalizedPath}`
 }

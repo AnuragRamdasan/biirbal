@@ -14,3 +14,20 @@ export function isExceptionTeam(teamId: string): boolean {
 export function getExceptionTeamMessage(): string {
   return "🎉 You're using Biirbal with complimentary access! No usage limits apply to your team."
 }
+
+export function getExceptionTeams(): string[] {
+  return [...EXCEPTION_TEAMS]
+}
+
+export function addExceptionTeam(teamId: string): void {
+  if (!EXCEPTION_TEAMS.includes(teamId)) {
+    EXCEPTION_TEAMS.push(teamId)
+  }
+}
+
+export function removeExceptionTeam(teamId: string): void {
+  const index = EXCEPTION_TEAMS.indexOf(teamId)
+  if (index > -1) {
+    EXCEPTION_TEAMS.splice(index, 1)
+  }
+}

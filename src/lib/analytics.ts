@@ -19,7 +19,7 @@ import type {
 } from '../types/analytics'
 
 // Check if analytics is enabled and available
-const isAnalyticsEnabled = (): boolean => {
+export const isAnalyticsEnabled = (): boolean => {
   return (
     typeof window !== 'undefined' &&
     'gtag' in window &&
@@ -48,8 +48,8 @@ export const setAnalyticsUser = (user: AnalyticsUser): void => {
 
 // Generic event tracking function
 export const trackEvent = (
-  eventName: AnalyticsEventName,
-  eventData?: AnalyticsEvent
+  eventName: AnalyticsEventName | string,
+  eventData?: AnalyticsEvent | any
 ): void => {
   if (!isAnalyticsEnabled()) {
     console.log('Analytics (dev):', eventName, eventData)
@@ -93,15 +93,38 @@ export const trackSubscriptionCancelled = (data: SubscriptionEvent): void => {
   })
 }
 
-export const trackLinkShared = (data: LinkSharedEvent): void => {
-  trackEvent(AnalyticsEventName.LINK_SHARED, {
-    ...data,
+export const trackLinkShared = (data: any): void => {
+  // Extract domain from URL if provided
+  let processedData = { ...data }
+  if (data.url && !data.link_domain) {
+    try {
+      const url = new URL(data.url)
+      processedData.link_domain = url.hostname
+      // Remove full URL for privacy
+      delete processedData.url
+    } catch (error) {
+      // Handle invalid URLs gracefully
+    }
+  }
+  
+  if (!isAnalyticsEnabled()) {
+    console.log('Analytics (dev): link_shared', processedData)
+    return
+  }
+  
+  trackEvent('link_shared' as AnalyticsEventName, {
+    ...processedData,
     event_category: 'product_usage'
   })
 }
 
-export const trackLinkProcessed = (data: LinkProcessedEvent): void => {
-  trackEvent(AnalyticsEventName.LINK_PROCESSED, {
+export const trackLinkProcessed = (data: any): void => {
+  if (!isAnalyticsEnabled()) {
+    console.log('Analytics (dev): link_processed', data)
+    return
+  }
+  
+  trackEvent('link_processed' as AnalyticsEventName, {
     ...data,
     event_category: 'product_usage',
     value: data.processing_time_seconds
@@ -248,5 +271,60 @@ export const debugAnalytics = (): void => {
       nodeEnv: process.env.NODE_ENV,
       dataLayer: (window as any).dataLayer
     })
+  }
+}
+
+// Additional functions expected by tests
+export const trackUserAction = (data: any): void => {
+  if (!isAnalyticsEnabled()) {
+    console.log('Analytics (dev): user_action', data)
+    return
+  }
+  
+  trackEvent('user_action' as AnalyticsEventName, {
+    ...data,
+    event_category: 'user_interaction'
+  })
+}
+
+export const trackSubscriptionEvent = (data: any): void => {
+  if (!isAnalyticsEnabled()) {
+    console.log('Analytics (dev): subscription', data)
+    return
+  }
+  
+  trackEvent('subscription' as AnalyticsEventName, {
+    ...data,
+    event_category: 'subscription'
+  })
+}
+
+export const trackPerformance = (data: any): void => {
+  if (!isAnalyticsEnabled()) {
+    console.log('Analytics (dev): performance', data)
+    return
+  }
+  
+  trackEvent('performance' as AnalyticsEventName, {
+    ...data,
+    event_category: 'performance'
+  })
+}
+
+export interface AnalyticsConfig {
+  enabled: boolean
+  environment: string
+  sampling?: {
+    rate: number
+  }
+}
+
+export const getAnalyticsConfig = (): AnalyticsConfig => {
+  return {
+    enabled: isAnalyticsEnabled(),
+    environment: process.env.NODE_ENV || 'development',
+    sampling: {
+      rate: 1.0
+    }
   }
 }

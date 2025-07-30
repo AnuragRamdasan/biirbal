@@ -425,3 +425,198 @@ export type {
   TeamDeletionData,
   AdminNotificationData
 }
+
+// Additional functions expected by tests - compatibility layer
+interface AdminNotificationOptions {
+  message: string
+  channel?: string
+  priority?: 'low' | 'medium' | 'high'
+  metadata?: any
+}
+
+interface AdminNotificationResult {
+  success: boolean
+  method: 'slack' | 'email'
+}
+
+// Rate limiting for error notifications
+const errorNotificationCache = new Map<string, number>()
+const ERROR_RATE_LIMIT_MS = 60000 // 1 minute
+
+export async function sendAdminNotification(options: AdminNotificationOptions): Promise<AdminNotificationResult> {
+  const { message, channel, priority = 'medium', metadata } = options
+  
+  // Create WebClient with the configured token
+  if (!ADMIN_SLACK_TOKEN) {
+    // Fallback to email (mocked in tests)
+    const { sendEmail } = await import('@/lib/email-service')
+    try {
+      await sendEmail({
+        to: 'admin@biirbal.ai',
+        subject: `Admin Notification - ${priority.toUpperCase()}`,
+        html: `<p>${message}</p>${metadata ? `<pre>${JSON.stringify(metadata, null, 2)}</pre>` : ''}`
+      })
+      return { success: true, method: 'email' }
+    } catch (error) {
+      return { success: false, method: 'email' }
+    }
+  }
+
+  try {
+    const slackClient = new WebClient(ADMIN_SLACK_TOKEN)
+    
+    // Format message with priority
+    let formattedMessage = message
+    if (priority === 'high') {
+      formattedMessage = `🚨 ${message}`
+    } else if (priority === 'medium') {
+      formattedMessage = `⚠️ ${message}`
+    }
+    
+    // Include metadata in message
+    if (metadata) {
+      const metadataText = Object.entries(metadata)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join(', ')
+      formattedMessage += ` (${metadataText})`
+    }
+    
+    await slackClient.chat.postMessage({
+      channel: channel || '#admin-alerts',
+      text: formattedMessage,
+      username: 'Biirbal Admin Bot',
+      icon_emoji: ':robot_face:'
+    })
+    
+    return { success: true, method: 'slack' }
+  } catch (error) {
+    // Fallback to email
+    try {
+      const { sendEmail } = await import('@/lib/email-service')
+      await sendEmail({
+        to: 'admin@biirbal.ai',
+        subject: `Admin Notification - ${priority.toUpperCase()}`,
+        html: `<p>${message}</p>${metadata ? `<pre>${JSON.stringify(metadata, null, 2)}</pre>` : ''}`
+      })
+      return { success: true, method: 'email' }
+    } catch (emailError) {
+      return { success: false, method: 'email' }
+    }
+  }
+}
+
+export async function notifyAdminOfError(error: Error, context?: any): Promise<AdminNotificationResult> {
+  // Rate limiting
+  const errorKey = `${error.message}_${context?.function || 'unknown'}`
+  const lastNotified = errorNotificationCache.get(errorKey)
+  const now = Date.now()
+  
+  if (lastNotified && (now - lastNotified) < ERROR_RATE_LIMIT_MS) {
+    // Skip notification due to rate limiting
+    return { success: true, method: 'slack' }
+  }
+  
+  errorNotificationCache.set(errorKey, now)
+  
+  const formattedError = formatErrorForAdmin(error, context)
+  
+  return sendAdminNotification({
+    message: formattedError,
+    priority: context?.severity === 'critical' ? 'high' : 'medium',
+    channel: '#admin-errors'
+  })
+}
+
+export async function notifyAdminOfNewUser(userInfo: any): Promise<AdminNotificationResult> {
+  const formattedUserInfo = formatUserInfoForAdmin(userInfo)
+  
+  return sendAdminNotification({
+    message: `New user signed up: ${formattedUserInfo}`,
+    priority: 'medium',
+    channel: '#admin-users',
+    metadata: userInfo
+  })
+}
+
+export async function notifyAdminOfSubscription(subscriptionInfo: any): Promise<AdminNotificationResult> {
+  const { action, plan, from_plan, to_plan, amount, reason } = subscriptionInfo
+  
+  let message = `Subscription ${action}`
+  if (action === 'upgraded') {
+    message += ` from ${from_plan} to ${to_plan}`
+  } else if (action === 'cancelled') {
+    message += ` for ${plan} plan`
+    if (reason) message += ` (${reason})`
+  } else if (action === 'charged') {
+    message += ` - ${plan} plan charged $${amount}`
+  }
+  
+  return sendAdminNotification({
+    message,
+    priority: 'medium',
+    channel: '#admin-subscriptions',
+    metadata: subscriptionInfo
+  })
+}
+
+export async function notifyAdminOfUsageLimit(usageInfo: any): Promise<AdminNotificationResult> {
+  const { teamName, currentUsage, limit, percentage } = usageInfo
+  const isOverLimit = percentage >= 100
+  
+  const message = `Usage limit ${isOverLimit ? 'exceeded' : 'warning'}: ${teamName} at ${percentage}% (${currentUsage}/${limit})`
+  
+  return sendAdminNotification({
+    message,
+    priority: isOverLimit ? 'high' : 'medium',
+    channel: '#admin-usage',
+    metadata: usageInfo
+  })
+}
+
+export function formatErrorForAdmin(error: Error, context?: any): string {
+  let formatted = `Error: ${error.message}`
+  
+  if (context?.function) {
+    formatted += ` in ${context.function}`
+  }
+  
+  if (context?.userId) {
+    formatted += ` (User: ${context.userId})`
+  }
+  
+  if (context?.data) {
+    formatted += ` - Data: ${JSON.stringify(context.data)}`
+  }
+  
+  if (error.stack && context?.severity === 'critical') {
+    formatted += `\n\nStack trace: ${error.stack}`
+  }
+  
+  // Truncate very long messages
+  if (formatted.length > 1200) {
+    formatted = formatted.substring(0, 1200) + '...'
+  }
+  
+  return formatted
+}
+
+export function formatUserInfoForAdmin(userInfo: any): string {
+  const { id, name, email, teamId, teamName, teamDomain } = userInfo
+  
+  let formatted = `${name || 'Unknown'} (${id})`
+  
+  if (email) {
+    formatted += ` - ${email}`
+  }
+  
+  if (teamName) {
+    formatted += ` from team ${teamName}`
+    if (teamDomain) {
+      formatted += ` (${teamDomain})`
+    }
+  } else if (teamId) {
+    formatted += ` from team ${teamId}`
+  }
+  
+  return formatted
+}

@@ -71,5 +71,20 @@ export async function ensureDbConnection(): Promise<boolean> {
   }
 }
 
+// Timeout wrapper for database operations
+export async function withTimeout<T>(
+  operation: () => Promise<T>,
+  timeoutMs: number = 30000
+): Promise<T> {
+  return Promise.race([
+    operation(),
+    new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`Operation timed out after ${timeoutMs}ms`))
+      }, timeoutMs)
+    })
+  ])
+}
+
 // Export types for convenience
 export type DbClient = PrismaClient

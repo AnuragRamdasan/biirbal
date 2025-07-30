@@ -1,4 +1,18 @@
 /**
+ * Check if running in production environment
+ */
+export function isProduction(): boolean {
+  return process.env.NODE_ENV === 'production'
+}
+
+/**
+ * Check if running in development environment
+ */
+export function isDevelopment(): boolean {
+  return process.env.NODE_ENV === 'development' || !process.env.NODE_ENV
+}
+
+/**
  * Get the base URL for the application
  * Uses NEXTAUTH_URL as the primary source of truth for the domain
  */
@@ -11,6 +25,15 @@ export function getBaseUrl(): string {
   // Fallback to NEXT_PUBLIC_BASE_URL if available
   if (process.env.NEXT_PUBLIC_BASE_URL) {
     return process.env.NEXT_PUBLIC_BASE_URL
+  }
+  
+  // Environment-specific defaults
+  if (isDevelopment()) {
+    return 'http://localhost:3000'
+  }
+  
+  if (isProduction()) {
+    return 'https://biirbal.ai'
   }
   
   // Final fallback to the correct domain

@@ -38,7 +38,10 @@ export async function GET(request: NextRequest) {
     }
 
     if (!code) {
-      throw new ValidationError('Missing authorization code')
+      return NextResponse.json(
+        { error: 'Missing authorization code' },
+        { status: 400 }
+      )
     }
     
     // Check if Slack OAuth is configured
@@ -122,149 +125,146 @@ export async function GET(request: NextRequest) {
       authedUser: result.authed_user
     })
 
-    // Store team information
-    const db = await getDbClient()
-    
-    // Check if this is a new team
-    const existingTeam = await db.team.findUnique({
-      where: { slackTeamId: teamId },
-      include: { users: true }
-    })
-    
-    const isNewTeam = !existingTeam
-    
-    const team = await db.team.upsert({
-      where: { slackTeamId: teamId },
-      update: {
-        teamName,
-        accessToken,
-        botUserId,
-        isActive: true,
-        updatedAt: new Date()
-      },
-      create: {
-        slackTeamId: teamId,
-        teamName,
-        accessToken,
-        botUserId,
-        isActive: true,
-        subscription: {
-          create: {
-            status: 'TRIAL',
-            monthlyLinkLimit: 10
-          }
-        }
-      }
-    })
+    // Store team and user information (persistence errors are logged but do not break flow)
+    try {
+      const db = await getDbClient()
 
-    // Send admin notification for new team signup
-    if (isNewTeam) {
-      try {
-        await adminNotifications.notifyTeamSignup({
-          teamId: team.id,
-          teamName: teamName || undefined,
+      // Check if this is a new team
+      const existingTeam = await db.team.findUnique({
+        where: { slackTeamId: teamId },
+        include: { users: true }
+      })
+
+      const isNewTeam = !existingTeam
+
+      await db.team.upsert({
+        where: { slackTeamId: teamId },
+        update: {
+          teamName,
+          accessToken,
+          botUserId,
+          isActive: true,
+          updatedAt: new Date()
+        },
+        create: {
           slackTeamId: teamId,
-          userCount: 1, // New team starts with 1 user
-          installationType: 'new'
-        })
-      } catch (error) {
-        console.error('Failed to send team signup notification:', error)
-      }
-    }
-
-    // Store user information if available
-    if (userId && userAccessToken) {
-      try {
-        // Check if existing user or if we can add a new user
-        const existingUser = await db.user.findUnique({
-          where: { slackUserId: userId }
-        })
-        
-        let userSeatAllowed = true
-        let userAccessDisabled = false
-        
-        if (!existingUser) {
-          // Check if we can add a new user
-          const canAdd = await canAddNewUser(teamId)
-          if (!canAdd.allowed) {
-            console.log('Cannot add new user due to seat limit:', canAdd.reason)
-            userSeatAllowed = false
-            userAccessDisabled = true
-          }
-        }
-        
-        // Use the user access token to get detailed user info
-        const userSlackClient = new WebClient(userAccessToken)
-        const userInfo = await userSlackClient.users.info({ user: userId })
-        
-        if (userInfo.ok && userInfo.user) {
-          // Check if this is a new user
-          const isNewUser = !existingUser
-          
-          const user = await db.user.upsert({
-            where: { slackUserId: userId },
-            update: {
-              teamId: team.id,
-              name: userInfo.user.name,
-              displayName: userInfo.user.profile?.display_name,
-              realName: userInfo.user.profile?.real_name,
-              email: userInfo.user.profile?.email,
-              profileImage24: userInfo.user.profile?.image_24,
-              profileImage32: userInfo.user.profile?.image_32,
-              profileImage48: userInfo.user.profile?.image_48,
-              title: userInfo.user.profile?.title,
-              userAccessToken,
-              isActive: userSeatAllowed, // Disable if over seat limit
-              updatedAt: new Date()
-            },
+          teamName,
+          accessToken,
+          botUserId,
+          isActive: true,
+          subscription: {
             create: {
-              slackUserId: userId,
-              teamId: team.id,
-              name: userInfo.user.name,
-              displayName: userInfo.user.profile?.display_name,
-              realName: userInfo.user.profile?.real_name,
-              email: userInfo.user.profile?.email,
-              profileImage24: userInfo.user.profile?.image_24,
-              profileImage32: userInfo.user.profile?.image_32,
-              profileImage48: userInfo.user.profile?.image_48,
-              title: userInfo.user.profile?.title,
-              userAccessToken,
-              isActive: userSeatAllowed // Disable if over seat limit
-            }
-          })
-          
-          console.log('User information stored:', {
-            userId,
-            name: userInfo.user.name,
-            email: userInfo.user.profile?.email,
-            isActive: userSeatAllowed,
-            accessDisabled: userAccessDisabled
-          })
-
-          // Send admin notification for new user signup
-          if (isNewUser) {
-            try {
-              await adminNotifications.notifyUserSignup({
-                userId: userId,
-                userName: userInfo.user.name || undefined,
-                userEmail: userInfo.user.profile?.email || undefined,
-                teamId: teamId,
-                teamName: teamName || undefined,
-                source: 'slack_oauth'
-              })
-            } catch (error) {
-              console.error('Failed to send user signup notification:', error)
+              status: 'TRIAL',
+              monthlyLinkLimit: 10
             }
           }
         }
-      } catch (error) {
-        console.error('Failed to fetch/store user info:', error)
-        // Don't fail the OAuth flow if user info fails
+      })
+
+      // Send admin notification for new team signup
+      if (isNewTeam) {
+        try {
+          await adminNotifications.notifyTeamSignup({
+            teamId: existingTeam?.id || teamId,
+            teamName: teamName || undefined,
+            slackTeamId: teamId,
+            userCount: 1,
+            installationType: 'new'
+          })
+        } catch (error) {
+          console.error('Failed to send team signup notification:', error)
+        }
       }
+
+      // Store user information if available
+      if (userId && userAccessToken) {
+        try {
+          const existingUser = await db.user.findUnique({
+            where: { slackUserId: userId }
+          })
+
+          let userSeatAllowed = true
+          let userAccessDisabled = false
+
+          if (!existingUser) {
+            const canAdd = await canAddNewUser(teamId)
+            if (!canAdd.allowed) {
+              console.log('Cannot add new user due to seat limit:', canAdd.reason)
+              userSeatAllowed = false
+              userAccessDisabled = true
+            }
+          }
+
+          const userSlackClient = new WebClient(userAccessToken)
+          const userInfo = await userSlackClient.users.info({ user: userId })
+
+          if (userInfo.ok && userInfo.user) {
+            const isNewUser = !existingUser
+
+            await db.user.upsert({
+              where: { slackUserId: userId },
+              update: {
+                teamId: existingTeam?.id || teamId,
+                name: userInfo.user.name,
+                displayName: userInfo.user.profile?.display_name,
+                realName: userInfo.user.profile?.real_name,
+                email: userInfo.user.profile?.email,
+                profileImage24: userInfo.user.profile?.image_24,
+                profileImage32: userInfo.user.profile?.image_32,
+                profileImage48: userInfo.user.profile?.image_48,
+                title: userInfo.user.profile?.title,
+                userAccessToken,
+                isActive: userSeatAllowed,
+                updatedAt: new Date()
+              },
+              create: {
+                slackUserId: userId,
+                teamId: existingTeam?.id || teamId,
+                name: userInfo.user.name,
+                displayName: userInfo.user.profile?.display_name,
+                realName: userInfo.user.profile?.real_name,
+                email: userInfo.user.profile?.email,
+                profileImage24: userInfo.user.profile?.image_24,
+                profileImage32: userInfo.user.profile?.image_32,
+                profileImage48: userInfo.user.profile?.image_48,
+                title: userInfo.user.profile?.title,
+                userAccessToken,
+                isActive: userSeatAllowed
+              }
+            })
+
+            console.log('User information stored:', {
+              userId,
+              name: userInfo.user.name,
+              email: userInfo.user.profile?.email,
+              isActive: userSeatAllowed,
+              accessDisabled: userAccessDisabled
+            })
+
+            if (isNewUser) {
+              try {
+                await adminNotifications.notifyUserSignup({
+                  userId,
+                  userName: userInfo.user.name || undefined,
+                  userEmail: userInfo.user.profile?.email || undefined,
+                  teamId,
+                  teamName: teamName || undefined,
+                  source: 'slack_oauth'
+                })
+              } catch (error) {
+                console.error('Failed to send user signup notification:', error)
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch/store user info:', error)
+        }
+      }
+    } catch (persistError) {
+      console.error('Error persisting Slack OAuth data:', persistError)
     }
 
     console.log(process.env.NEXTAUTH_URL)
-    console.log(request.url)
     
     // Store team ID and user ID in URL for client-side storage
     // Use Slack team ID (teamId) for profile API compatibility

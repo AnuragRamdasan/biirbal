@@ -1,8 +1,22 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.isProduction = isProduction;
+exports.isDevelopment = isDevelopment;
 exports.getBaseUrl = getBaseUrl;
 exports.getOAuthRedirectUri = getOAuthRedirectUri;
 exports.getDashboardUrl = getDashboardUrl;
+/**
+ * Check if running in production environment
+ */
+function isProduction() {
+    return process.env.NODE_ENV === 'production';
+}
+/**
+ * Check if running in development environment
+ */
+function isDevelopment() {
+    return process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+}
 /**
  * Get the base URL for the application
  * Uses NEXTAUTH_URL as the primary source of truth for the domain
@@ -15,6 +29,13 @@ function getBaseUrl() {
     // Fallback to NEXT_PUBLIC_BASE_URL if available
     if (process.env.NEXT_PUBLIC_BASE_URL) {
         return process.env.NEXT_PUBLIC_BASE_URL;
+    }
+    // Environment-specific defaults
+    if (isDevelopment()) {
+        return 'http://localhost:3000';
+    }
+    if (isProduction()) {
+        return 'https://biirbal.ai';
     }
     // Final fallback to the correct domain
     return 'https://www.biirbal.com';

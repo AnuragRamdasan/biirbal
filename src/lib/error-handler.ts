@@ -148,3 +148,104 @@ export function validateUrl(url: string): boolean {
     return false
   }
 }
+
+/**
+ * Handle any error and return a standardized error result.
+ */
+export function handleError(
+  error: unknown,
+  context?: string
+): { success: false; error: string; context?: string; stack?: string } {
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === 'string'
+      ? error
+      : 'Unknown error occurred'
+  if (context) {
+    console.error(context, error)
+  } else {
+    console.error(error)
+  }
+  const result: { success: false; error: string; context?: string; stack?: string } = {
+    success: false,
+    error: message,
+  }
+  if (context) {
+    result.context = context
+  }
+  if (error instanceof Error && error.stack) {
+    result.stack = error.stack
+  }
+  return result
+}
+
+/**
+ * Create a Response containing an error in JSON format.
+ */
+export function createErrorResponse(
+  error: string | Error,
+  status: number = 500,
+  detailsObj?: Record<string, unknown>
+): Response {
+  const message = error instanceof Error ? error.message : error
+  const body: Record<string, unknown> = { success: false, error: message }
+  if (detailsObj) {
+    Object.assign(body, detailsObj)
+  }
+  return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
+}
+
+/**
+ * Determine if an error is retryable based on common error properties.
+ */
+export function isRetryableError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false
+  }
+  const msg = error.message.toLowerCase()
+  if (error.name === 'NetworkError' || msg.includes('timeout') || msg.includes('rate limit')) {
+    return true
+  }
+  const anyErr = error as any
+  if (typeof anyErr.status === 'number') {
+    return anyErr.status === 503
+  }
+  return false
+}
+
+/**
+ * Tracks handled errors and exposes utility methods.
+ */
+export class ErrorHandler {
+  private context?: string
+  private maxCount: number
+  private errors: Array<{ success: false; error: string; context?: string; stack?: string }>
+
+  constructor(context?: string, maxCount: number = Infinity) {
+    this.context = context
+    this.maxCount = maxCount
+    this.errors = []
+  }
+
+  handle(error: unknown) {
+    const result = handleError(error, this.context)
+    this.errors.push(result)
+    if (this.errors.length > this.maxCount) {
+      this.errors = this.errors.slice(-this.maxCount)
+    }
+    return result
+  }
+
+  getErrorCount(): number {
+    return this.errors.length
+  }
+
+  getRecentErrors() {
+    return this.errors
+  }
+
+  reset() {
+    this.errors = []
+  }
+}

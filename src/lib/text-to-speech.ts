@@ -86,3 +86,29 @@ export async function uploadAudioToStorage(
   return publicUrl
 }
 
+// Additional functions expected by tests
+export async function generateAudioFromText(text: string): Promise<{ audioUrl: string, duration: number }> {
+  if (!text || text.trim().length === 0) {
+    throw new Error('Text content is required')
+  }
+
+  // Truncate very long text
+  const truncatedText = text.length > 4000 ? text.substring(0, 4000) + '...' : text
+  
+  const audioResult = await generateAudioSummary(truncatedText, 'Content Summary')
+  const audioUrl = await uploadAudioToStorage(audioResult.audioBuffer, audioResult.fileName)
+  
+  // Estimate duration based on text length (approximate: ~150 words per minute)
+  const wordCount = truncatedText.split(/\s+/).length
+  const estimatedDuration = Math.max(10, (wordCount / 150) * 60) // Minimum 10 seconds
+  
+  return {
+    audioUrl,
+    duration: estimatedDuration
+  }
+}
+
+export async function uploadAudioToS3(audioBuffer: Buffer, fileName: string): Promise<string> {
+  return uploadAudioToStorage(audioBuffer, fileName)
+}
+

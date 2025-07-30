@@ -119,7 +119,9 @@ export const designSystem = {
   borderRadius: {
     none: '0',
     sm: '0.25rem',    // 4px
+    DEFAULT: '0.5rem',   // 8px
     base: '0.5rem',   // 8px
+    md: '0.75rem',    // 12px
     lg: '0.75rem',    // 12px
     xl: '1rem',       // 16px
     '2xl': '1.5rem',  // 24px
@@ -130,6 +132,7 @@ export const designSystem = {
   // Shadows
   shadows: {
     sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+    DEFAULT: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
     base: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
     md: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
     lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
@@ -224,3 +227,95 @@ export type ButtonSize = keyof typeof componentVariants.button.sizes
 export type CardVariant = keyof typeof componentVariants.card.variants
 export type CardPadding = keyof typeof componentVariants.card.padding
 export type BadgeVariant = keyof typeof componentVariants.badge.variants
+
+// Individual exports for compatibility with tests
+export const colors = {
+  // Primary color palette
+  primary: {
+    '50': '#f0f9ff',
+    '100': '#e0f2fe',
+    '200': '#bae6fd',
+    '300': '#7dd3fc',
+    '400': '#38bdf8',
+    '500': '#0ea5e9',
+    '600': '#0284c7',
+    '700': '#0369a1',
+    '800': '#075985',
+    '900': '#0c4a6e'
+  },
+  
+  // Secondary color palette
+  secondary: {
+    '50': '#fafaf9',
+    '100': '#f5f5f4',
+    '200': '#e7e5e4',
+    '300': '#d6d3d1',
+    '400': '#a8a29e',
+    '500': '#78716c',
+    '600': '#57534e',
+    '700': '#44403c',
+    '800': '#292524',
+    '900': '#1c1917'
+  },
+  
+  // Semantic colors
+  success: '#22c55e',
+  error: '#ef4444',
+  warning: '#f59e0b',
+  info: '#3b82f6',
+  
+  // Gray scale
+  gray: {
+    '50': '#f9fafb',
+    '100': '#f3f4f6',
+    '200': '#e5e7eb',
+    '300': '#d1d5db',
+    '400': '#9ca3af',
+    '500': '#6b7280',
+    '600': '#4b5563',
+    '700': '#374151',
+    '800': '#1f2937',
+    '900': '#111827'
+  }
+}
+
+export const typography = {
+  fontFamily: {
+    sans: ['Inter', 'system-ui', 'sans-serif'],
+    mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+  },
+  
+  fontSize: {
+    xs: '0.75rem',
+    sm: '0.875rem',
+    base: '1rem',
+    lg: '1.125rem',
+    xl: '1.25rem',
+    '2xl': '1.5rem',
+    '3xl': '1.875rem',
+    '4xl': '2.25rem',
+    '5xl': '3rem',
+    '6xl': '3.75rem'
+  },
+  
+  fontWeight: {
+    normal: '400',
+    medium: '500',
+    semibold: '600',
+    bold: '700'
+  },
+  
+  lineHeight: {
+    tight: '1.25',
+    normal: '1.5',
+    relaxed: '1.75'
+  }
+}
+
+export const spacing = designSystem.spacing
+
+export const breakpoints = designSystem.breakpoints
+
+export const shadows = designSystem.shadows
+
+export const borderRadius = designSystem.borderRadius

@@ -4,6 +4,7 @@ exports.prisma = void 0;
 exports.getDbClient = getDbClient;
 exports.dbHealthCheck = dbHealthCheck;
 exports.ensureDbConnection = ensureDbConnection;
+exports.withTimeout = withTimeout;
 const client_1 = require("@prisma/client");
 // Global client management for Heroku deployment
 const globalForPrisma = globalThis;
@@ -68,4 +69,15 @@ async function ensureDbConnection() {
         console.error('❌ Database connection failed:', error);
         return false;
     }
+}
+// Timeout wrapper for database operations
+async function withTimeout(operation, timeoutMs = 30000) {
+    return Promise.race([
+        operation(),
+        new Promise((_, reject) => {
+            setTimeout(() => {
+                reject(new Error(`Operation timed out after ${timeoutMs}ms`));
+            }, timeoutMs);
+        })
+    ]);
 }

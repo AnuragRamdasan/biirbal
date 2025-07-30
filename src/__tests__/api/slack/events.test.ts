@@ -117,7 +117,7 @@ describe('/api/slack/events', () => {
       method: 'POST',
       body,
       headers: {
-        'x-slack-signature': 'v0=invalid_signature',
+        'x-slack-signature': 'v0=0000000000000000000000000000000000000000000000000000000000000000',
         'x-slack-request-timestamp': Math.floor(Date.now() / 1000).toString(),
         'content-type': 'application/json'
       }

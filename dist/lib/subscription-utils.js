@@ -6,6 +6,11 @@ exports.canAddNewUser = canAddNewUser;
 exports.canProcessNewLink = canProcessNewLink;
 exports.updateSubscriptionFromStripe = updateSubscriptionFromStripe;
 exports.getUpgradeMessage = getUpgradeMessage;
+exports.getCurrentPlan = getCurrentPlan;
+exports.canProcessMoreLinks = canProcessMoreLinks;
+exports.canAddMoreUsers = canAddMoreUsers;
+exports.updateSubscription = updateSubscription;
+exports.cancelSubscription = cancelSubscription;
 const db_1 = require("./db");
 const stripe_1 = require("./stripe");
 const exception_teams_1 = require("./exception-teams");
@@ -311,4 +316,85 @@ function getUpgradeMessage(stats) {
         }
     }
     return null;
+}
+// Additional functions expected by tests
+async function getCurrentPlan(teamId) {
+    try {
+        const stats = await getTeamUsageStats(teamId);
+        return stats.plan;
+    }
+    catch (error) {
+        return stripe_1.PRICING_PLANS.FREE;
+    }
+}
+async function canProcessMoreLinks(teamId) {
+    try {
+        const result = await canProcessNewLink(teamId);
+        return result.allowed;
+    }
+    catch (error) {
+        return false;
+    }
+}
+async function canAddMoreUsers(teamId) {
+    try {
+        const result = await canAddNewUser(teamId);
+        return result.allowed;
+    }
+    catch (error) {
+        return false;
+    }
+}
+async function updateSubscription(teamId, data) {
+    try {
+        const db = await (0, db_1.getDbClient)();
+        await db.subscription.upsert({
+            where: { teamId },
+            update: {
+                ...(data.planId && { planId: data.planId }),
+                ...(data.status && { status: data.status }),
+                ...(data.stripeCustomerId && { stripeCustomerId: data.stripeCustomerId }),
+                ...(data.stripeSubscriptionId && { stripeSubscriptionId: data.stripeSubscriptionId })
+            },
+            create: {
+                teamId,
+                planId: data.planId || 'free',
+                status: data.status || 'ACTIVE',
+                stripeCustomerId: data.stripeCustomerId,
+                stripeSubscriptionId: data.stripeSubscriptionId,
+                monthlyLinkLimit: 20,
+                userLimit: 1,
+                currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+            }
+        });
+        return { success: true };
+    }
+    catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+}
+async function cancelSubscription(teamId) {
+    try {
+        const db = await (0, db_1.getDbClient)();
+        await db.subscription.update({
+            where: { teamId },
+            data: {
+                status: 'CANCELED',
+                planId: 'free',
+                monthlyLinkLimit: 20,
+                userLimit: 1
+            }
+        });
+        (0, analytics_1.trackSubscriptionCancelled)({
+            team_id: teamId,
+            plan_type: 'free',
+            previous_plan: undefined,
+            currency: 'USD',
+            value: 0
+        });
+        return { success: true };
+    }
+    catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
 }
