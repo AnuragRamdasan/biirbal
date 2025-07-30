@@ -64,21 +64,6 @@ export const trackEvent = (
 
 // Specific tracking functions for better type safety
 
-export const trackSignUp = (data: SignUpEvent): void => {
-  trackEvent(AnalyticsEventName.SIGN_UP, {
-    ...data,
-    event_category: 'user_journey'
-  })
-}
-
-export const trackTeamOnboarded = (data: TeamOnboardedEvent): void => {
-  trackEvent(AnalyticsEventName.TEAM_ONBOARDED, {
-    ...data,
-    event_category: 'user_journey',
-    value: data.time_to_onboard_minutes
-  })
-}
-
 export const trackSubscriptionStarted = (data: SubscriptionEvent): void => {
   trackEvent(AnalyticsEventName.SUBSCRIPTION_STARTED, {
     ...data,
@@ -176,20 +161,6 @@ export const trackFeatureUsed = (data: FeatureUsedEvent): void => {
   })
 }
 
-export const trackPurchase = (data: PurchaseEvent): void => {
-  trackEvent(AnalyticsEventName.PURCHASE, {
-    ...data,
-    event_category: 'ecommerce'
-  })
-}
-
-export const trackViewItem = (data: ViewItemEvent): void => {
-  trackEvent(AnalyticsEventName.VIEW_ITEM, {
-    ...data,
-    event_category: 'ecommerce'
-  })
-}
-
 // Enhanced page view tracking with SaaS context
 export const trackPageView = (
   url: string, 
@@ -260,18 +231,6 @@ export const trackEvents = (
   events.forEach(({ name, data }) => {
     trackEvent(name, data)
   })
-}
-
-// Debug function for development
-export const debugAnalytics = (): void => {
-  if (typeof window !== 'undefined') {
-    console.log('Analytics Debug Info:', {
-      gtagAvailable: !!(window as any).gtag,
-      measurementId: process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID,
-      nodeEnv: process.env.NODE_ENV,
-      dataLayer: (window as any).dataLayer
-    })
-  }
 }
 
 // Additional functions expected by tests

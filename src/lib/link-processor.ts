@@ -6,6 +6,7 @@ import { WebClient } from '@slack/web-api'
 import { canProcessNewLink } from './subscription-utils'
 import { isExceptionTeam } from './exception-teams'
 import { trackLinkShared, trackLinkProcessed } from './analytics'
+import { logger } from './logger'
 
 interface ProcessLinkParams {
   url: string
@@ -24,16 +25,15 @@ export async function processLink({
   slackTeamId,
   linkId
 }: ProcessLinkParams, updateProgress?: (progress: number) => Promise<void>): Promise<void> {
-  console.log(`🚀 Processing: ${url}`)
+  const linkLogger = logger.child('link-processor')
+  linkLogger.info('Processing link', { url, channelId, teamId })
   const processingStartTime = Date.now()
   
   // Declare variables outside try block for use in catch block
   let subscriptionTeamId: string
   
   try {
-    console.log('💾 Getting database client...')
     const db = await getDbClient()
-    console.log('✅ Database client ready')
     
     if (updateProgress) await updateProgress(20)
     
