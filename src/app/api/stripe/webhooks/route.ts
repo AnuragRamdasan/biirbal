@@ -4,6 +4,47 @@ import { constructWebhookEvent, PRICING_PLANS } from '@/lib/stripe'
 import { adminNotifications } from '@/lib/admin-notifications'
 import Stripe from 'stripe'
 
+function findPlanByPriceId(priceId?: string) {
+  if (!priceId) return null
+  
+  console.log('🔍 Looking for plan with priceId:', priceId)
+  console.log('📋 Available plans:', Object.values(PRICING_PLANS).map(p => ({ id: p.id, name: p.name, stripePriceId: p.stripePriceId })))
+  
+  return Object.values(PRICING_PLANS).find(p => {
+    if (!p.stripePriceId) return false
+    
+    // Handle object format (monthly/annual)
+    if (typeof p.stripePriceId === 'object') {
+      return p.stripePriceId.monthly === priceId || p.stripePriceId.annual === priceId
+    }
+    
+    // Handle old string format for backward compatibility
+    return p.stripePriceId === priceId
+  }) || null
+}
+
+async function notifySubscriptionEvent(
+  event: string, 
+  team: any, 
+  plan: any, 
+  extra: any = {}
+): Promise<void> {
+  try {
+    await adminNotifications.notifySubscriptionEvent({
+      event,
+      teamId: team.slackTeamId || team.id,
+      teamName: team.teamName,
+      planId: plan.id,
+      planName: plan.name,
+      amount: extra.amount ?? plan.price,
+      currency: extra.currency || 'USD',
+      ...extra
+    })
+  } catch (error) {
+    console.error(`Failed to send ${event} notification:`, error)
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log('🎯 Stripe webhook received')
@@ -91,23 +132,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     }))
   })
 
-  // Determine plan based on price ID
-  const priceId = subscription.items.data[0]?.price.id
-  console.log('🔍 Looking for plan with priceId:', priceId)
-  console.log('📋 Available plans:', Object.values(PRICING_PLANS).map(p => ({ id: p.id, name: p.name, stripePriceId: p.stripePriceId })))
-  
-  // Find plan by matching price ID (handle both old string format and new object format)
-  const plan = Object.values(PRICING_PLANS).find(p => {
-    if (!p.stripePriceId) return false
-    
-    // Handle object format (monthly/annual)
-    if (typeof p.stripePriceId === 'object') {
-      return p.stripePriceId.monthly === priceId || p.stripePriceId.annual === priceId
-    }
-    
-    // Handle old string format for backward compatibility
-    return p.stripePriceId === priceId
-  })
+  const plan = findPlanByPriceId(subscription.items.data[0]?.price.id)
   
   if (!plan) {
     console.error('❌ No plan found for priceId:', priceId)
@@ -154,21 +179,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   // Send admin notification for new subscription
   if (plan) {
-    try {
-      await adminNotifications.notifySubscriptionEvent({
-        event: 'subscription_started',
-        teamId: team.slackTeamId || teamId,
-        teamName: team.teamName,
-        planId: plan.id,
-        planName: plan.name,
-        amount: plan.price,
-        currency: 'USD',
-        stripeCustomerId: customerId,
-        stripeSubscriptionId: subscriptionId
-      })
-    } catch (error) {
-      console.error('Failed to send subscription started notification:', error)
-    }
+    await notifySubscriptionEvent('subscription_started', team, plan, { stripeCustomerId: customerId, stripeSubscriptionId: subscriptionId })
   }
 
   console.log(`✅ Subscription activated successfully for team: ${teamId} with plan: ${plan?.id}`)
@@ -209,19 +220,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 
   console.log(`Updating subscription for team: ${team.teamName} (ID: ${team.id}, Slack ID: ${team.slackTeamId})`)
 
-  // Determine plan based on price ID
-  const priceId = subscription.items.data[0]?.price.id
-  const plan = Object.values(PRICING_PLANS).find(p => {
-    if (!p.stripePriceId) return false
-    
-    // Handle object format (monthly/annual)
-    if (typeof p.stripePriceId === 'object') {
-      return p.stripePriceId.monthly === priceId || p.stripePriceId.annual === priceId
-    }
-    
-    // Handle old string format for backward compatibility
-    return p.stripePriceId === priceId
-  })
+  const plan = findPlanByPriceId(subscription.items.data[0]?.price.id)
   const previousPlan = currentSubscription?.planId ? Object.values(PRICING_PLANS).find(p => p.id === currentSubscription.planId) : null
 
   const status = mapStripeStatus(subscription.status)
@@ -244,24 +243,12 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 
   // Send admin notification for subscription change
   if (plan && currentSubscription && plan.id !== currentSubscription.planId) {
-    try {
-      // Determine if upgrade or downgrade
-      const isUpgrade = plan.price > (previousPlan?.price || 0)
-      
-      await adminNotifications.notifySubscriptionEvent({
-        event: isUpgrade ? 'subscription_upgraded' : 'subscription_downgraded',
-        teamId: team.slackTeamId,
-        teamName: team.teamName,
-        planId: plan.id,
-        planName: plan.name,
-        previousPlan: previousPlan?.name,
-        amount: plan.price,
-        currency: 'USD',
-        stripeSubscriptionId: subscription.id
-      })
-    } catch (error) {
-      console.error('Failed to send subscription updated notification:', error)
-    }
+    const isUpgrade = plan.price > (previousPlan?.price || 0)
+    const eventType = isUpgrade ? 'subscription_upgraded' : 'subscription_downgraded'
+    await notifySubscriptionEvent(eventType, team, plan, { 
+      stripeSubscriptionId: subscription.id,
+      previousPlan: previousPlan?.name 
+    })
   }
 
   console.log(`Subscription updated for team: ${teamId}, status: ${status}`)
@@ -305,19 +292,10 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 
   // Send admin notification for subscription cancellation
   if (plan) {
-    try {
-      await adminNotifications.notifySubscriptionEvent({
-        event: 'subscription_cancelled',
-        teamId: team.slackTeamId,
-        teamName: team.teamName,
-        planId: plan.id,
-        planName: plan.name,
-        stripeCustomerId: subscription.customer as string,
-        stripeSubscriptionId: subscription.id
-      })
-    } catch (error) {
-      console.error('Failed to send subscription cancelled notification:', error)
-    }
+    await notifySubscriptionEvent('subscription_cancelled', team, plan, {
+      stripeCustomerId: subscription.customer as string,
+      stripeSubscriptionId: subscription.id
+    })
   }
 
   console.log(`Subscription canceled for team: ${teamId}`)
@@ -345,21 +323,12 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
 
     // Send admin notification for successful payment
     const plan = Object.values(PRICING_PLANS).find(p => p.id === subscription.planId)
-    if (plan) {
-      try {
-        await adminNotifications.notifySubscriptionEvent({
-          event: 'subscription_payment',
-          teamId: subscription.team?.slackTeamId || subscription.teamId,
-          teamName: subscription.team?.teamName,
-          planId: plan.id,
-          planName: plan.name,
-          amount: (invoice.amount_paid || 0) / 100, // Convert cents to dollars
-          currency: invoice.currency?.toUpperCase() || 'USD',
-          stripeCustomerId: invoice.customer as string
-        })
-      } catch (error) {
-        console.error('Failed to send payment succeeded notification:', error)
-      }
+    if (plan && subscription.team) {
+      await notifySubscriptionEvent('subscription_payment', subscription.team, plan, {
+        amount: (invoice.amount_paid || 0) / 100,
+        currency: invoice.currency?.toUpperCase() || 'USD',
+        stripeCustomerId: invoice.customer as string
+      })
     }
 
     console.log(`Payment succeeded, usage reset for subscription: ${subscriptionId}`)

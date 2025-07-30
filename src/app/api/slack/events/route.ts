@@ -77,26 +77,19 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function handleMessage(event: any, teamId: string) {
-  console.log(`📥 Message received from team ${teamId}, channel ${event.channel}`)
-  console.log(`📝 Message text: "${event.text?.substring(0, 100)}${event.text?.length > 100 ? '...' : ''}"`)
-  console.log(`👤 User ID: ${event.user}`)
-  
-  // Skip bot messages and messages without text
-  if (event.bot_id || !event.text || event.subtype) {
-    console.log(`⏭️ Skipping message: bot_id=${!!event.bot_id}, no_text=${!event.text}, subtype=${event.subtype}`)
-    return
-  }
+interface MessageContext {
+  event: any
+  teamId: string
+  team: any
+  links: string[]
+  validLinks: string[]
+}
 
-  const links = extractLinksFromMessage(event.text)
-  console.log(`🔗 Extracted ${links.length} links:`, links)
-  
-  if (links.length === 0) {
-    console.log(`❌ No links found in message`)
-    return
-  }
+function shouldSkipMessage(event: any): boolean {
+  return event.bot_id || !event.text || event.subtype
+}
 
-  // Get team info to check subscription status
+async function validateTeamAndUsage(teamId: string, userId: string): Promise<{ team: any; canProcess: boolean; reason?: string }> {
   const db = await getDbClient()
   const team = await db.team.findUnique({
     where: { slackTeamId: teamId },
@@ -105,42 +98,36 @@ async function handleMessage(event: any, teamId: string) {
 
   if (!team || !team.isActive) {
     console.log(`❌ Team not found or inactive: found=${!!team}, active=${team?.isActive}`)
-    return
+    return { team: null, canProcess: false, reason: 'Team not found or inactive' }
   }
   
   console.log(`✅ Team found: ${team.teamName || team.slackTeamId}, subscription: ${team.subscription?.planId || 'none'}`)
 
-  // Check if team can process new links using updated subscription utils
-  console.log(`🔍 Checking usage limits for team ${teamId} and user ${event.user}`)
-  const usageCheck = await canProcessNewLink(teamId, event.user)
+  const usageCheck = await canProcessNewLink(teamId, userId)
   console.log(`📋 Usage check result:`, usageCheck)
   
   if (!usageCheck.allowed) {
     console.log(`❌ Link processing not allowed: ${usageCheck.reason}`)
-    return
+    return { team, canProcess: false, reason: usageCheck.reason }
   }
-  
-  console.log(`✅ Usage limits OK - proceeding with link processing`)
 
-  // Store or update channel info
+  return { team, canProcess: true }
+}
+
+async function updateChannelInfo(channelId: string, teamId: string): Promise<void> {
+  const db = await getDbClient()
   await db.channel.upsert({
-    where: { slackChannelId: event.channel },
+    where: { slackChannelId: channelId },
     update: { updatedAt: new Date() },
     create: {
-      slackChannelId: event.channel,
-      teamId: team.id
+      slackChannelId: channelId,
+      teamId
     }
   })
+}
 
-  // Queue each link for background processing (non-blocking)
-  const validLinks = links.filter(url => shouldProcessUrl(url))
-  console.log(`🔍 Valid links after filtering: ${validLinks.length}/${links.length}`)
-  console.log(`📝 Filtered links:`, validLinks)
-  
-  if (validLinks.length === 0) {
-    console.log(`❌ No valid links to process after filtering`)
-    return
-  }
+async function queueLinksForProcessing(context: MessageContext): Promise<boolean> {
+  const { event, teamId, team, validLinks } = context
   
   console.log(`🎯 Preparing to queue ${validLinks.length} links for processing...`)
   
@@ -156,73 +143,117 @@ async function handleMessage(event: any, teamId: string) {
     return queueClient.add('PROCESS_LINK', jobData)
   })
 
-  // Queue links and trigger worker - proper async handling
   try {
     console.log(`⏳ Adding ${queuePromises.length} jobs to queue...`)
     const jobIds = await Promise.all(queuePromises)
     console.log(`✅ Successfully queued ${jobIds.length} links for processing`)
     console.log(`🆔 Job IDs:`, jobIds.map(job => job?.id || 'undefined'))
-    
-    // Quick success notification to Slack (non-blocking)
-    if (jobIds.length > 0) {
-      console.log(`🎭 Adding processing reaction to Slack message...`)
-      setImmediate(async () => {
-        try {
-          const slackClient = new WebClient(team.accessToken)
-          await slackClient.reactions.add({
-            channel: event.channel,
-            timestamp: event.ts,
-            name: 'hourglass_flowing_sand'
-          })
-          console.log(`✅ Processing reaction added to Slack message`)
-        } catch (err) {
-          console.log(`❌ Could not add processing reaction:`, err?.message || err)
-        }
-      })
-    }
-    
-    // Trigger worker in background (separate from main response)
-    setImmediate(async () => {
-      const baseUrl = getBaseUrl()
-      const workerUrl = `${baseUrl}/api/queue/worker`
-      
-      console.log(`🔔 Triggering worker at ${workerUrl}`)
-      
-      try {
-        const response = await fetch(workerUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          signal: AbortSignal.timeout(15000) // Increased to 15 second timeout
-        })
-        
-        console.log(`📡 Worker response status: ${response.status}`)
-        
-        if (response.ok) {
-          const responseText = await response.text()
-          console.log(`✅ Worker triggered successfully: ${response.status}`)
-          console.log(`📄 Worker response:`, responseText.substring(0, 200))
-        } else {
-          const errorText = await response.text()
-          console.warn(`⚠️ Worker responded with ${response.status}:`, errorText.substring(0, 200))
-          console.warn(`⚠️ Jobs are still queued and will be processed by cron`)
-        }
-      } catch (error) {
-        if (error.name === 'TimeoutError') {
-          console.warn('⏰ Worker trigger timed out, but jobs are queued. Cron will process them.')
-        } else {
-          console.error('❌ Failed to trigger worker:', error?.message || error)
-        }
-        
-        // Don't try backup cron immediately as it might also timeout
-        // The scheduled cron job will pick up the queued jobs
-        console.log('📅 Scheduled cron will process queued jobs automatically')
-      }
-    })
+    return true
   } catch (error) {
     console.error('❌ Failed to queue link processing jobs:', error?.message || error)
-    console.error('📊 Queue error details:', error)
+    return false
+  }
+}
+
+function addSlackReaction(team: any, event: any): void {
+  console.log(`🎭 Adding processing reaction to Slack message...`)
+  setImmediate(async () => {
+    try {
+      const slackClient = new WebClient(team.accessToken)
+      await slackClient.reactions.add({
+        channel: event.channel,
+        timestamp: event.ts,
+        name: 'hourglass_flowing_sand'
+      })
+      console.log(`✅ Processing reaction added to Slack message`)
+    } catch (err) {
+      console.log(`❌ Could not add processing reaction:`, err?.message || err)
+    }
+  })
+}
+
+function triggerWorkerProcess(): void {
+  setImmediate(async () => {
+    const baseUrl = getBaseUrl()
+    const workerUrl = `${baseUrl}/api/queue/worker`
+    
+    console.log(`🔔 Triggering worker at ${workerUrl}`)
+    
+    try {
+      const response = await fetch(workerUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(15000)
+      })
+      
+      console.log(`📡 Worker response status: ${response.status}`)
+      
+      if (response.ok) {
+        const responseText = await response.text()
+        console.log(`✅ Worker triggered successfully: ${response.status}`)
+        console.log(`📄 Worker response:`, responseText.substring(0, 200))
+      } else {
+        const errorText = await response.text()
+        console.warn(`⚠️ Worker responded with ${response.status}:`, errorText.substring(0, 200))
+        console.warn(`⚠️ Jobs are still queued and will be processed by cron`)
+      }
+    } catch (error) {
+      if (error.name === 'TimeoutError') {
+        console.warn('⏰ Worker trigger timed out, but jobs are queued. Cron will process them.')
+      } else {
+        console.error('❌ Failed to trigger worker:', error?.message || error)
+      }
+      console.log('📅 Scheduled cron will process queued jobs automatically')
+    }
+  })
+}
+
+async function handleMessage(event: any, teamId: string) {
+  console.log(`📥 Message received from team ${teamId}, channel ${event.channel}`)
+  console.log(`📝 Message text: "${event.text?.substring(0, 100)}${event.text?.length > 100 ? '...' : ''}"`)
+  console.log(`👤 User ID: ${event.user}`)
+  
+  // Early returns for invalid messages
+  if (shouldSkipMessage(event)) {
+    console.log(`⏭️ Skipping message: bot_id=${!!event.bot_id}, no_text=${!event.text}, subtype=${event.subtype}`)
+    return
+  }
+
+  const links = extractLinksFromMessage(event.text)
+  console.log(`🔗 Extracted ${links.length} links:`, links)
+  
+  if (links.length === 0) {
+    console.log(`❌ No links found in message`)
+    return
+  }
+
+  // Validate team and usage limits
+  const { team, canProcess, reason } = await validateTeamAndUsage(teamId, event.user)
+  if (!canProcess) {
+    console.log(`❌ Cannot process: ${reason}`)
+    return
+  }
+
+  console.log(`✅ Usage limits OK - proceeding with link processing`)
+  
+  // Filter valid links
+  const validLinks = links.filter(url => shouldProcessUrl(url))
+  console.log(`🔍 Valid links after filtering: ${validLinks.length}/${links.length}`)
+  
+  if (validLinks.length === 0) {
+    console.log(`❌ No valid links to process after filtering`)
+    return
+  }
+
+  // Update channel and queue processing
+  await updateChannelInfo(event.channel, team.id)
+  
+  const context: MessageContext = { event, teamId, team, links, validLinks }
+  const queueSuccess = await queueLinksForProcessing(context)
+  
+  if (queueSuccess) {
+    addSlackReaction(team, event)
+    triggerWorkerProcess()
   }
 }
 
@@ -231,8 +262,7 @@ async function handleAppMention(event: any) {
   console.log('App mention received:', event)
 }
 
-async function handleMemberJoinedChannel(event: any) {
-  // Update channel info when bot is added to a channel
+async function handleMemberJoinedChannel(event: any, teamId: string) {
   if (event.user === process.env.SLACK_BOT_USER_ID) {
     const db = await getDbClient()
     const team = await db.team.findUnique({
@@ -240,14 +270,7 @@ async function handleMemberJoinedChannel(event: any) {
     })
 
     if (team) {
-      await db.channel.upsert({
-        where: { slackChannelId: event.channel },
-        update: { updatedAt: new Date() },
-        create: {
-          slackChannelId: event.channel,
-          teamId: team.id
-        }
-      })
+      await updateChannelInfo(event.channel, team.id)
     }
   }
 }

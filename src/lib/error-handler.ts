@@ -156,28 +156,29 @@ export function handleError(
   error: unknown,
   context?: string
 ): { success: false; error: string; context?: string; stack?: string } {
-  const message =
-    error instanceof Error
-      ? error.message
-      : typeof error === 'string'
-      ? error
-      : 'Unknown error occurred'
+  const message = getErrorMessage(error)
+  
   if (context) {
     console.error(context, error)
   } else {
     console.error(error)
   }
-  const result: { success: false; error: string; context?: string; stack?: string } = {
+  
+  return {
     success: false,
     error: message,
+    ...(context && { context }),
+    ...(error instanceof Error && error.stack && { stack: error.stack })
   }
-  if (context) {
-    result.context = context
-  }
-  if (error instanceof Error && error.stack) {
-    result.stack = error.stack
-  }
-  return result
+}
+
+/**
+ * Extract a meaningful error message from any error type.
+ */
+export function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message
+  if (typeof error === 'string') return error
+  return 'Unknown error occurred'
 }
 
 /**
@@ -188,30 +189,34 @@ export function createErrorResponse(
   status: number = 500,
   detailsObj?: Record<string, unknown>
 ): Response {
-  const message = error instanceof Error ? error.message : error
-  const body: Record<string, unknown> = { success: false, error: message }
-  if (detailsObj) {
-    Object.assign(body, detailsObj)
+  const message = getErrorMessage(error)
+  const body = {
+    success: false,
+    error: message,
+    ...detailsObj
   }
-  return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
+  
+  return new Response(JSON.stringify(body), { 
+    status, 
+    headers: { 'Content-Type': 'application/json' } 
+  })
 }
 
 /**
  * Determine if an error is retryable based on common error properties.
  */
 export function isRetryableError(error: unknown): boolean {
-  if (!(error instanceof Error)) {
-    return false
-  }
+  if (!(error instanceof Error)) return false
+  
   const msg = error.message.toLowerCase()
-  if (error.name === 'NetworkError' || msg.includes('timeout') || msg.includes('rate limit')) {
-    return true
-  }
-  const anyErr = error as any
-  if (typeof anyErr.status === 'number') {
-    return anyErr.status === 503
-  }
-  return false
+  const retryableConditions = [
+    error.name === 'NetworkError',
+    msg.includes('timeout'),
+    msg.includes('rate limit'),
+    (error as any).status === 503
+  ]
+  
+  return retryableConditions.some(condition => condition)
 }
 
 /**

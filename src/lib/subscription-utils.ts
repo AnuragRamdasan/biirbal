@@ -101,14 +101,11 @@ export async function getTeamUsageStats(teamId: string): Promise<UsageStats> {
 
 export async function canUserConsume(teamId: string, userId: string): Promise<boolean> {
   try {
-    // Exception teams are always allowed
     if (isExceptionTeam(teamId)) {
       return true
     }
     
     const db = await getDbClient()
-    
-    // Get the specific user first to check if they're active
     const user = await db.user.findFirst({
       where: { 
         slackUserId: userId,
@@ -116,40 +113,33 @@ export async function canUserConsume(teamId: string, userId: string): Promise<bo
       }
     })
 
-    // If user doesn't exist or is disabled, they can't consume
-    if (!user || !user.isActive) {
+    if (!user?.isActive) {
       return false
     }
     
-    // Get team and active user info
     const team = await db.team.findUnique({
       where: { slackTeamId: teamId },
       include: { 
         subscription: true,
         users: { 
           where: { isActive: true },
-          orderBy: { createdAt: 'asc' } // First users get priority
+          orderBy: { createdAt: 'asc' }
         }
       }
     })
 
-    if (!team || !team.subscription) {
+    if (!team?.subscription) {
       return false
     }
 
     const plan = getPlanById(team.subscription.planId) || PRICING_PLANS.FREE
     
-    // Free plan: check both active status and basic access
-    if (plan.id === 'free') {
-      return user.isActive
+    // Early returns for simple cases
+    if (plan.id === 'free' || plan.userLimit === -1) {
+      return true
     }
     
-    // Unlimited users plan: just check if user is active
-    if (plan.userLimit === -1) {
-      return user.isActive
-    }
-    
-    // Check if user is within the seat limit (first N active users get access)
+    // Check seat limit for paid plans with user limits
     const userIndex = team.users.findIndex(u => u.slackUserId === userId)
     return userIndex !== -1 && userIndex < plan.userLimit
     
@@ -182,58 +172,42 @@ export async function canAddNewUser(teamId: string): Promise<{ allowed: boolean,
   }
 }
 
+function createLimitResponse(allowed: boolean, reason?: string) {
+  return { allowed, ...(reason && { reason }) }
+}
+
 export async function canProcessNewLink(teamId: string, userId?: string): Promise<{ allowed: boolean, reason?: string }> {
   try {
-    // Exception teams are always allowed
     if (isExceptionTeam(teamId)) {
-      return { allowed: true }
+      return createLimitResponse(true)
     }
     
     const stats = await getTeamUsageStats(teamId)
-    
-    // For paid plans, only check seat limits
     const isPaidPlan = stats.plan.id !== 'free'
     
     if (isPaidPlan) {
-      // For paid plans, check if user seat limit is exceeded
       if (stats.userLimitExceeded) {
-        return {
-          allowed: false,
-          reason: `User limit of ${stats.plan.userLimit} reached. Upgrade your plan to add more users.`
-        }
+        return createLimitResponse(false, `User limit of ${stats.plan.userLimit} reached. Upgrade your plan to add more users.`)
       }
       
-      // If a specific user is provided, check if they have access
-      if (userId) {
-        const hasAccess = await canUserConsume(teamId, userId)
-        if (!hasAccess) {
-          return {
-            allowed: false,
-            reason: 'User access disabled due to seat limit exceeded. Contact admin to upgrade plan.'
-          }
-        }
+      if (userId && !(await canUserConsume(teamId, userId))) {
+        return createLimitResponse(false, 'User access disabled due to seat limit exceeded. Contact admin to upgrade plan.')
       }
     } else {
-      // For free plan, check both link and user limits
+      // Free plan checks
       if (stats.linkLimitExceeded) {
-        return {
-          allowed: false,
-          reason: `Monthly link limit of ${stats.plan.monthlyLinkLimit} reached. Upgrade your plan to process more links.`
-        }
+        return createLimitResponse(false, `Monthly link limit of ${stats.plan.monthlyLinkLimit} reached. Upgrade your plan to process more links.`)
       }
-
+      
       if (stats.userLimitExceeded) {
-        return {
-          allowed: false,
-          reason: `User limit of ${stats.plan.userLimit} reached. Upgrade your plan to add more users.`
-        }
+        return createLimitResponse(false, `User limit of ${stats.plan.userLimit} reached. Upgrade your plan to add more users.`)
       }
     }
 
-    return { allowed: true }
+    return createLimitResponse(true)
   } catch (error) {
     console.error('Error checking usage limits:', error)
-    return { allowed: false, reason: 'Unable to verify usage limits' }
+    return createLimitResponse(false, 'Unable to verify usage limits')
   }
 }
 
@@ -325,45 +299,37 @@ function mapStripeStatusToSubscriptionStatus(stripeStatus: string) {
   }
 }
 
-export function getUpgradeMessage(stats: UsageStats): string | null {
-  // For paid plans, prioritize seat-based warnings
-  const isPaidPlan = stats.plan.id !== 'free'
-  
-  if (isPaidPlan) {
-    if (stats.userLimitExceeded) {
-      if (stats.plan.id === 'starter') {
-        return 'Starter plan is for individual use only. Upgrade to Pro for up to 10 team members or Business for unlimited users.'
-      }
-      if (stats.plan.id === 'pro') {
-        return 'You\'ve reached your Pro plan limit of 10 users. Upgrade to Business for unlimited users.'
-      }
-    }
+const UPGRADE_MESSAGES = {
+  STARTER_USER_LIMIT: 'Starter plan is for individual use only. Upgrade to Pro for up to 10 team members or Business for unlimited users.',
+  PRO_USER_LIMIT: 'You\'ve reached your Pro plan limit of 10 users. Upgrade to Business for unlimited users.',
+  FREE_LINK_LIMIT: 'You\'ve reached your free plan limit of 20 links. Upgrade to Starter for unlimited links.',
+  FREE_USER_LIMIT: 'You\'ve reached your free plan limit of 1 user. Upgrade to Starter for individual use or Pro for up to 10 team members.'
+}
 
-    if (stats.userWarning) {
-      if (stats.plan.id === 'pro') {
-        return `You're approaching your user limit (${stats.currentUsers}/${stats.plan.userLimit}). Consider upgrading to Business for unlimited users.`
-      }
-    }
-  } else {
-    // Free plan - check both limits but prioritize links
-    if (stats.linkLimitExceeded) {
-      return 'You\'ve reached your free plan limit of 20 links. Upgrade to Starter for unlimited links.'
-    }
-
-    if (stats.userLimitExceeded) {
-      return 'You\'ve reached your free plan limit of 1 user. Upgrade to Starter for individual use or Pro for up to 10 team members.'
-    }
-
-    if (stats.linkWarning) {
-      return `You've used ${stats.linkUsagePercentage}% of your free plan links. Consider upgrading to Starter for unlimited links.`
-    }
-
-    if (stats.userWarning) {
-      return `You're approaching your user limit (${stats.currentUsers}/${stats.plan.userLimit}). Consider upgrading for more users.`
-    }
+function getPaidPlanMessage(stats: UsageStats): string | null {
+  if (stats.userLimitExceeded) {
+    return stats.plan.id === 'starter' ? UPGRADE_MESSAGES.STARTER_USER_LIMIT :
+           stats.plan.id === 'pro' ? UPGRADE_MESSAGES.PRO_USER_LIMIT : null
   }
-
+  
+  if (stats.userWarning && stats.plan.id === 'pro') {
+    return `You're approaching your user limit (${stats.currentUsers}/${stats.plan.userLimit}). Consider upgrading to Business for unlimited users.`
+  }
+  
   return null
+}
+
+function getFreePlanMessage(stats: UsageStats): string | null {
+  if (stats.linkLimitExceeded) return UPGRADE_MESSAGES.FREE_LINK_LIMIT
+  if (stats.userLimitExceeded) return UPGRADE_MESSAGES.FREE_USER_LIMIT
+  if (stats.linkWarning) return `You've used ${stats.linkUsagePercentage}% of your free plan links. Consider upgrading to Starter for unlimited links.`
+  if (stats.userWarning) return `You're approaching your user limit (${stats.currentUsers}/${stats.plan.userLimit}). Consider upgrading for more users.`
+  return null
+}
+
+export function getUpgradeMessage(stats: UsageStats): string | null {
+  const isPaidPlan = stats.plan.id !== 'free'
+  return isPaidPlan ? getPaidPlanMessage(stats) : getFreePlanMessage(stats)
 }
 
 // Additional functions expected by tests
