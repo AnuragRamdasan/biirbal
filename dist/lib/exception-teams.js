@@ -4,7 +4,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EXCEPTION_TEAMS = void 0;
 exports.isExceptionTeam = isExceptionTeam;
-exports.getExceptionTeamMessage = getExceptionTeamMessage;
 exports.getExceptionTeams = getExceptionTeams;
 exports.addExceptionTeam = addExceptionTeam;
 exports.removeExceptionTeam = removeExceptionTeam;
@@ -15,9 +14,6 @@ exports.EXCEPTION_TEAMS = [
 ];
 function isExceptionTeam(teamId) {
     return exports.EXCEPTION_TEAMS.includes(teamId);
-}
-function getExceptionTeamMessage() {
-    return "🎉 You're using Biirbal with complimentary access! No usage limits apply to your team.";
 }
 function getExceptionTeams() {
     return [...exports.EXCEPTION_TEAMS];

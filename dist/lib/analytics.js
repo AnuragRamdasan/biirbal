@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.debugAnalytics = exports.trackEvents = exports.identifyUser = exports.trackConversion = exports.trackPageView = exports.trackViewItem = exports.trackPurchase = exports.trackFeatureUsed = exports.trackUsageLimit = exports.trackDashboardVisit = exports.trackAudioCompleted = exports.trackAudioPlayed = exports.trackLinkProcessed = exports.trackLinkShared = exports.trackSubscriptionCancelled = exports.trackSubscriptionStarted = exports.trackTeamOnboarded = exports.trackSignUp = exports.trackEvent = exports.setAnalyticsUser = void 0;
+exports.getAnalyticsConfig = exports.trackPerformance = exports.trackSubscriptionEvent = exports.trackUserAction = exports.trackEvents = exports.identifyUser = exports.trackConversion = exports.trackPageView = exports.trackFeatureUsed = exports.trackUsageLimit = exports.trackDashboardVisit = exports.trackAudioCompleted = exports.trackAudioPlayed = exports.trackLinkProcessed = exports.trackLinkShared = exports.trackSubscriptionCancelled = exports.trackSubscriptionStarted = exports.trackEvent = exports.setAnalyticsUser = exports.isAnalyticsEnabled = void 0;
 const analytics_1 = require("../types/analytics");
 // Check if analytics is enabled and available
 const isAnalyticsEnabled = () => {
@@ -10,9 +10,10 @@ const isAnalyticsEnabled = () => {
         process.env.NODE_ENV === 'production' &&
         !!process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID);
 };
+exports.isAnalyticsEnabled = isAnalyticsEnabled;
 // Set user properties for enhanced tracking
 const setAnalyticsUser = (user) => {
-    if (!isAnalyticsEnabled())
+    if (!(0, exports.isAnalyticsEnabled)())
         return;
     window.gtag('set', {
         user_id: user.user_id,
@@ -29,7 +30,7 @@ const setAnalyticsUser = (user) => {
 exports.setAnalyticsUser = setAnalyticsUser;
 // Generic event tracking function
 const trackEvent = (eventName, eventData) => {
-    if (!isAnalyticsEnabled()) {
+    if (!(0, exports.isAnalyticsEnabled)()) {
         console.log('Analytics (dev):', eventName, eventData);
         return;
     }
@@ -41,21 +42,6 @@ const trackEvent = (eventName, eventData) => {
 };
 exports.trackEvent = trackEvent;
 // Specific tracking functions for better type safety
-const trackSignUp = (data) => {
-    (0, exports.trackEvent)(analytics_1.AnalyticsEventName.SIGN_UP, {
-        ...data,
-        event_category: 'user_journey'
-    });
-};
-exports.trackSignUp = trackSignUp;
-const trackTeamOnboarded = (data) => {
-    (0, exports.trackEvent)(analytics_1.AnalyticsEventName.TEAM_ONBOARDED, {
-        ...data,
-        event_category: 'user_journey',
-        value: data.time_to_onboard_minutes
-    });
-};
-exports.trackTeamOnboarded = trackTeamOnboarded;
 const trackSubscriptionStarted = (data) => {
     (0, exports.trackEvent)(analytics_1.AnalyticsEventName.SUBSCRIPTION_STARTED, {
         ...data,
@@ -71,14 +57,35 @@ const trackSubscriptionCancelled = (data) => {
 };
 exports.trackSubscriptionCancelled = trackSubscriptionCancelled;
 const trackLinkShared = (data) => {
-    (0, exports.trackEvent)(analytics_1.AnalyticsEventName.LINK_SHARED, {
-        ...data,
+    // Extract domain from URL if provided
+    let processedData = { ...data };
+    if (data.url && !data.link_domain) {
+        try {
+            const url = new URL(data.url);
+            processedData.link_domain = url.hostname;
+            // Remove full URL for privacy
+            delete processedData.url;
+        }
+        catch (error) {
+            // Handle invalid URLs gracefully
+        }
+    }
+    if (!(0, exports.isAnalyticsEnabled)()) {
+        console.log('Analytics (dev): link_shared', processedData);
+        return;
+    }
+    (0, exports.trackEvent)('link_shared', {
+        ...processedData,
         event_category: 'product_usage'
     });
 };
 exports.trackLinkShared = trackLinkShared;
 const trackLinkProcessed = (data) => {
-    (0, exports.trackEvent)(analytics_1.AnalyticsEventName.LINK_PROCESSED, {
+    if (!(0, exports.isAnalyticsEnabled)()) {
+        console.log('Analytics (dev): link_processed', data);
+        return;
+    }
+    (0, exports.trackEvent)('link_processed', {
         ...data,
         event_category: 'product_usage',
         value: data.processing_time_seconds
@@ -129,23 +136,9 @@ const trackFeatureUsed = (data) => {
     });
 };
 exports.trackFeatureUsed = trackFeatureUsed;
-const trackPurchase = (data) => {
-    (0, exports.trackEvent)(analytics_1.AnalyticsEventName.PURCHASE, {
-        ...data,
-        event_category: 'ecommerce'
-    });
-};
-exports.trackPurchase = trackPurchase;
-const trackViewItem = (data) => {
-    (0, exports.trackEvent)(analytics_1.AnalyticsEventName.VIEW_ITEM, {
-        ...data,
-        event_category: 'ecommerce'
-    });
-};
-exports.trackViewItem = trackViewItem;
 // Enhanced page view tracking with SaaS context
 const trackPageView = (url, title, user) => {
-    if (!isAnalyticsEnabled())
+    if (!(0, exports.isAnalyticsEnabled)())
         return;
     // Set user properties if provided
     if (user) {
@@ -171,7 +164,7 @@ const trackPageView = (url, title, user) => {
 exports.trackPageView = trackPageView;
 // Conversion tracking helpers
 const trackConversion = (conversionId, value, currency = 'USD') => {
-    if (!isAnalyticsEnabled())
+    if (!(0, exports.isAnalyticsEnabled)())
         return;
     window.gtag('event', 'conversion', {
         send_to: conversionId,
@@ -182,7 +175,7 @@ const trackConversion = (conversionId, value, currency = 'USD') => {
 exports.trackConversion = trackConversion;
 // User identification for cross-session tracking
 const identifyUser = (userId, teamId, properties) => {
-    if (!isAnalyticsEnabled())
+    if (!(0, exports.isAnalyticsEnabled)())
         return;
     window.gtag('set', {
         user_id: `${teamId}_${userId}`,
@@ -201,15 +194,47 @@ const trackEvents = (events) => {
     });
 };
 exports.trackEvents = trackEvents;
-// Debug function for development
-const debugAnalytics = () => {
-    if (typeof window !== 'undefined') {
-        console.log('Analytics Debug Info:', {
-            gtagAvailable: !!window.gtag,
-            measurementId: process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID,
-            nodeEnv: process.env.NODE_ENV,
-            dataLayer: window.dataLayer
-        });
+// Additional functions expected by tests
+const trackUserAction = (data) => {
+    if (!(0, exports.isAnalyticsEnabled)()) {
+        console.log('Analytics (dev): user_action', data);
+        return;
     }
+    (0, exports.trackEvent)('user_action', {
+        ...data,
+        event_category: 'user_interaction'
+    });
 };
-exports.debugAnalytics = debugAnalytics;
+exports.trackUserAction = trackUserAction;
+const trackSubscriptionEvent = (data) => {
+    if (!(0, exports.isAnalyticsEnabled)()) {
+        console.log('Analytics (dev): subscription', data);
+        return;
+    }
+    (0, exports.trackEvent)('subscription', {
+        ...data,
+        event_category: 'subscription'
+    });
+};
+exports.trackSubscriptionEvent = trackSubscriptionEvent;
+const trackPerformance = (data) => {
+    if (!(0, exports.isAnalyticsEnabled)()) {
+        console.log('Analytics (dev): performance', data);
+        return;
+    }
+    (0, exports.trackEvent)('performance', {
+        ...data,
+        event_category: 'performance'
+    });
+};
+exports.trackPerformance = trackPerformance;
+const getAnalyticsConfig = () => {
+    return {
+        enabled: (0, exports.isAnalyticsEnabled)(),
+        environment: process.env.NODE_ENV || 'development',
+        sampling: {
+            rate: 1.0
+        }
+    };
+};
+exports.getAnalyticsConfig = getAnalyticsConfig;

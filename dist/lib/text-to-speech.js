@@ -5,6 +5,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateAudioSummary = generateAudioSummary;
 exports.uploadAudioToStorage = uploadAudioToStorage;
+exports.generateAudioFromText = generateAudioFromText;
+exports.uploadAudioToS3 = uploadAudioToS3;
 const openai_1 = __importDefault(require("openai"));
 const client_s3_1 = require("@aws-sdk/client-s3");
 async function generateAudioSummary(text, title) {
@@ -61,4 +63,24 @@ async function uploadAudioToStorage(audioBuffer, fileName) {
     const publicUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${key}`;
     console.log(`✅ Audio uploaded: ${publicUrl}`);
     return publicUrl;
+}
+// Additional functions expected by tests
+async function generateAudioFromText(text) {
+    if (!text || text.trim().length === 0) {
+        throw new Error('Text content is required');
+    }
+    // Truncate very long text
+    const truncatedText = text.length > 4000 ? text.substring(0, 4000) + '...' : text;
+    const audioResult = await generateAudioSummary(truncatedText, 'Content Summary');
+    const audioUrl = await uploadAudioToStorage(audioResult.audioBuffer, audioResult.fileName);
+    // Estimate duration based on text length (approximate: ~150 words per minute)
+    const wordCount = truncatedText.split(/\s+/).length;
+    const estimatedDuration = Math.max(10, (wordCount / 150) * 60); // Minimum 10 seconds
+    return {
+        audioUrl,
+        duration: estimatedDuration
+    };
+}
+async function uploadAudioToS3(audioBuffer, fileName) {
+    return uploadAudioToStorage(audioBuffer, fileName);
 }

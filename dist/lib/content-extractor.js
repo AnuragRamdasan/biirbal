@@ -49,34 +49,35 @@ async function extractContentFromUrl(url) {
     }
     catch (error) {
         console.error('Content extraction failed:', error);
-        // Enhanced error handling for ScrapingBee issues
-        if (error.response) {
-            const status = error.response.status;
-            const statusText = error.response.statusText || 'Unknown error';
-            if (status === 500) {
-                console.error('🚨 ScrapingBee server error (500) - retrying with fallback strategy');
-                return await extractContentWithFallback(url);
-            }
-            else if (status === 429) {
-                console.error('🚨 ScrapingBee rate limit exceeded (429)');
-                throw new Error('Rate limit exceeded. Please try again later.');
-            }
-            else if (status >= 400 && status < 500) {
-                console.error(`🚨 ScrapingBee client error (${status}): ${statusText}`);
-                throw new Error(`Content extraction failed: Invalid request (${status})`);
-            }
-            else {
-                console.error(`🚨 ScrapingBee unexpected status (${status}): ${statusText}`);
-                throw new Error(`Content extraction failed: Service error (${status})`);
-            }
-        }
-        // Network or other errors
-        if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-            console.error('🚨 ScrapingBee timeout - trying fallback');
+        return await handleExtractionError(error, url);
+    }
+}
+function isTimeoutError(error) {
+    return error.code === 'ECONNABORTED' || error.message.includes('timeout');
+}
+function createErrorMessage(status, statusText) {
+    if (status === 429)
+        return 'Rate limit exceeded. Please try again later.';
+    if (status >= 400 && status < 500)
+        return `Content extraction failed: Invalid request (${status})`;
+    return `Content extraction failed: Service error (${status})`;
+}
+async function handleExtractionError(error, url) {
+    if (error.response) {
+        const status = error.response.status;
+        const statusText = error.response.statusText || 'Unknown error';
+        console.error(`🚨 ScrapingBee error (${status}): ${statusText}`);
+        if (status === 500 || isTimeoutError(error)) {
+            console.error('🚨 Retrying with fallback strategy');
             return await extractContentWithFallback(url);
         }
-        throw new Error(`Content extraction failed: ${error.message}`);
+        throw new Error(createErrorMessage(status, statusText));
     }
+    if (isTimeoutError(error)) {
+        console.error('🚨 ScrapingBee timeout - trying fallback');
+        return await extractContentWithFallback(url);
+    }
+    throw new Error(`Content extraction failed: ${error.message}`);
 }
 // Fallback extraction method with simpler parameters
 async function extractContentWithFallback(url) {
@@ -201,46 +202,32 @@ async function summarizeForAudio(text, maxWords = 150, sourceUrl) {
     }
     return summary;
 }
+const IMAGE_SELECTORS = [
+    { selector: 'meta[property="og:image"]', attr: 'content', name: 'og:image' },
+    { selector: 'meta[name="twitter:image"]', attr: 'content', name: 'twitter:image' },
+    { selector: 'link[rel="image_src"]', attr: 'href', name: 'image_src' }
+];
+function tryExtractImage(document, baseUrl, config) {
+    const element = document.querySelector(config.selector);
+    if (!element)
+        return undefined;
+    const content = element.getAttribute(config.attr);
+    console.log(`Found ${config.name}:`, content);
+    if (!content)
+        return undefined;
+    const resolvedUrl = resolveImageUrl(content, baseUrl);
+    if (isValidImageUrl(resolvedUrl)) {
+        console.log(`✅ Using ${config.name}:`, resolvedUrl);
+        return resolvedUrl;
+    }
+    return undefined;
+}
 function extractOgImage(document, baseUrl) {
     console.log('🖼️ Extracting OG image...');
-    // Try og:image first
-    const ogImageMeta = document.querySelector('meta[property="og:image"]');
-    if (ogImageMeta) {
-        const content = ogImageMeta.getAttribute('content');
-        console.log('Found og:image:', content);
-        if (content) {
-            const resolvedUrl = resolveImageUrl(content, baseUrl);
-            if (isValidImageUrl(resolvedUrl)) {
-                console.log('✅ Using og:image:', resolvedUrl);
-                return resolvedUrl;
-            }
-        }
-    }
-    // Try twitter:image
-    const twitterImageMeta = document.querySelector('meta[name="twitter:image"]');
-    if (twitterImageMeta) {
-        const content = twitterImageMeta.getAttribute('content');
-        console.log('Found twitter:image:', content);
-        if (content) {
-            const resolvedUrl = resolveImageUrl(content, baseUrl);
-            if (isValidImageUrl(resolvedUrl)) {
-                console.log('✅ Using twitter:image:', resolvedUrl);
-                return resolvedUrl;
-            }
-        }
-    }
-    // Try link rel="image_src"
-    const linkImage = document.querySelector('link[rel="image_src"]');
-    if (linkImage) {
-        const href = linkImage.getAttribute('href');
-        console.log('Found image_src:', href);
-        if (href) {
-            const resolvedUrl = resolveImageUrl(href, baseUrl);
-            if (isValidImageUrl(resolvedUrl)) {
-                console.log('✅ Using image_src:', resolvedUrl);
-                return resolvedUrl;
-            }
-        }
+    for (const config of IMAGE_SELECTORS) {
+        const imageUrl = tryExtractImage(document, baseUrl, config);
+        if (imageUrl)
+            return imageUrl;
     }
     console.log('❌ No OG image found');
     return undefined;
