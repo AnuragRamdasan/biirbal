@@ -266,3 +266,20 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 - Always review `git status` output before staging any files
 - Use `git diff --name-only` to see which files have changes
 - If unsure about a file's origin, check `git log --oneline -n 5 path/to/file` to see recent changes
+
+## CRITICAL UI/UX DESIGN RULES
+**NEVER make unauthorized design changes without explicit approval.**
+- NEVER change layouts, styling, component structures, or visual design
+- NEVER change titles, labels, text content, or UI copy without permission
+- NEVER replace existing design patterns with different approaches
+- NEVER modify spacing, colors, fonts, or visual hierarchy
+- ALWAYS preserve the existing Row/Col layout structure from Ant Design
+- ALWAYS maintain the exact same compact dashboard design and inline stats display
+- ALWAYS ask before making ANY visual or layout modifications
+- Design changes require explicit user approval - no exceptions
+
+**If functionality requires minor UI adjustments:**
+- Ask for permission first
+- Explain exactly what needs to change and why
+- Provide alternatives that preserve existing design
+- Never assume design changes are acceptable

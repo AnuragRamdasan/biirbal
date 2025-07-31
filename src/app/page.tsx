@@ -571,6 +571,10 @@ function HomeContent() {
     }
   }
 
+  const getListenCount = (link: ProcessedLink) => {
+    return link.listens?.length || 0
+  }
+
   // Render Dashboard content
   const renderDashboard = () => {
     if (loading) {
@@ -604,89 +608,96 @@ function HomeContent() {
 
     return (
       <Layout currentPage="dashboard" showHeader={true}>
-        <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
-          {/* Dashboard Header */}
-          <div style={{ marginBottom: '32px' }}>
-            <Title level={2}>
-              <Space>
-                <SoundOutlined />
-                Your Audio Library
-              </Space>
-            </Title>
-            <Text type="secondary">
-              Listen to your AI-generated audio summaries and track your progress
-            </Text>
-          </div>
-
+        <div style={{ 
+          padding: isMobile ? '12px 16px' : '16px 24px', 
+          maxWidth: 1400, 
+          margin: '0 auto'
+        }}>
           {/* Usage Warning */}
           {usageWarning && (
             <Alert
-              message={usageWarning}
-              type={linkLimitExceeded ? "error" : "warning"}
+              message="Usage Warning"
+              description={usageWarning}
+              type="warning"
               showIcon
-              style={{ marginBottom: 24 }}
               closable
+              style={{ marginBottom: 16 }}
+              action={
+                <Button size="small" href="/pricing">
+                  Upgrade Plan
+                </Button>
+              }
             />
           )}
 
-          {/* Stats Cards */}
-          {stats && (
-            <Row gutter={[16, 16]} style={{ marginBottom: '32px' }}>
-              <Col xs={24} sm={12} md={6}>
-                <Card>
-                  <Statistic
-                    title="Total Links"
-                    value={stats.totalLinks}
-                    prefix={<LinkOutlined />}
-                  />
-                </Card>
+          {/* Compact Header */}
+          <Card size="small" style={{ marginBottom: 16 }}>
+            <Row justify="space-between" align="middle">
+              <Col>
+                <Title level={3} style={{ margin: 0, fontSize: 18 }}>
+                  <Space size="small">
+                    <SoundOutlined />
+                    Audio Summaries
+                  </Space>
+                </Title>
               </Col>
-              <Col xs={24} sm={12} md={6}>
-                <Card>
-                  <Statistic
-                    title="Completed Links"
-                    value={stats.completedLinks}
-                    prefix={<CheckCircleOutlined />}
-                  />
-                </Card>
-              </Col>
-              <Col xs={24} sm={12} md={6}>
-                <Card>
-                  <Statistic
-                    title="Total Listens"
-                    value={stats.totalListens}
-                    prefix={<SoundOutlined />}
-                  />
-                </Card>
-              </Col>
-              <Col xs={24} sm={12} md={6}>
-                <Card>
-                  <Statistic
-                    title="Minutes Listened"
-                    value={Math.round(stats.totalMinutesListened)}
-                    prefix={<ClockCircleOutlined />}
-                  />
-                </Card>
+              <Col xs={24} sm={24} md={16} lg={18}>
+                <Row gutter={[8, 8]} align="middle">
+                  <Col xs={6} sm={4}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 16, fontWeight: 'bold', color: '#1890ff' }}>
+                        {stats?.totalLinks ?? links.length}
+                      </div>
+                      <Text type="secondary" style={{ fontSize: 10 }}>Total</Text>
+                    </div>
+                  </Col>
+                  <Col xs={6} sm={4}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 16, fontWeight: 'bold', color: '#722ed1' }}>
+                        {stats?.totalListens ?? links.reduce((total, link) => total + getListenCount(link), 0)}
+                      </div>
+                      <Text type="secondary" style={{ fontSize: 10 }}>Listens</Text>
+                    </div>
+                  </Col>
+                  <Col xs={6} sm={4}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 16, fontWeight: 'bold', color: '#52c41a' }}>
+                        {stats?.totalMinutesCurated ?? 0}
+                      </div>
+                      <Text type="secondary" style={{ fontSize: 10 }}>Min Curated</Text>
+                    </div>
+                  </Col>
+                  <Col xs={6} sm={4}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 16, fontWeight: 'bold', color: '#fa8c16' }}>
+                        {stats?.totalMinutesListened ?? 0}
+                      </div>
+                      <Text type="secondary" style={{ fontSize: 10 }}>Min Listened</Text>
+                    </div>
+                  </Col>
+                </Row>
               </Col>
             </Row>
-          )}
+          </Card>
 
-          {/* Controls */}
-          <div style={{ marginBottom: '24px' }}>
-            <Row justify="space-between" align="middle">
+          {/* Filter Controls Row */}
+          <Card size="small" style={{ marginBottom: 16 }}>
+            <Row justify="space-between" align="middle" wrap>
               <Col>
                 <Space>
                   <Switch
+                    size="small"
                     checked={showListened}
                     onChange={setShowListened}
                     checkedChildren={<EyeOutlined />}
                     unCheckedChildren={<EyeInvisibleOutlined />}
                   />
-                  <Text>Show listened</Text>
+                  <Text style={{ fontSize: 12 }}>Show listened</Text>
                 </Space>
               </Col>
               <Col>
                 <Select
+                  size="small"
                   value={sourceFilter}
                   onChange={setSourceFilter}
                   style={{ width: 120 }}
@@ -698,7 +709,7 @@ function HomeContent() {
                 />
               </Col>
             </Row>
-          </div>
+          </Card>
 
           {/* Links Grid */}
           {visibleLinks.length === 0 ? (
