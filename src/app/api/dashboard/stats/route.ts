@@ -64,12 +64,12 @@ export async function GET(request: NextRequest) {
       }, 0)
     )
 
-    // Get total listens and minutes listened
+    // Get total listens and minutes listened - include ALL listening sessions for cumulative historic total
     let totalListens = 0
     let totalMinutesListened = 0
 
     if (slackUserId) {
-      // User-specific stats
+      // User-specific stats - include all sessions, even incomplete ones with substantial listening time
       const userListens = await db.audioListen.findMany({
         where: {
           slackUserId: slackUserId,
@@ -80,6 +80,7 @@ export async function GET(request: NextRequest) {
         select: {
           listenDuration: true,
           completed: true,
+          resumePosition: true,
           processedLink: {
             select: {
               ttsScript: true
@@ -88,13 +89,25 @@ export async function GET(request: NextRequest) {
         }
       })
 
-      totalListens = userListens.length
+      // Count all listens that have meaningful engagement (> 10 seconds or completed)
+      const meaningfulListens = userListens.filter(listen => 
+        listen.completed || 
+        (listen.listenDuration && listen.listenDuration > 10) ||
+        (listen.resumePosition && listen.resumePosition > 10)
+      )
+      
+      totalListens = meaningfulListens.length
       totalMinutesListened = Math.round(
         userListens.reduce((total, listen) => {
+          // Use listenDuration if available (actual listening time)
           if (listen.listenDuration && listen.listenDuration > 0) {
             return total + (listen.listenDuration / 60)
           }
-          // Fallback: if completed but no duration, estimate from script
+          // Use resumePosition as fallback (how far they got)
+          if (listen.resumePosition && listen.resumePosition > 0) {
+            return total + (listen.resumePosition / 60)
+          }
+          // Final fallback: if completed but no duration data, estimate from script
           if (listen.completed && listen.processedLink.ttsScript) {
             const wordCount = listen.processedLink.ttsScript.split(' ').length
             const estimatedMinutes = wordCount / 150
@@ -104,7 +117,7 @@ export async function GET(request: NextRequest) {
         }, 0)
       )
     } else {
-      // Team-wide stats
+      // Team-wide stats - include all sessions for cumulative historic total
       const teamListens = await db.audioListen.findMany({
         where: {
           processedLink: {
@@ -114,6 +127,7 @@ export async function GET(request: NextRequest) {
         select: {
           listenDuration: true,
           completed: true,
+          resumePosition: true,
           processedLink: {
             select: {
               ttsScript: true
@@ -122,13 +136,25 @@ export async function GET(request: NextRequest) {
         }
       })
 
-      totalListens = teamListens.length
+      // Count all listens that have meaningful engagement
+      const meaningfulListens = teamListens.filter(listen => 
+        listen.completed || 
+        (listen.listenDuration && listen.listenDuration > 10) ||
+        (listen.resumePosition && listen.resumePosition > 10)
+      )
+      
+      totalListens = meaningfulListens.length
       totalMinutesListened = Math.round(
         teamListens.reduce((total, listen) => {
+          // Use listenDuration if available (actual listening time)
           if (listen.listenDuration && listen.listenDuration > 0) {
             return total + (listen.listenDuration / 60)
           }
-          // Fallback: if completed but no duration, estimate from script
+          // Use resumePosition as fallback (how far they got)
+          if (listen.resumePosition && listen.resumePosition > 0) {
+            return total + (listen.resumePosition / 60)
+          }
+          // Final fallback: if completed but no duration data, estimate from script
           if (listen.completed && listen.processedLink.ttsScript) {
             const wordCount = listen.processedLink.ttsScript.split(' ').length
             const estimatedMinutes = wordCount / 150
