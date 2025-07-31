@@ -575,6 +575,11 @@ function HomeContent() {
     return link.listens?.length || 0
   }
 
+  const hasUserListened = (link: ProcessedLink) => {
+    // Only consider articles as "listened" if they have at least one completed listen
+    return link.listens && link.listens.some(listen => listen.completed === true)
+  }
+
   // Render Dashboard content
   const renderDashboard = () => {
     if (loading) {
@@ -711,125 +716,217 @@ function HomeContent() {
             </Row>
           </Card>
 
-          {/* Links Grid */}
-          {visibleLinks.length === 0 ? (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={
-                <div>
-                  <Text>No audio summaries found</Text>
-                  <br />
-                  <Text type="secondary">
-                    Share some links in Slack to get started!
-                  </Text>
-                </div>
-              }
-            />
-          ) : (
-            <Row gutter={[16, 16]}>
-              {visibleLinks.map((link) => (
-                <Col xs={24} sm={12} lg={8} key={link.id}>
-                  <Card
-                    hoverable
-                    style={{ height: '100%' }}
-                    cover={
-                      link.ogImage && (
-                        <img
-                          alt={link.title || 'Link preview'}
-                          src={link.ogImage}
-                          style={{ height: 160, objectFit: 'cover' }}
-                        />
-                      )
+          {/* Links List - Row-based Cards */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {visibleLinks.length === 0 ? (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={
+                  <span style={{ fontSize: 12 }}>
+                    {showListened 
+                      ? "No audio summaries available yet."
+                      : "No unlistened links. Toggle 'Show All' to see all links including listened ones."
                     }
-                    actions={[
-                      <Tooltip title={link.processingStatus === 'completed' ? 'Play Audio' : 'Processing...'} key="play">
-                        {link.processingStatus === 'completed' && link.audioFileUrl ? (
-                          loadingAudio === link.id ? (
-                            <LoadingOutlined />
-                          ) : currentlyPlaying === link.id ? (
-                            <Button
-                              type="text"
-                              icon={<PauseCircleOutlined />}
-                              onClick={handlePauseAudio}
-                            />
-                          ) : (
-                            <Button
-                              type="text"
-                              icon={<PlayCircleOutlined />}
-                              onClick={() => handlePlayAudio(link.id, link.audioFileUrl!)}
-                            />
-                          )
+                  </span>
+                }
+                style={{ padding: '20px 0' }}
+              />
+            ) : (
+              visibleLinks.map((record) => (
+                <Card 
+                  key={record.id}
+                  size="small" 
+                  style={{ 
+                    border: currentlyPlaying === record.id ? '2px solid #1890ff' : '1px solid #f0f0f0',
+                    borderRadius: 8,
+                    opacity: hasUserListened(record) ? 0.7 : 1,
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer'
+                  }}
+                  bodyStyle={{ padding: '16px' }}
+                  onClick={async () => {
+                    if (record.processingStatus === 'COMPLETED' && record.audioFileUrl) {
+                      if (currentlyPlaying === record.id) {
+                        await handlePauseAudio()
+                      } else {
+                        await handlePlayAudio(record.id, record.audioFileUrl)
+                      }
+                    }
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+                    {/* Left Column - Image and Info */}
+                    <div style={{ flex: 1, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                      {/* OG Image */}
+                      <div style={{ 
+                        width: 60, 
+                        height: 60, 
+                        backgroundColor: '#f5f5f5', 
+                        borderRadius: 8,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        overflow: 'hidden',
+                        flexShrink: 0
+                      }}>
+                        {record.ogImage ? (
+                          <img 
+                            src={record.ogImage} 
+                            alt={record.title || 'Article'}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none'
+                            }}
+                          />
                         ) : (
-                          <LoadingOutlined />
+                          <LinkOutlined style={{ fontSize: 24, color: '#d9d9d9' }} />
                         )}
-                      </Tooltip>,
-                      <Tooltip title="View Original Link" key="link">
-                        <Button
-                          type="text"
-                          icon={<LinkOutlined />}
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        />
-                      </Tooltip>
-                    ]}
-                  >
-                    <Card.Meta
-                      title={
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <Text ellipsis style={{ flex: 1 }}>
-                            {link.title || 'Untitled'}
-                          </Text>
-                          {link.listens?.some(listen => listen.completed) && (
-                            <Badge count={<CheckCircleOutlined style={{ color: '#52c41a' }} />} />
+                      </div>
+                      
+                      {/* Title and URL */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ marginBottom: 6 }}>
+                          <div style={{ 
+                            fontSize: 16, 
+                            fontWeight: 600, 
+                            color: '#262626',
+                            lineHeight: 1.4,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            marginBottom: 4
+                          }}>
+                            {record.title || 'Untitled'}
+                          </div>
+                          {hasUserListened && hasUserListened(record) && (
+                            <Badge 
+                              count="✓" 
+                              style={{ backgroundColor: '#52c41a', fontSize: 10, marginBottom: 4 }}
+                            />
                           )}
                         </div>
-                      }
-                      description={
-                        <div>
-                          <Text type="secondary" ellipsis>
-                            {link.extractedText?.substring(0, 100)}...
-                          </Text>
-                          <div style={{ marginTop: '8px' }}>
-                            <Space split={<Divider type="vertical" />}>
-                              <Text type="secondary" style={{ fontSize: '12px' }}>
-                                <CalendarOutlined /> {new Date(link.createdAt).toLocaleDateString()}
-                              </Text>
-                              {link.channel?.channelName && (
-                                <Text type="secondary" style={{ fontSize: '12px' }}>
-                                  #{link.channel.channelName}
-                                </Text>
-                              )}
-                            </Space>
-                          </div>
+                        <div style={{ 
+                          fontSize: 12, 
+                          color: '#8c8c8c',
+                          marginBottom: 8,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {record.url}
                         </div>
-                      }
-                    />
-                  </Card>
-                </Col>
-              ))}
-            </Row>
-          )}
-
-          {/* Audio Progress Bar (when playing) */}
-          {currentlyPlaying && audioElement && (
-            <div style={{
-              position: 'fixed',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              background: 'white',
-              padding: '16px',
-              borderTop: '1px solid #f0f0f0',
-              zIndex: 1000
-            }}>
-              <Row align="middle" gutter={16}>
-                <Col flex="auto">
-                  <div style={{ marginBottom: '8px' }}>
-                    <Text strong>
-                      {links.find(l => l.id === currentlyPlaying)?.title || 'Playing...'}
-                    </Text>
+                        
+                        {/* Metadata Row */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}>
+                          {/* Listen Count */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <EyeOutlined style={{ fontSize: 12, color: '#8c8c8c' }} />
+                            <Text style={{ fontSize: 12, color: '#8c8c8c' }}>
+                              {getListenCount(record)} listens
+                            </Text>
+                          </div>
+                          
+                          {/* Created Date */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <CalendarOutlined style={{ fontSize: 12, color: '#8c8c8c' }} />
+                            <Text style={{ fontSize: 12, color: '#8c8c8c' }}>
+                              {new Date(record.createdAt).toLocaleDateString()}
+                            </Text>
+                          </div>
+                          
+                          {/* Channel/Source */}
+                          {record.channel?.channelName && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <Text style={{ fontSize: 12, color: '#8c8c8c' }}>
+                                #{record.channel.channelName}
+                              </Text>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Right Column - Audio Player */}
+                    <div style={{ minWidth: 200, flexShrink: 0 }}>
+                      {record.processingStatus === 'COMPLETED' && record.audioFileUrl ? (
+                        <div style={{ textAlign: 'center' }}>
+                          <Button
+                            type={currentlyPlaying === record.id ? "primary" : "default"}
+                            icon={
+                              loadingAudio === record.id ? (
+                                <LoadingOutlined />
+                              ) : currentlyPlaying === record.id ? (
+                                <PauseCircleOutlined />
+                              ) : (
+                                <PlayCircleOutlined />
+                              )
+                            }
+                            disabled={loadingAudio === record.id}
+                            size="large"
+                            style={{ marginBottom: 8 }}
+                          >
+                            {loadingAudio === record.id 
+                              ? 'Loading...' 
+                              : currentlyPlaying === record.id 
+                                ? 'Pause' 
+                                : 'Play'
+                            }
+                          </Button>
+                          
+                          {/* Progress bar for currently playing */}
+                          {currentlyPlaying === record.id && (
+                            <div style={{ width: '100%', marginTop: 8 }}>
+                              <div style={{ 
+                                height: 4, 
+                                backgroundColor: '#f0f0f0', 
+                                borderRadius: 2,
+                                overflow: 'hidden'
+                              }}>
+                                <div style={{ 
+                                  height: '100%', 
+                                  backgroundColor: '#1890ff',
+                                  width: `${progress}%`,
+                                  transition: 'width 0.1s ease'
+                                }} />
+                              </div>
+                              <div style={{ 
+                                display: 'flex', 
+                                justifyContent: 'space-between',
+                                fontSize: 10,
+                                color: '#8c8c8c',
+                                marginTop: 4
+                              }}>
+                                <span>{Math.floor(currentTime / 60)}:{(currentTime % 60).toFixed(0).padStart(2, '0')}</span>
+                                <span>{Math.floor(duration / 60)}:{(duration % 60).toFixed(0).padStart(2, '0')}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : record.processingStatus === 'PROCESSING' ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+                          <Spin size="small" />
+                          <Text type="secondary" style={{ fontSize: 12 }}>Processing...</Text>
+                        </div>
+                      ) : record.processingStatus === 'FAILED' ? (
+                        <Text type="danger" style={{ fontSize: 12, textAlign: 'center', display: 'block' }}>
+                          <ExclamationCircleOutlined /> Failed
+                        </Text>
+                      ) : (
+                        <Text type="secondary" style={{ fontSize: 12, textAlign: 'center', display: 'block' }}>
+                          <ClockCircleOutlined /> Pending
+                        </Text>
+                      )}
+                    </div>
                   </div>
+                </Card>
+              ))
+            )}
+          </div>
+        </div>
+      </Layout>
+    )
                   <div style={{
                     width: '100%',
                     height: '4px',
