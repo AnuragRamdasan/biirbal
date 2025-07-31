@@ -205,7 +205,7 @@ describe('Subscription utilities', () => {
       expect(canProcess).toBe(true)
     })
 
-    it('should block processing when free plan limit exceeded', async () => {
+    it('should allow processing even when free plan limit exceeded', async () => {
       mockFindUnique.mockResolvedValue({
         id: 'team1',
         slackTeamId: 'T123',
@@ -219,7 +219,7 @@ describe('Subscription utilities', () => {
 
       const canProcess = await canProcessMoreLinks('T123')
       
-      expect(canProcess).toBe(false)
+      expect(canProcess).toBe(true) // Link processing is now always unlimited
     })
 
     it('should always allow processing for paid plans', async () => {
@@ -388,28 +388,51 @@ describe('Subscription utilities', () => {
       expect(result.allowed).toBe(true) // Should still allow link processing
     })
 
-    it('should allow link processing for free plan when under link limit but over user limit', async () => {
+    it('should allow link processing for free plan regardless of link or user limits', async () => {
       mockFindUnique.mockResolvedValue({
         id: 'team1',
         slackTeamId: 'T123',
         subscription: { planId: 'free', status: 'ACTIVE' },
         users: Array(5).fill({ isActive: true }), // Exceeds free plan user limit of 1
-        processedLinks: Array(10).fill({}) // Under free plan link limit of 20
+        processedLinks: Array(25).fill({}) // Exceeds free plan link limit of 20
       })
       
       const { checkUsageLimits } = require('@/lib/stripe')
       checkUsageLimits.mockReturnValue({ 
-        canProcessMore: true,
+        canProcessMore: false,
         userLimitExceeded: true,
-        linkLimitExceeded: false
+        linkLimitExceeded: true
       })
 
       const result = await canProcessNewLink('T123', 'U123')
       
-      expect(result.allowed).toBe(true) // Should allow processing despite user limit exceeded
+      expect(result.allowed).toBe(true) // Should allow processing despite all limits exceeded
     })
 
-    it('should block link processing for free plan when link limit exceeded', async () => {
+    it('should always allow link processing for all plans', async () => {
+      mockFindUnique.mockResolvedValue({
+        id: 'team1',
+        slackTeamId: 'T123',
+        subscription: { planId: 'free', status: 'ACTIVE' },
+        users: Array(100).fill({ isActive: true }),
+        processedLinks: Array(1000).fill({})
+      })
+      
+      const { checkUsageLimits } = require('@/lib/stripe')
+      checkUsageLimits.mockReturnValue({ 
+        canProcessMore: false,
+        linkLimitExceeded: true,
+        userLimitExceeded: true
+      })
+
+      const result = await canProcessNewLink('T123', 'U123')
+      
+      expect(result.allowed).toBe(true) // Link processing is ALWAYS unlimited
+    })
+  })
+
+  describe('canUserListen', () => {
+    it('should block listening on free plan when link limit exceeded', async () => {
       mockFindUnique.mockResolvedValue({
         id: 'team1',
         slackTeamId: 'T123',
@@ -421,18 +444,16 @@ describe('Subscription utilities', () => {
       const { checkUsageLimits } = require('@/lib/stripe')
       checkUsageLimits.mockReturnValue({ 
         canProcessMore: false,
-        linkLimitExceeded: true,
-        userLimitExceeded: false
+        userLimitExceeded: false,
+        linkLimitExceeded: true
       })
 
-      const result = await canProcessNewLink('T123', 'U123')
+      const result = await canUserListen('T123', 'U123')
       
       expect(result.allowed).toBe(false)
       expect(result.reason).toContain('Monthly link limit')
     })
-  })
 
-  describe('canUserListen', () => {
     it('should block listening when user limits exceeded on paid plans', async () => {
       mockFindUnique.mockResolvedValue({
         id: 'team1',
