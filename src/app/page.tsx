@@ -927,43 +927,6 @@ function HomeContent() {
         </div>
       </Layout>
     )
-                  <div style={{
-                    width: '100%',
-                    height: '4px',
-                    background: '#f0f0f0',
-                    borderRadius: '2px',
-                    overflow: 'hidden'
-                  }}>
-                    <div style={{
-                      width: `${progress * 100}%`,
-                      height: '100%',
-                      background: '#1890ff',
-                      transition: 'width 0.3s ease'
-                    }} />
-                  </div>
-                  <div style={{ marginTop: '4px', display: 'flex', justifyContent: 'space-between' }}>
-                    <Text type="secondary" style={{ fontSize: '12px' }}>
-                      {Math.floor(currentTime / 60)}:{String(Math.floor(currentTime % 60)).padStart(2, '0')}
-                    </Text>
-                    <Text type="secondary" style={{ fontSize: '12px' }}>
-                      {Math.floor(duration / 60)}:{String(Math.floor(duration % 60)).padStart(2, '0')}
-                    </Text>
-                  </div>
-                </Col>
-                <Col>
-                  <Button
-                    type="primary"
-                    icon={<PauseCircleOutlined />}
-                    onClick={handlePauseAudio}
-                    size="large"
-                  />
-                </Col>
-              </Row>
-            </div>
-          )}
-        </div>
-      </Layout>
-    )
   }
 
   // Force custom domain for OAuth redirect
