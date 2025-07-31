@@ -179,6 +179,36 @@ function createLimitResponse(allowed: boolean, reason?: string) {
 
 export async function canProcessNewLink(teamId: string, userId?: string): Promise<{ allowed: boolean, reason?: string }> {
   try {
+    // CRITICAL: Link processing should ALWAYS be unlimited regardless of user count
+    // Only listen access should be restricted by user limits
+    // This ensures unlimited link processing as per business requirements
+    
+    if (isExceptionTeam(teamId)) {
+      return createLimitResponse(true)
+    }
+    
+    const stats = await getTeamUsageStats(teamId)
+    const isPaidPlan = stats.plan.id !== 'free'
+    
+    if (!isPaidPlan) {
+      // Free plan only checks link limits, NOT user limits for processing
+      if (stats.linkLimitExceeded) {
+        return createLimitResponse(false, `Monthly link limit of ${stats.plan.monthlyLinkLimit} reached. Upgrade your plan to process more links.`)
+      }
+    }
+
+    // For all plans (free and paid): NEVER block link processing due to user limits
+    // User limits only affect listen access, not link processing
+    return createLimitResponse(true)
+  } catch (error) {
+    console.error('Error checking usage limits:', error)
+    return createLimitResponse(false, 'Unable to verify usage limits')
+  }
+}
+
+export async function canUserListen(teamId: string, userId?: string): Promise<{ allowed: boolean, reason?: string }> {
+  try {
+    // Exception teams have unlimited access
     if (isExceptionTeam(teamId)) {
       return createLimitResponse(true)
     }
@@ -195,7 +225,7 @@ export async function canProcessNewLink(teamId: string, userId?: string): Promis
         return createLimitResponse(false, 'User access disabled due to seat limit exceeded. Contact admin to upgrade plan.')
       }
     } else {
-      // Free plan checks
+      // Free plan checks both link and user limits for listening
       if (stats.linkLimitExceeded) {
         return createLimitResponse(false, `Monthly link limit of ${stats.plan.monthlyLinkLimit} reached. Upgrade your plan to process more links.`)
       }
@@ -207,7 +237,7 @@ export async function canProcessNewLink(teamId: string, userId?: string): Promis
 
     return createLimitResponse(true)
   } catch (error) {
-    console.error('Error checking usage limits:', error)
+    console.error('Error checking user listen access:', error)
     return createLimitResponse(false, 'Unable to verify usage limits')
   }
 }

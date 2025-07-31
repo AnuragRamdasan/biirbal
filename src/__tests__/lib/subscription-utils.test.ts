@@ -3,7 +3,9 @@ import {
   canProcessMoreLinks, 
   canAddMoreUsers,
   updateSubscription,
-  cancelSubscription 
+  cancelSubscription,
+  canProcessNewLink,
+  canUserListen
 } from '@/lib/subscription-utils'
 
 // Mock database
@@ -361,6 +363,133 @@ describe('Subscription utilities', () => {
       
       expect(result.success).toBe(false)
       expect(result.error).toBe('Cancellation failed')
+    })
+  })
+
+  describe('canProcessNewLink', () => {
+    it('should always allow link processing for paid plans regardless of user limits', async () => {
+      mockFindUnique.mockResolvedValue({
+        id: 'team1',
+        slackTeamId: 'T123',
+        subscription: { planId: 'starter', status: 'ACTIVE' },
+        users: Array(10).fill({ isActive: true }), // Exceeds starter plan user limit of 1
+        processedLinks: []
+      })
+      
+      const { checkUsageLimits } = require('@/lib/stripe')
+      checkUsageLimits.mockReturnValue({ 
+        canProcessMore: true,
+        userLimitExceeded: true, // User limit exceeded
+        linkLimitExceeded: false
+      })
+
+      const result = await canProcessNewLink('T123', 'U123')
+      
+      expect(result.allowed).toBe(true) // Should still allow link processing
+    })
+
+    it('should allow link processing for free plan when under link limit but over user limit', async () => {
+      mockFindUnique.mockResolvedValue({
+        id: 'team1',
+        slackTeamId: 'T123',
+        subscription: { planId: 'free', status: 'ACTIVE' },
+        users: Array(5).fill({ isActive: true }), // Exceeds free plan user limit of 1
+        processedLinks: Array(10).fill({}) // Under free plan link limit of 20
+      })
+      
+      const { checkUsageLimits } = require('@/lib/stripe')
+      checkUsageLimits.mockReturnValue({ 
+        canProcessMore: true,
+        userLimitExceeded: true,
+        linkLimitExceeded: false
+      })
+
+      const result = await canProcessNewLink('T123', 'U123')
+      
+      expect(result.allowed).toBe(true) // Should allow processing despite user limit exceeded
+    })
+
+    it('should block link processing for free plan when link limit exceeded', async () => {
+      mockFindUnique.mockResolvedValue({
+        id: 'team1',
+        slackTeamId: 'T123',
+        subscription: { planId: 'free', status: 'ACTIVE' },
+        users: [{ isActive: true }],
+        processedLinks: Array(25).fill({}) // Exceeds free plan limit of 20
+      })
+      
+      const { checkUsageLimits } = require('@/lib/stripe')
+      checkUsageLimits.mockReturnValue({ 
+        canProcessMore: false,
+        linkLimitExceeded: true,
+        userLimitExceeded: false
+      })
+
+      const result = await canProcessNewLink('T123', 'U123')
+      
+      expect(result.allowed).toBe(false)
+      expect(result.reason).toContain('Monthly link limit')
+    })
+  })
+
+  describe('canUserListen', () => {
+    it('should block listening when user limits exceeded on paid plans', async () => {
+      mockFindUnique.mockResolvedValue({
+        id: 'team1',
+        slackTeamId: 'T123',
+        subscription: { planId: 'starter', status: 'ACTIVE' },
+        users: Array(5).fill({ isActive: true }), // Exceeds starter plan user limit of 1
+        processedLinks: []
+      })
+      
+      const { checkUsageLimits } = require('@/lib/stripe')
+      checkUsageLimits.mockReturnValue({ 
+        canProcessMore: true,
+        userLimitExceeded: true,
+        linkLimitExceeded: false
+      })
+
+      const result = await canUserListen('T123', 'U123')
+      
+      expect(result.allowed).toBe(false)
+      expect(result.reason).toContain('User limit')
+    })
+
+    it('should allow listening when under user limits', async () => {
+      // Mock team lookup for canUserListen
+      mockFindUnique.mockResolvedValueOnce({
+        id: 'team1',
+        slackTeamId: 'T123',
+        subscription: { planId: 'starter', status: 'ACTIVE' },
+        users: [{ slackUserId: 'U123', isActive: true }], // Within starter plan user limit of 1
+        processedLinks: []
+      })
+      
+      // Mock user lookup for canUserConsume
+      mockFindFirst.mockResolvedValueOnce({ 
+        slackUserId: 'U123', 
+        isActive: true,
+        team: { slackTeamId: 'T123' }
+      })
+      
+      // Mock team lookup for canUserConsume
+      mockFindUnique.mockResolvedValueOnce({
+        id: 'team1',
+        slackTeamId: 'T123',
+        subscription: { planId: 'starter', status: 'ACTIVE' },
+        users: [{ slackUserId: 'U123', isActive: true }]
+      })
+      
+      const { checkUsageLimits } = require('@/lib/stripe')
+      checkUsageLimits.mockReturnValue({ 
+        canProcessMore: true,
+        userLimitExceeded: false,
+        linkLimitExceeded: false
+      })
+
+      const result = await canUserListen('T123', 'U123')
+      
+      expect(result.allowed).toBe(true)
     })
   })
 })
