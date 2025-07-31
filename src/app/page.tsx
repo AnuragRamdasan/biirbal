@@ -580,6 +580,12 @@ function HomeContent() {
     return link.listens && link.listens.some(listen => listen.completed === true)
   }
 
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
   // Render Dashboard content
   const renderDashboard = () => {
     if (loading) {
@@ -849,76 +855,164 @@ function HomeContent() {
                     </div>
                     
                     {/* Right Column - Audio Player */}
-                    <div style={{ minWidth: 200, flexShrink: 0 }}>
-                      {record.processingStatus === 'COMPLETED' && record.audioFileUrl ? (
-                        <div style={{ textAlign: 'center' }}>
-                          <Button
-                            type={currentlyPlaying === record.id ? "primary" : "default"}
-                            icon={
-                              loadingAudio === record.id ? (
-                                <LoadingOutlined />
-                              ) : currentlyPlaying === record.id ? (
-                                <PauseCircleOutlined />
-                              ) : (
-                                <PlayCircleOutlined />
-                              )
-                            }
-                            disabled={loadingAudio === record.id}
-                            size="large"
-                            style={{ marginBottom: 8 }}
-                          >
-                            {loadingAudio === record.id 
-                              ? 'Loading...' 
-                              : currentlyPlaying === record.id 
-                                ? 'Pause' 
-                                : 'Play'
-                            }
-                          </Button>
-                          
-                          {/* Progress bar for currently playing */}
-                          {currentlyPlaying === record.id && (
-                            <div style={{ width: '100%', marginTop: 8 }}>
-                              <div style={{ 
-                                height: 4, 
-                                backgroundColor: '#f0f0f0', 
-                                borderRadius: 2,
-                                overflow: 'hidden'
-                              }}>
-                                <div style={{ 
-                                  height: '100%', 
-                                  backgroundColor: '#1890ff',
-                                  width: `${progress}%`,
-                                  transition: 'width 0.1s ease'
-                                }} />
-                              </div>
-                              <div style={{ 
-                                display: 'flex', 
-                                justifyContent: 'space-between',
-                                fontSize: 10,
-                                color: '#8c8c8c',
-                                marginTop: 4
-                              }}>
-                                <span>{Math.floor(currentTime / 60)}:{(currentTime % 60).toFixed(0).padStart(2, '0')}</span>
-                                <span>{Math.floor(duration / 60)}:{(duration % 60).toFixed(0).padStart(2, '0')}</span>
-                              </div>
-                            </div>
+                    <div style={{ 
+                      display: 'flex', 
+                      flexDirection: isMobile ? 'column' : 'row',
+                      gap: 16,
+                      alignItems: 'flex-start'
+                    }}>
+                      {/* Audio Player Section */}
+                      <div style={{ minWidth: isMobile ? '100%' : 300, flexShrink: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          {record.processingStatus === 'COMPLETED' && record.audioFileUrl ? (
+                            <Tooltip title={currentlyPlaying === record.id ? 'Pause Audio' : 'Play Audio'}>
+                              <Button
+                                type="primary"
+                                shape="circle"
+                                size="large"
+                                disabled={(!userCanConsume || linkLimitExceeded) && !isExceptionTeam}
+                                loading={loadingAudio === record.id}
+                                icon={
+                                  loadingAudio === record.id ? <LoadingOutlined /> :
+                                  currentlyPlaying === record.id ? <PauseCircleOutlined /> : 
+                                  <PlayCircleOutlined />
+                                }
+                                onClick={async (e) => {
+                                  e.stopPropagation()
+                                  if ((!userCanConsume || linkLimitExceeded) && !isExceptionTeam) return
+                                  if (loadingAudio === record.id) return
+                                  
+                                  if (currentlyPlaying === record.id) {
+                                    await handlePauseAudio()
+                                  } else {
+                                    await handlePlayAudio(record.id, record.audioFileUrl!)
+                                  }
+                                }}
+                                style={{
+                                  background: ((!userCanConsume || linkLimitExceeded) && !isExceptionTeam) ? '#d9d9d9' : (currentlyPlaying === record.id ? '#ff4d4f' : '#52c41a'),
+                                  borderColor: ((!userCanConsume || linkLimitExceeded) && !isExceptionTeam) ? '#d9d9d9' : (currentlyPlaying === record.id ? '#ff4d4f' : '#52c41a'),
+                                  opacity: ((!userCanConsume || linkLimitExceeded) && !isExceptionTeam) ? 0.6 : 1
+                                }}
+                              />
+                            </Tooltip>
+                          ) : record.processingStatus === 'PROCESSING' ? (
+                            <Button
+                              type="primary"
+                              shape="circle"
+                              size="large"
+                              loading
+                              disabled
+                              style={{ background: '#d9d9d9', borderColor: '#d9d9d9' }}
+                            />
+                          ) : (
+                            <Button
+                              type="primary"
+                              shape="circle"
+                              size="large"
+                              disabled
+                              icon={record.processingStatus === 'FAILED' ? <ExclamationCircleOutlined /> : <ClockCircleOutlined />}
+                              style={{ 
+                                background: record.processingStatus === 'FAILED' ? '#ff4d4f' : '#d9d9d9', 
+                                borderColor: record.processingStatus === 'FAILED' ? '#ff4d4f' : '#d9d9d9'
+                              }}
+                            />
                           )}
+                          
+                          {/* Progress Info */}
+                          <div style={{ textAlign: 'center', minWidth: 80 }}>
+                            <div style={{ fontSize: 12, color: '#8c8c8c' }}>
+                              {currentlyPlaying === record.id ? formatTime(currentTime) : '0:00'} / {currentlyPlaying === record.id && duration > 0 ? formatTime(duration) : (audioDurations[record.id] ? formatTime(audioDurations[record.id]) : '--:--')}
+                            </div>
+                            <div style={{ 
+                              width: '100%', 
+                              height: 4, 
+                              backgroundColor: '#f0f0f0', 
+                              borderRadius: 2,
+                              marginTop: 4
+                            }}>
+                              <div style={{ 
+                                width: currentlyPlaying === record.id ? `${progress * 100}%` : '0%',
+                                height: '100%', 
+                                backgroundColor: currentlyPlaying === record.id ? '#52c41a' : '#d9d9d9',
+                                borderRadius: 2,
+                                transition: 'width 0.3s ease'
+                              }} />
+                            </div>
+                          </div>
                         </div>
-                      ) : record.processingStatus === 'PROCESSING' ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
-                          <Spin size="small" />
-                          <Text type="secondary" style={{ fontSize: 12 }}>Processing...</Text>
-                        </div>
-                      ) : record.processingStatus === 'FAILED' ? (
-                        <Text type="danger" style={{ fontSize: 12, textAlign: 'center', display: 'block' }}>
-                          <ExclamationCircleOutlined /> Failed
-                        </Text>
-                      ) : (
-                        <Text type="secondary" style={{ fontSize: 12, textAlign: 'center', display: 'block' }}>
-                          <ClockCircleOutlined /> Pending
-                        </Text>
-                      )}
+                        
+                        {/* Read Summary Button */}
+                        {record.ttsScript && (
+                          <Tooltip title="Read text summary">
+                            <Button
+                              type="default"
+                              size="small"
+                              icon={<ReadOutlined />}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setExpandedSummary(expandedSummary === record.id ? null : record.id)
+                              }}
+                              style={{
+                                fontSize: 12,
+                                height: 28,
+                                marginTop: 8,
+                                background: expandedSummary === record.id ? '#1890ff' : 'transparent',
+                                color: expandedSummary === record.id ? 'white' : '#1890ff',
+                                borderColor: '#1890ff'
+                              }}
+                            >
+                              {expandedSummary === record.id ? 'Hide Summary' : 'Read Summary'}
+                            </Button>
+                          </Tooltip>
+                        )}
+                      </div>
                     </div>
+                    
+                    {/* Expandable Summary Panel */}
+                    {expandedSummary === record.id && record.ttsScript && (
+                      <div style={{
+                        marginTop: 16,
+                        paddingTop: 16,
+                        borderTop: '1px solid #f0f0f0',
+                        animation: 'slideDown 0.3s ease-out',
+                        opacity: 1,
+                        transform: 'translateY(0)'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <ReadOutlined style={{ color: '#1890ff', fontSize: 16 }} />
+                            <Text strong style={{ fontSize: 14, color: '#262626' }}>
+                              Text Summary
+                            </Text>
+                          </div>
+                          <Button
+                            type="text"
+                            size="small"
+                            icon={<CloseOutlined />}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setExpandedSummary(null)
+                            }}
+                            style={{ color: '#8c8c8c' }}
+                          />
+                        </div>
+                        <div style={{
+                          backgroundColor: '#fafafa',
+                          padding: '16px',
+                          borderRadius: '8px',
+                          border: '1px solid #f0f0f0'
+                        }}>
+                          <Text style={{ 
+                            fontSize: 14, 
+                            lineHeight: 1.6, 
+                            color: '#262626',
+                            whiteSpace: 'pre-wrap'
+                          }}>
+                            {record.ttsScript}
+                          </Text>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </Card>
               ))
