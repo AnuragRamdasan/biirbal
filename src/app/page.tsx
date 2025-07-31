@@ -120,6 +120,7 @@ function HomeContent() {
   const [links, setLinks] = useState<ProcessedLink[]>([])
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [initialLoading, setInitialLoading] = useState(true)
   const [dashboardError, setDashboardError] = useState<string | null>(null)
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null)
   const [showListened, setShowListened] = useState(false)
@@ -182,12 +183,17 @@ function HomeContent() {
     }
   }, [searchParams])
 
-  // Dashboard data fetching
-  const fetchData = async () => {
+  // Dashboard data fetching with loading state control
+  const fetchData = async (isInitialLoad = false) => {
     if (!showDashboard) return
     
     try {
-      setLoading(true)
+      // Only show loading spinner on initial load
+      if (isInitialLoad) {
+        setLoading(true)
+        setInitialLoading(true)
+      }
+      
       const teamId = localStorage.getItem('biirbal_team_id')
       const userId = localStorage.getItem('biirbal_user_id')
       
@@ -223,18 +229,21 @@ function HomeContent() {
       console.error('Failed to fetch dashboard data:', error)
       setDashboardError('Failed to load data')
     } finally {
-      setLoading(false)
+      if (isInitialLoad) {
+        setLoading(false)
+        setInitialLoading(false)
+      }
     }
   }
 
   // Load dashboard data when showDashboard becomes true
   useEffect(() => {
     if (showDashboard) {
-      fetchData()
+      fetchData(true) // Initial load with spinner
       
-      // Set up auto-refresh every 30 seconds
+      // Set up auto-refresh every 30 seconds without spinner
       refreshInterval.current = setInterval(() => {
-        fetchData()
+        fetchData(false) // Background refresh without spinner
       }, 30000) // 30 seconds
       
       // Check if mobile
@@ -327,7 +336,7 @@ function HomeContent() {
       // If link was archived, refresh the data to reflect changes
       if (result.archived) {
         console.log('🗃️ Link archived after completion')
-        setTimeout(() => fetchData(), 1000) // Refresh after a short delay
+        setTimeout(() => fetchData(false), 1000) // Background refresh after completion
       }
 
       return result
@@ -416,7 +425,7 @@ function HomeContent() {
           currentPlayingLinkId.current = null
             
           // Refresh stats to update listen counts
-          await fetchData()
+          await fetchData(false)
         }
       }
     })
@@ -443,7 +452,7 @@ function HomeContent() {
       }
       
       // Refresh stats to update listen counts and minutes listened
-      await fetchData()
+      await fetchData(false)
       
       setCurrentlyPlaying(null)
       setAudioElement(null)
@@ -503,7 +512,7 @@ function HomeContent() {
                 : 0
               
               if (currentListenDuration > 0 && Math.floor(currentListenDuration) % 60 === 0) {
-                await fetchData()
+                await fetchData(false)
               }
             } else {
               console.log('⏭️ Skipping progress update:', { 
@@ -557,7 +566,7 @@ function HomeContent() {
       
       // Refresh stats if user listened for more than 30 seconds or 50% completion
       if (listenDuration > 30 || completionPercentage > 50) {
-        await fetchData()
+        await fetchData(false)
       }
       
       setCurrentlyPlaying(null)
@@ -588,7 +597,8 @@ function HomeContent() {
 
   // Render Dashboard content
   const renderDashboard = () => {
-    if (loading) {
+    // Only show loading spinner on initial load, not on background refreshes
+    if (initialLoading) {
       return (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
           <Spin size="large" />
@@ -859,11 +869,24 @@ function HomeContent() {
                       display: 'flex', 
                       flexDirection: isMobile ? 'column' : 'row',
                       gap: 16,
-                      alignItems: 'flex-start'
+                      alignItems: 'flex-start',
+                      justifyContent: 'flex-end'
                     }}>
                       {/* Audio Player Section */}
-                      <div style={{ minWidth: isMobile ? '100%' : 300, flexShrink: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ 
+                        minWidth: isMobile ? '100%' : 300, 
+                        flexShrink: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-end'
+                      }}>
+                        <div style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 12,
+                          justifyContent: 'flex-end',
+                          width: '100%'
+                        }}>
                           {record.processingStatus === 'COMPLETED' && record.audioFileUrl ? (
                             <Tooltip title={currentlyPlaying === record.id ? 'Pause Audio' : 'Play Audio'}>
                               <Button
