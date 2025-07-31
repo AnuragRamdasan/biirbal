@@ -770,6 +770,7 @@ function HomeContent() {
                     }
                   }}
                 >
+                  {/* Main Card Content */}
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
                     {/* Left Column - Image and Info */}
                     <div style={{ flex: 1, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
@@ -990,53 +991,54 @@ function HomeContent() {
                         )}
                       </div>
                     </div>
-                    
-                    {/* Expandable Summary Panel */}
-                    {expandedSummary === record.id && record.ttsScript && (
-                      <div style={{
-                        marginTop: 16,
-                        paddingTop: 16,
-                        borderTop: '1px solid #f0f0f0',
-                        animation: 'slideDown 0.3s ease-out',
-                        opacity: 1,
-                        transform: 'translateY(0)'
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <ReadOutlined style={{ color: '#1890ff', fontSize: 16 }} />
-                            <Text strong style={{ fontSize: 14, color: '#262626' }}>
-                              Text Summary
-                            </Text>
-                          </div>
-                          <Button
-                            type="text"
-                            size="small"
-                            icon={<CloseOutlined />}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setExpandedSummary(null)
-                            }}
-                            style={{ color: '#8c8c8c' }}
-                          />
-                        </div>
-                        <div style={{
-                          backgroundColor: '#fafafa',
-                          padding: '16px',
-                          borderRadius: '8px',
-                          border: '1px solid #f0f0f0'
-                        }}>
-                          <Text style={{ 
-                            fontSize: 14, 
-                            lineHeight: 1.6, 
-                            color: '#262626',
-                            whiteSpace: 'pre-wrap'
-                          }}>
-                            {record.ttsScript}
+                  </div>
+                  
+                  {/* Expandable Summary Panel - Full Width */}
+                  {expandedSummary === record.id && record.ttsScript && (
+                    <div style={{
+                      marginTop: 16,
+                      paddingTop: 16,
+                      borderTop: '1px solid #f0f0f0',
+                      animation: 'slideDown 0.3s ease-out',
+                      opacity: 1,
+                      transform: 'translateY(0)',
+                      width: '100%'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <ReadOutlined style={{ color: '#1890ff', fontSize: 16 }} />
+                          <Text strong style={{ fontSize: 14, color: '#262626' }}>
+                            Text Summary
                           </Text>
                         </div>
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<CloseOutlined />}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setExpandedSummary(null)
+                          }}
+                          style={{ color: '#8c8c8c' }}
+                        />
                       </div>
-                    )}
-                  </div>
+                      <div style={{
+                        backgroundColor: '#fafafa',
+                        padding: '16px',
+                        borderRadius: '8px',
+                        border: '1px solid #f0f0f0'
+                      }}>
+                        <Text style={{ 
+                          fontSize: 14, 
+                          lineHeight: 1.6, 
+                          color: '#262626',
+                          whiteSpace: 'pre-wrap'
+                        }}>
+                          {record.ttsScript}
+                        </Text>
+                      </div>
+                    </div>
+                  )}
                 </Card>
               ))
             )}
