@@ -37,9 +37,21 @@ export async function POST(request: NextRequest) {
       resumePosition: Math.round(currentTime)
     }
 
-    // Add duration if provided
+    // Add duration if provided - ensure we don't overwrite with smaller values
     if (typeof duration === 'number' && duration > 0) {
-      updateData.listenDuration = Math.round(duration)
+      // Get current listen record to check existing duration
+      const currentListen = await db.audioListen.findUnique({
+        where: { id: listenId },
+        select: { listenDuration: true }
+      })
+      
+      const newDuration = Math.round(duration)
+      const existingDuration = currentListen?.listenDuration || 0
+      
+      // Only update if new duration is greater (prevents overwrites from out-of-order updates)
+      if (newDuration > existingDuration) {
+        updateData.listenDuration = newDuration
+      }
     }
 
     // Mark as completed if specified or if completion percentage >= 85%
