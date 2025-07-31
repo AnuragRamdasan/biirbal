@@ -119,6 +119,7 @@ export default function Dashboard() {
   const refreshInterval = useRef<NodeJS.Timeout | null>(null)
   const completedListens = useRef<Set<string>>(new Set())
   const currentListenRecord = useRef<string | null>(null)
+  const currentPlayingLinkId = useRef<string | null>(null)
   
   // Initialize analytics
   const analytics = useAnalytics({
@@ -363,13 +364,20 @@ export default function Dashboard() {
 
   const updateListenProgress = async (listenId: string, currentTime: number, completed: boolean = false, completionPercentage?: number) => {
     try {
+      const linkId = currentPlayingLinkId.current
+      
+      if (!linkId) {
+        console.error('❌ Cannot update progress: linkId is null')
+        return null
+      }
+
       // Calculate actual listening duration from start time
-      const actualListenDuration = audioStartTimes.current[currentlyPlaying!] 
-        ? (Date.now() - audioStartTimes.current[currentlyPlaying!]) / 1000 
+      const actualListenDuration = audioStartTimes.current[linkId] 
+        ? (Date.now() - audioStartTimes.current[linkId]) / 1000 
         : currentTime
 
       const payload = {
-        linkId: currentlyPlaying,
+        linkId: linkId,
         listenId: listenId,
         duration: actualListenDuration,
         currentTime: currentTime,
@@ -443,6 +451,7 @@ export default function Dashboard() {
 
       const listenRecord = trackResult.listen
       currentListenRecord.current = listenRecord.id
+      currentPlayingLinkId.current = linkId
 
       // Create new audio element
       const audio = new Audio(audioUrl)
@@ -484,6 +493,7 @@ export default function Dashboard() {
           
           // Clear the record so we don't mark it completed multiple times
           currentListenRecord.current = null
+          currentPlayingLinkId.current = null
             
           // Refresh stats to update listen counts
           await refreshStats()
@@ -518,6 +528,7 @@ export default function Dashboard() {
       setCurrentlyPlaying(null)
       setAudioElement(null)
       currentListenRecord.current = null
+      currentPlayingLinkId.current = null
       setCurrentTime(0)
       setProgress(0)
       setDuration(0)
@@ -530,6 +541,7 @@ export default function Dashboard() {
         setCurrentlyPlaying(null)
         setAudioElement(null)
         currentListenRecord.current = null
+        currentPlayingLinkId.current = null
         setCurrentTime(0)
         setProgress(0)
         setDuration(0)
@@ -591,6 +603,7 @@ export default function Dashboard() {
         setCurrentlyPlaying(null)
         setAudioElement(null)
         currentListenRecord.current = null
+        currentPlayingLinkId.current = null
         setCurrentTime(0)
         setProgress(0)
         setDuration(0)
