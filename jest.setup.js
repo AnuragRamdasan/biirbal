@@ -289,6 +289,7 @@ jest.mock('next/headers', () => ({
   }))
 }))
 
+// Mock fetch globally - will be overridden in individual tests as needed
 global.fetch = jest.fn(() =>
   Promise.resolve({
     ok: true,
@@ -298,3 +299,26 @@ global.fetch = jest.fn(() =>
     arrayBuffer: () => Promise.resolve(new ArrayBuffer(0))
   })
 )
+
+// Mock localStorage for client-side tests
+const localStorageMock = {
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
+}
+global.localStorage = localStorageMock
+
+// Note: window.location is provided by jsdom
+
+// Mock Next.js useSearchParams and useRouter
+jest.mock('next/navigation', () => ({
+  useSearchParams: jest.fn(() => ({
+    get: jest.fn(() => null)
+  })),
+  useRouter: jest.fn(() => ({
+    push: jest.fn(),
+    replace: jest.fn(),
+    prefetch: jest.fn()
+  }))
+}))

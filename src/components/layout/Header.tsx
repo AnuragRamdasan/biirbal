@@ -69,10 +69,10 @@ export const Header: React.FC<HeaderProps> = ({
               {isAuthenticated && (
                 <>
                   <Link 
-                    href="/dashboard" 
+                    href="/" 
                     className={cn(
                       'text-white/80 hover:text-white transition-colors text-sm font-medium',
-                      currentPage === 'dashboard' && 'text-white font-semibold'
+                      (currentPage === 'dashboard' || currentPage === 'home') && 'text-white font-semibold'
                     )}
                   >
                     Dashboard

@@ -6,7 +6,7 @@ const createJestConfig = nextJest({
 
 const customJestConfig = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-  testEnvironment: 'node',
+  testEnvironment: 'jsdom',
   testMatch: [
     '**/__tests__/**/*.(js|jsx|ts|tsx)',
     '**/*.(test|spec).(js|jsx|ts|tsx)'
@@ -17,6 +17,8 @@ const customJestConfig = {
   collectCoverageFrom: [
     'src/app/api/**/*.{js,jsx,ts,tsx}',
     'src/lib/**/*.{js,jsx,ts,tsx}',
+    'src/components/**/*.{js,jsx,ts,tsx}',
+    'src/app/**/page.tsx',
   ],
   coverageThreshold: {
     global: {

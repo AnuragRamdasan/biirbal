@@ -1,7 +1,7 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useState, useRef, Suspense } from 'react'
 import Script from 'next/script'
 import { 
   Row, 
@@ -16,11 +16,20 @@ import {
   Divider,
   List,
   Timeline,
+  Spin,
+  Switch,
+  Empty,
+  Tooltip,
+  Select,
 } from 'antd'
 import {
   SoundOutlined,
   SlackOutlined,
   PlayCircleOutlined,
+  PauseCircleOutlined,
+  LinkOutlined,
+  EyeOutlined,
+  EyeInvisibleOutlined,
   ClockCircleOutlined,
   TeamOutlined,
   CheckCircleOutlined,
@@ -28,19 +37,122 @@ import {
   BulbOutlined,
   SafetyCertificateOutlined,
   GlobalOutlined,
-  ArrowRightOutlined
+  ArrowRightOutlined,
+  LoadingOutlined,
+  ExclamationCircleOutlined,
+  CalendarOutlined,
+  ReadOutlined,
+  CloseOutlined,
 } from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
 import { getOAuthRedirectUri } from '@/lib/config'
+import { useAnalytics } from '@/hooks/useAnalytics'
 
 const { Title, Text, Paragraph } = Typography
 
+// Add CSS animation for slide down effect (for dashboard)
+const slideDownKeyframes = `
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+      max-height: 0;
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+      max-height: 500px;
+    }
+  }
+`
+
+// Inject the keyframes into the document head
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style')
+  style.textContent = slideDownKeyframes
+  document.head.appendChild(style)
+}
+
+interface ProcessedLink {
+  id: string
+  url: string
+  title: string | null
+  extractedText: string | null
+  audioFileUrl: string | null
+  ttsScript: string | null
+  createdAt: string
+  processingStatus: string
+  listens: AudioListen[]
+  ogImage?: string | null
+  source?: string | null
+  channel?: {
+    channelName: string | null
+    slackChannelId: string
+  }
+}
+
+interface DashboardStats {
+  totalLinks: number
+  completedLinks: number
+  totalListens: number
+  totalMinutesCurated: number
+  totalMinutesListened: number
+  timestamp: string
+}
+
+interface AudioListen {
+  id: string
+  listenedAt: string
+  completed: boolean
+  listenDuration: number | null
+  resumePosition?: number | null
+}
+
 function HomeContent() {
   const searchParams = useSearchParams()
+  
+  // Home page state
   const [installed, setInstalled] = useState(false)
   const [error, setError] = useState('')
   const [showDashboard, setShowDashboard] = useState(false)
+  
+  // Dashboard state
+  const [links, setLinks] = useState<ProcessedLink[]>([])
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [dashboardError, setDashboardError] = useState<string | null>(null)
+  const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null)
+  const [showListened, setShowListened] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
+  const [progress, setProgress] = useState(0)
+  const [audioDurations, setAudioDurations] = useState<Record<string, number>>({})
+  const [usageWarning, setUsageWarning] = useState<string | null>(null)
+  const [linkLimitExceeded, setLinkLimitExceeded] = useState<boolean>(false)
+  const [isExceptionTeam, setIsExceptionTeam] = useState<boolean>(false)
+  const [userCanConsume, setUserCanConsume] = useState<boolean>(true)
+  const [sourceFilter, setSourceFilter] = useState<string>('all')
+  const [loadingAudio, setLoadingAudio] = useState<string | null>(null)
+  const [expandedSummary, setExpandedSummary] = useState<string | null>(null)
+  
+  // Dashboard refs
+  const audioStartTimes = useRef<Record<string, number>>({})
+  const progressUpdateInterval = useRef<NodeJS.Timeout | null>(null)
+  const refreshInterval = useRef<NodeJS.Timeout | null>(null)
+  const completedListens = useRef<Set<string>>(new Set())
+  const currentListenRecord = useRef<string | null>(null)
+  const currentPlayingLinkId = useRef<string | null>(null)
+  
+  // Initialize analytics
+  const analytics = useAnalytics({
+    autoTrackPageViews: true,
+    trackScrollDepth: true,
+    trackTimeOnPage: true
+  })
 
+  // Check authentication and set initial state
   useEffect(() => {
     if (searchParams.get('installed') === 'true') {
       setInstalled(true)
@@ -66,16 +178,685 @@ function HomeContent() {
     const hasTeamId = localStorage.getItem('biirbal_team_id')
     if (hasVisitedDashboard && hasTeamId && !searchParams.get('error')) {
       setShowDashboard(true)
+      localStorage.setItem('biirbal_visited_dashboard', 'true')
     }
   }, [searchParams])
 
-  // If user should see dashboard, redirect them
-  useEffect(() => {
-    if (showDashboard && !error) {
-      localStorage.setItem('biirbal_visited_dashboard', 'true')
-      window.location.href = '/dashboard'
+  // Dashboard data fetching
+  const fetchData = async () => {
+    if (!showDashboard) return
+    
+    try {
+      setLoading(true)
+      const teamId = localStorage.getItem('biirbal_team_id')
+      const userId = localStorage.getItem('biirbal_user_id')
+      
+      if (!teamId || !userId) {
+        setShowDashboard(false)
+        return
+      }
+
+      const [linksResponse, statsResponse, usageResponse] = await Promise.all([
+        fetch(`/api/dashboard/links?teamId=${teamId}&userId=${userId}`),
+        fetch(`/api/dashboard/stats?teamId=${teamId}&slackUserId=${userId}`),
+        fetch(`/api/dashboard/usage?teamId=${teamId}&userId=${userId}`)
+      ])
+
+      if (!linksResponse.ok || !statsResponse.ok || !usageResponse.ok) {
+        throw new Error('Failed to fetch data')
+      }
+
+      const [linksData, statsData, usageData] = await Promise.all([
+        linksResponse.json(),
+        statsResponse.json(),
+        usageResponse.json()
+      ])
+
+      setLinks(linksData.links || [])
+      setStats(statsData)
+      setUsageWarning(usageData.message || null)
+      setLinkLimitExceeded(usageData.linkLimitExceeded || false)
+      setIsExceptionTeam(usageData.isExceptionTeam || false)
+      setUserCanConsume(usageData.userCanConsume !== false)
+      setDashboardError(null)
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error)
+      setDashboardError('Failed to load data')
+    } finally {
+      setLoading(false)
     }
-  }, [showDashboard, error])
+  }
+
+  // Load dashboard data when showDashboard becomes true
+  useEffect(() => {
+    if (showDashboard) {
+      fetchData()
+      
+      // Set up auto-refresh every 30 seconds
+      refreshInterval.current = setInterval(() => {
+        fetchData()
+      }, 30000) // 30 seconds
+      
+      // Check if mobile
+      const checkIfMobile = () => setIsMobile(window.innerWidth <= 768)
+      checkIfMobile()
+      window.addEventListener('resize', checkIfMobile)
+      
+      return () => {
+        if (refreshInterval.current) {
+          clearInterval(refreshInterval.current)
+        }
+        window.removeEventListener('resize', checkIfMobile)
+      }
+    }
+  }, [showDashboard])
+
+  // Dashboard helper functions
+  const trackListen = async (linkId: string) => {
+    try {
+      const teamId = localStorage.getItem('biirbal_team_id')
+      const userId = localStorage.getItem('biirbal_user_id')
+      
+      const requestBody = {
+        linkId,
+        teamId,
+        userId
+      }
+
+      const response = await fetch('/api/dashboard/track-listen', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to track listen')
+      }
+      
+      return await response.json()
+    } catch (error) {
+      console.error('Failed to track listen:', error)
+      return null
+    }
+  }
+
+  const updateListenProgress = async (listenId: string, currentTime: number, completed: boolean = false, completionPercentage?: number) => {
+    try {
+      const linkId = currentPlayingLinkId.current
+      
+      if (!linkId) {
+        console.error('❌ Cannot update progress: linkId is null')
+        return null
+      }
+
+      // Calculate actual listening duration from start time
+      const actualListenDuration = audioStartTimes.current[linkId] 
+        ? (Date.now() - audioStartTimes.current[linkId]) / 1000 
+        : currentTime
+
+      const payload = {
+        linkId: linkId,
+        listenId: listenId,
+        duration: actualListenDuration,
+        currentTime: currentTime,
+        completed: completed,
+        completionPercentage: completionPercentage
+      }
+
+      console.log('📤 Sending progress update:', payload)
+
+      const response = await fetch('/api/dashboard/update-listen-progress', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('❌ Progress update failed:', response.status, errorText)
+        throw new Error(`Failed to update progress: ${response.status} - ${errorText}`)
+      }
+
+      const result = await response.json()
+      console.log('✅ Progress update successful:', result)
+      
+      // If link was archived, refresh the data to reflect changes
+      if (result.archived) {
+        console.log('🗃️ Link archived after completion')
+        setTimeout(() => fetchData(), 1000) // Refresh after a short delay
+      }
+
+      return result
+    } catch (error) {
+      console.error('❌ Failed to update listen progress:', error)
+      return null
+    }
+  }
+
+  const handlePlayAudio = async (linkId: string, audioUrl: string) => {
+    // Prevent multiple simultaneous play attempts
+    if (loadingAudio === linkId) {
+      return
+    }
+    
+    // Set loading state immediately
+    setLoadingAudio(linkId)
+    
+    try {
+      // Stop any currently playing audio
+      if (audioElement) {
+        audioElement.pause()
+        if (currentListenRecord.current && progressUpdateInterval.current) {
+          clearInterval(progressUpdateInterval.current)
+          await updateListenProgress(currentListenRecord.current, audioElement.currentTime, false)
+        }
+      }
+
+      // Reset progress state
+      setCurrentTime(0)
+      setProgress(0)
+      setDuration(0)
+
+      // Track listen and get resume position
+      const trackResult = await trackListen(linkId)
+      if (!trackResult) {
+        console.error('Failed to start tracking listen')
+        setLoadingAudio(null)
+        return
+      }
+
+      const listenRecord = trackResult.listen
+      currentListenRecord.current = listenRecord.id
+      currentPlayingLinkId.current = linkId
+
+      // Create new audio element
+      const audio = new Audio(audioUrl)
+      audioStartTimes.current[linkId] = Date.now()
+      
+      // Clean up completion tracking for this audio
+      if (listenRecord.id) {
+        completedListens.current.delete(listenRecord.id)
+      }
+    
+    // Add event listeners for progress tracking
+    audio.addEventListener('loadedmetadata', () => {
+      setDuration(audio.duration)
+      
+      // Resume from saved position if available
+      const resumePosition = listenRecord.resumePosition || 0
+      if (resumePosition > 0 && resumePosition < audio.duration - 5) {
+        audio.currentTime = resumePosition
+        setCurrentTime(resumePosition)
+        setProgress(resumePosition / audio.duration)
+      }
+      
+      // Track audio play event
+      analytics.trackAudioPlay(linkId, audio.duration, 'dashboard')
+    })
+    
+    audio.addEventListener('timeupdate', async () => {
+      setCurrentTime(audio.currentTime)
+      if (audio.duration > 0) {
+        const progressPercentage = (audio.currentTime / audio.duration) * 100
+        setProgress(audio.currentTime / audio.duration)
+        
+        // Mark as completed when user reaches 85% of the audio
+        if (progressPercentage >= 85 && currentListenRecord.current && !completedListens.current.has(currentListenRecord.current)) {
+          completedListens.current.add(currentListenRecord.current)
+          
+          // Update listen record as completed
+          await updateListenProgress(currentListenRecord.current, audio.currentTime, true, progressPercentage)
+          
+          // Clear the record so we don't mark it completed multiple times
+          currentListenRecord.current = null
+          currentPlayingLinkId.current = null
+            
+          // Refresh stats to update listen counts
+          await fetchData()
+        }
+      }
+    })
+    
+    audio.addEventListener('ended', async () => {
+      const listenDuration = audioStartTimes.current[linkId] 
+        ? (Date.now() - audioStartTimes.current[linkId]) / 1000 
+        : audio.duration
+      
+      // Track audio completion
+      analytics.trackAudioComplete(linkId, 100, listenDuration)
+      
+      // Mark listen as completed (only if not already marked at 85%)
+      if (currentListenRecord.current && !completedListens.current.has(currentListenRecord.current)) {
+        completedListens.current.add(currentListenRecord.current)
+        try {
+          await updateListenProgress(currentListenRecord.current, audio.currentTime, true, 100)
+        } catch (error) {
+          console.error('Failed to update listen completion:', error)
+        }
+        if (progressUpdateInterval.current) {
+          clearInterval(progressUpdateInterval.current)
+        }
+      }
+      
+      // Refresh stats to update listen counts and minutes listened
+      await fetchData()
+      
+      setCurrentlyPlaying(null)
+      setAudioElement(null)
+      currentListenRecord.current = null
+      currentPlayingLinkId.current = null
+      setCurrentTime(0)
+      setProgress(0)
+      setDuration(0)
+      setLoadingAudio(null) // Clear loading state when track ends
+    })
+    
+      audio.addEventListener('error', () => {
+        console.error('Audio playback failed')
+        analytics.trackFeature('audio_play_error', { link_id: linkId })
+        setCurrentlyPlaying(null)
+        setAudioElement(null)
+        currentListenRecord.current = null
+        currentPlayingLinkId.current = null
+        setCurrentTime(0)
+        setProgress(0)
+        setDuration(0)
+        setLoadingAudio(null) // Clear loading state on error
+        if (progressUpdateInterval.current) {
+          clearInterval(progressUpdateInterval.current)
+        }
+      })
+
+      // Start playing
+      audio.play().then(() => {
+        setCurrentlyPlaying(linkId)
+        setAudioElement(audio)
+        setLoadingAudio(null) // Clear loading state on success
+        
+        // Set up periodic progress updates
+        progressUpdateInterval.current = setInterval(async () => {
+          try {
+            console.log('🔄 Progress update interval running', { 
+              duration: audio.duration, 
+              listenRecord: currentListenRecord.current, 
+              currentTime: audio.currentTime,
+              isPlaying: !audio.paused 
+            })
+            
+            if (audio.duration > 0 && currentListenRecord.current && !audio.paused) {
+              const completionPercentage = (audio.currentTime / audio.duration) * 100
+              console.log('📤 Sending progress update', { completionPercentage, currentTime: audio.currentTime })
+              
+              const result = await updateListenProgress(currentListenRecord.current, audio.currentTime, false, completionPercentage)
+              
+              if (!result) {
+                console.warn('⚠️ Progress update returned null - network or server error')
+              }
+              
+              // Refresh stats every minute of listening
+              const currentListenDuration = audioStartTimes.current[linkId] 
+                ? (Date.now() - audioStartTimes.current[linkId]) / 1000 
+                : 0
+              
+              if (currentListenDuration > 0 && Math.floor(currentListenDuration) % 60 === 0) {
+                await fetchData()
+              }
+            } else {
+              console.log('⏭️ Skipping progress update:', { 
+                hasDuration: audio.duration > 0, 
+                hasListenRecord: !!currentListenRecord.current,
+                isPaused: audio.paused 
+              })
+            }
+          } catch (error) {
+            console.error('❌ Error in progress update interval:', error)
+          }
+        }, 5000) // Update every 5 seconds
+        
+      }).catch((error) => {
+        console.error('Failed to play audio:', error)
+        analytics.trackFeature('audio_play_error', { link_id: linkId, error: error.message })
+        setCurrentlyPlaying(null)
+        setAudioElement(null)
+        currentListenRecord.current = null
+        currentPlayingLinkId.current = null
+        setCurrentTime(0)
+        setProgress(0)
+        setDuration(0)
+        setLoadingAudio(null) // Clear loading state on error
+      })
+    } catch (error) {
+      console.error('Error in handlePlayAudio:', error)
+      setLoadingAudio(null) // Clear loading state on any error
+    }
+  }
+
+  const handlePauseAudio = async () => {
+    if (audioElement && currentlyPlaying) {
+      const listenDuration = audioStartTimes.current[currentlyPlaying] 
+        ? (Date.now() - audioStartTimes.current[currentlyPlaying]) / 1000 
+        : 0
+      const completionPercentage = duration > 0 ? Math.round((currentTime / duration) * 100) : 0
+      
+      // Save current progress
+      if (currentListenRecord.current) {
+        await updateListenProgress(currentListenRecord.current, audioElement.currentTime, false, completionPercentage)
+        if (progressUpdateInterval.current) {
+          clearInterval(progressUpdateInterval.current)
+        }
+      }
+      
+      // Track partial completion if user listened to some of the audio
+      if (completionPercentage > 10) {
+        analytics.trackAudioComplete(currentlyPlaying, completionPercentage, listenDuration)
+      }
+      
+      // Refresh stats if user listened for more than 30 seconds or 50% completion
+      if (listenDuration > 30 || completionPercentage > 50) {
+        await fetchData()
+      }
+      
+      setCurrentlyPlaying(null)
+      setAudioElement(null)
+      currentListenRecord.current = null
+      currentPlayingLinkId.current = null
+      setCurrentTime(0)
+      setProgress(0)
+      setDuration(0)
+      setLoadingAudio(null) // Clear loading state when paused
+    }
+  }
+
+  // Render Dashboard content
+  const renderDashboard = () => {
+    if (loading) {
+      return (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
+          <Spin size="large" />
+        </div>
+      )
+    }
+
+    if (dashboardError) {
+      return (
+        <Alert
+          message="Error Loading Dashboard"
+          description={dashboardError}
+          type="error"
+          showIcon
+          style={{ margin: '40px 0' }}
+        />
+      )
+    }
+
+    const filteredLinks = links.filter(link => {
+      if (sourceFilter === 'all') return true
+      return link.source === sourceFilter || (sourceFilter === 'slack' && !link.source)
+    })
+
+    const visibleLinks = showListened 
+      ? filteredLinks 
+      : filteredLinks.filter(link => !link.listens?.some(listen => listen.completed))
+
+    return (
+      <Layout currentPage="dashboard" showHeader={true}>
+        <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+          {/* Dashboard Header */}
+          <div style={{ marginBottom: '32px' }}>
+            <Title level={2}>
+              <Space>
+                <SoundOutlined />
+                Your Audio Library
+              </Space>
+            </Title>
+            <Text type="secondary">
+              Listen to your AI-generated audio summaries and track your progress
+            </Text>
+          </div>
+
+          {/* Usage Warning */}
+          {usageWarning && (
+            <Alert
+              message={usageWarning}
+              type={linkLimitExceeded ? "error" : "warning"}
+              showIcon
+              style={{ marginBottom: 24 }}
+              closable
+            />
+          )}
+
+          {/* Stats Cards */}
+          {stats && (
+            <Row gutter={[16, 16]} style={{ marginBottom: '32px' }}>
+              <Col xs={24} sm={12} md={6}>
+                <Card>
+                  <Statistic
+                    title="Total Links"
+                    value={stats.totalLinks}
+                    prefix={<LinkOutlined />}
+                  />
+                </Card>
+              </Col>
+              <Col xs={24} sm={12} md={6}>
+                <Card>
+                  <Statistic
+                    title="Completed Links"
+                    value={stats.completedLinks}
+                    prefix={<CheckCircleOutlined />}
+                  />
+                </Card>
+              </Col>
+              <Col xs={24} sm={12} md={6}>
+                <Card>
+                  <Statistic
+                    title="Total Listens"
+                    value={stats.totalListens}
+                    prefix={<SoundOutlined />}
+                  />
+                </Card>
+              </Col>
+              <Col xs={24} sm={12} md={6}>
+                <Card>
+                  <Statistic
+                    title="Minutes Listened"
+                    value={Math.round(stats.totalMinutesListened)}
+                    prefix={<ClockCircleOutlined />}
+                  />
+                </Card>
+              </Col>
+            </Row>
+          )}
+
+          {/* Controls */}
+          <div style={{ marginBottom: '24px' }}>
+            <Row justify="space-between" align="middle">
+              <Col>
+                <Space>
+                  <Switch
+                    checked={showListened}
+                    onChange={setShowListened}
+                    checkedChildren={<EyeOutlined />}
+                    unCheckedChildren={<EyeInvisibleOutlined />}
+                  />
+                  <Text>Show listened</Text>
+                </Space>
+              </Col>
+              <Col>
+                <Select
+                  value={sourceFilter}
+                  onChange={setSourceFilter}
+                  style={{ width: 120 }}
+                  options={[
+                    { value: 'all', label: 'All Sources' },
+                    { value: 'slack', label: 'Slack' },
+                    { value: 'dashboard', label: 'Dashboard' },
+                  ]}
+                />
+              </Col>
+            </Row>
+          </div>
+
+          {/* Links Grid */}
+          {visibleLinks.length === 0 ? (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={
+                <div>
+                  <Text>No audio summaries found</Text>
+                  <br />
+                  <Text type="secondary">
+                    Share some links in Slack to get started!
+                  </Text>
+                </div>
+              }
+            />
+          ) : (
+            <Row gutter={[16, 16]}>
+              {visibleLinks.map((link) => (
+                <Col xs={24} sm={12} lg={8} key={link.id}>
+                  <Card
+                    hoverable
+                    style={{ height: '100%' }}
+                    cover={
+                      link.ogImage && (
+                        <img
+                          alt={link.title || 'Link preview'}
+                          src={link.ogImage}
+                          style={{ height: 160, objectFit: 'cover' }}
+                        />
+                      )
+                    }
+                    actions={[
+                      <Tooltip title={link.processingStatus === 'completed' ? 'Play Audio' : 'Processing...'} key="play">
+                        {link.processingStatus === 'completed' && link.audioFileUrl ? (
+                          loadingAudio === link.id ? (
+                            <LoadingOutlined />
+                          ) : currentlyPlaying === link.id ? (
+                            <Button
+                              type="text"
+                              icon={<PauseCircleOutlined />}
+                              onClick={handlePauseAudio}
+                            />
+                          ) : (
+                            <Button
+                              type="text"
+                              icon={<PlayCircleOutlined />}
+                              onClick={() => handlePlayAudio(link.id, link.audioFileUrl!)}
+                            />
+                          )
+                        ) : (
+                          <LoadingOutlined />
+                        )}
+                      </Tooltip>,
+                      <Tooltip title="View Original Link" key="link">
+                        <Button
+                          type="text"
+                          icon={<LinkOutlined />}
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        />
+                      </Tooltip>
+                    ]}
+                  >
+                    <Card.Meta
+                      title={
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Text ellipsis style={{ flex: 1 }}>
+                            {link.title || 'Untitled'}
+                          </Text>
+                          {link.listens?.some(listen => listen.completed) && (
+                            <Badge count={<CheckCircleOutlined style={{ color: '#52c41a' }} />} />
+                          )}
+                        </div>
+                      }
+                      description={
+                        <div>
+                          <Text type="secondary" ellipsis>
+                            {link.extractedText?.substring(0, 100)}...
+                          </Text>
+                          <div style={{ marginTop: '8px' }}>
+                            <Space split={<Divider type="vertical" />}>
+                              <Text type="secondary" style={{ fontSize: '12px' }}>
+                                <CalendarOutlined /> {new Date(link.createdAt).toLocaleDateString()}
+                              </Text>
+                              {link.channel?.channelName && (
+                                <Text type="secondary" style={{ fontSize: '12px' }}>
+                                  #{link.channel.channelName}
+                                </Text>
+                              )}
+                            </Space>
+                          </div>
+                        </div>
+                      }
+                    />
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          )}
+
+          {/* Audio Progress Bar (when playing) */}
+          {currentlyPlaying && audioElement && (
+            <div style={{
+              position: 'fixed',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              background: 'white',
+              padding: '16px',
+              borderTop: '1px solid #f0f0f0',
+              zIndex: 1000
+            }}>
+              <Row align="middle" gutter={16}>
+                <Col flex="auto">
+                  <div style={{ marginBottom: '8px' }}>
+                    <Text strong>
+                      {links.find(l => l.id === currentlyPlaying)?.title || 'Playing...'}
+                    </Text>
+                  </div>
+                  <div style={{
+                    width: '100%',
+                    height: '4px',
+                    background: '#f0f0f0',
+                    borderRadius: '2px',
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      width: `${progress * 100}%`,
+                      height: '100%',
+                      background: '#1890ff',
+                      transition: 'width 0.3s ease'
+                    }} />
+                  </div>
+                  <div style={{ marginTop: '4px', display: 'flex', justifyContent: 'space-between' }}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>
+                      {Math.floor(currentTime / 60)}:{String(Math.floor(currentTime % 60)).padStart(2, '0')}
+                    </Text>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>
+                      {Math.floor(duration / 60)}:{String(Math.floor(duration % 60)).padStart(2, '0')}
+                    </Text>
+                  </div>
+                </Col>
+                <Col>
+                  <Button
+                    type="primary"
+                    icon={<PauseCircleOutlined />}
+                    onClick={handlePauseAudio}
+                    size="large"
+                  />
+                </Col>
+              </Row>
+            </div>
+          )}
+        </div>
+      </Layout>
+    )
+  }
 
   // Force custom domain for OAuth redirect
   const getRedirectUri = () => {
@@ -84,6 +865,12 @@ function HomeContent() {
 
   const slackInstallUrl = `https://slack.com/oauth/v2/authorize?client_id=${process.env.NEXT_PUBLIC_SLACK_CLIENT_ID}&scope=app_mentions:read,channels:history,channels:read,chat:write,files:write,groups:history,groups:read,im:history,im:read,mpim:history,mpim:read&user_scope=users:read&redirect_uri=${encodeURIComponent(getRedirectUri())}`
 
+  // If user is authenticated, show dashboard
+  if (showDashboard && !error) {
+    return renderDashboard()
+  }
+
+  // Otherwise show marketing homepage
   const features = [
     {
       icon: <SoundOutlined style={{ fontSize: 24, color: '#1890ff' }} />,
@@ -130,7 +917,7 @@ function HomeContent() {
     }
   ]
 
-  const stats = [
+  const marketingStats = [
     { title: '59 Seconds', value: 'Average Summary Length', icon: <ClockCircleOutlined /> },
     { title: '90%', value: 'Time Saved', icon: <CheckCircleOutlined /> },
     { title: '24/7', value: 'Always Available', icon: <GlobalOutlined /> }
@@ -178,7 +965,7 @@ function HomeContent() {
                 {installed && (
                   <Alert
                     message="Installation Successful!"
-                    description="Redirecting to your dashboard..."
+                    description="Welcome to biirbal.ai! Your dashboard is loading..."
                     type="success"
                     showIcon
                     style={{ marginBottom: 24 }}
@@ -245,7 +1032,7 @@ function HomeContent() {
       <div style={{ padding: '60px 0', background: '#f8f9fa' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
           <Row gutter={[32, 32]} justify="center">
-            {stats.map((stat, index) => (
+            {marketingStats.map((stat, index) => (
               <Col xs={24} sm={8} key={index}>
                 <Card 
                   style={{ textAlign: 'center', height: '100%' }}
@@ -539,12 +1326,6 @@ function HomeContent() {
             <Text type="secondary" style={{ fontSize: 16 }}>
               Trusted by <strong>500+ teams</strong> who've saved <strong>1000+ hours</strong> staying informed
             </Text>
-            {/* <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '40px', flexWrap: 'wrap' }}>
-              <Text type="secondary" style={{ fontSize: 14 }}>🚀 YC Startups</Text>
-              <Text type="secondary" style={{ fontSize: 14 }}>🏢 Fortune 500</Text>
-              <Text type="secondary" style={{ fontSize: 14 }}>🎓 Universities</Text>
-              <Text type="secondary" style={{ fontSize: 14 }}>💰 VC Firms</Text>
-            </div> */}
           </Space>
         </div>
       </div>

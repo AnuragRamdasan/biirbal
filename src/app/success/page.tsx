@@ -108,7 +108,7 @@ function SuccessContent() {
         </p>
         <div className="space-y-3">
           <Link
-            href="/dashboard"
+            href="/"
             className="w-full inline-block bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
           >
             Go to Dashboard
