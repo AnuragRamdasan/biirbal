@@ -111,7 +111,6 @@ export default function Dashboard() {
   const [linkLimitExceeded, setLinkLimitExceeded] = useState<boolean>(false)
   const [isExceptionTeam, setIsExceptionTeam] = useState<boolean>(false)
   const [userCanConsume, setUserCanConsume] = useState<boolean>(true)
-  const [currentListenRecord, setCurrentListenRecord] = useState<string | null>(null)
   const [sourceFilter, setSourceFilter] = useState<string>('all')
   const [loadingAudio, setLoadingAudio] = useState<string | null>(null)
   const [expandedSummary, setExpandedSummary] = useState<string | null>(null)
@@ -119,6 +118,7 @@ export default function Dashboard() {
   const progressUpdateInterval = useRef<NodeJS.Timeout | null>(null)
   const refreshInterval = useRef<NodeJS.Timeout | null>(null)
   const completedListens = useRef<Set<string>>(new Set())
+  const currentListenRecord = useRef<string | null>(null)
   
   // Initialize analytics
   const analytics = useAnalytics({
@@ -368,26 +368,33 @@ export default function Dashboard() {
         ? (Date.now() - audioStartTimes.current[currentlyPlaying!]) / 1000 
         : currentTime
 
+      const payload = {
+        linkId: currentlyPlaying,
+        listenId: listenId,
+        duration: actualListenDuration,
+        currentTime: currentTime,
+        completed: completed,
+        completionPercentage: completionPercentage
+      }
+
+      console.log('📤 Sending progress update:', payload)
+
       const response = await fetch('/api/dashboard/update-listen-progress', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          linkId: currentlyPlaying,
-          listenId: listenId,
-          duration: actualListenDuration,
-          currentTime: currentTime,
-          completed: completed,
-          completionPercentage: completionPercentage
-        }),
+        body: JSON.stringify(payload),
       })
 
       if (!response.ok) {
-        throw new Error(`Failed to update progress: ${response.status}`)
+        const errorText = await response.text()
+        console.error('❌ Progress update failed:', response.status, errorText)
+        throw new Error(`Failed to update progress: ${response.status} - ${errorText}`)
       }
 
       const result = await response.json()
+      console.log('✅ Progress update successful:', result)
       
       // If link was archived, refresh the data to reflect changes
       if (result.archived) {
@@ -397,7 +404,7 @@ export default function Dashboard() {
 
       return result
     } catch (error) {
-      console.error('Failed to update listen progress:', error)
+      console.error('❌ Failed to update listen progress:', error)
       return null
     }
   }
@@ -415,9 +422,9 @@ export default function Dashboard() {
       // Stop any currently playing audio
       if (audioElement) {
         audioElement.pause()
-        if (currentListenRecord && progressUpdateInterval.current) {
+        if (currentListenRecord.current && progressUpdateInterval.current) {
           clearInterval(progressUpdateInterval.current)
-          await updateListenProgress(currentListenRecord, audioElement.currentTime, false)
+          await updateListenProgress(currentListenRecord.current, audioElement.currentTime, false)
         }
       }
 
@@ -435,7 +442,7 @@ export default function Dashboard() {
       }
 
       const listenRecord = trackResult.listen
-      setCurrentListenRecord(listenRecord.id)
+      currentListenRecord.current = listenRecord.id
 
       // Create new audio element
       const audio = new Audio(audioUrl)
@@ -469,14 +476,14 @@ export default function Dashboard() {
         setProgress(audio.currentTime / audio.duration)
         
         // Mark as completed when user reaches 85% of the audio
-        if (progressPercentage >= 85 && currentListenRecord && !completedListens.current.has(currentListenRecord)) {
-          completedListens.current.add(currentListenRecord)
+        if (progressPercentage >= 85 && currentListenRecord.current && !completedListens.current.has(currentListenRecord.current)) {
+          completedListens.current.add(currentListenRecord.current)
           
           // Update listen record as completed
-          updateListenProgress(currentListenRecord, audio.currentTime, true, progressPercentage)
+          await updateListenProgress(currentListenRecord.current, audio.currentTime, true, progressPercentage)
           
           // Clear the record so we don't mark it completed multiple times
-          setCurrentListenRecord(null)
+          currentListenRecord.current = null
             
           // Refresh stats to update listen counts
           await refreshStats()
@@ -493,10 +500,10 @@ export default function Dashboard() {
       analytics.trackAudioComplete(linkId, 100, listenDuration)
       
       // Mark listen as completed (only if not already marked at 85%)
-      if (currentListenRecord && !completedListens.current.has(currentListenRecord)) {
-        completedListens.current.add(currentListenRecord)
+      if (currentListenRecord.current && !completedListens.current.has(currentListenRecord.current)) {
+        completedListens.current.add(currentListenRecord.current)
         try {
-          await updateListenProgress(currentListenRecord, audio.currentTime, true, 100)
+          await updateListenProgress(currentListenRecord.current, audio.currentTime, true, 100)
         } catch (error) {
           console.error('Failed to update listen completion:', error)
         }
@@ -510,7 +517,7 @@ export default function Dashboard() {
       
       setCurrentlyPlaying(null)
       setAudioElement(null)
-      setCurrentListenRecord(null)
+      currentListenRecord.current = null
       setCurrentTime(0)
       setProgress(0)
       setDuration(0)
@@ -522,7 +529,7 @@ export default function Dashboard() {
         analytics.trackFeature('audio_play_error', { link_id: linkId })
         setCurrentlyPlaying(null)
         setAudioElement(null)
-        setCurrentListenRecord(null)
+        currentListenRecord.current = null
         setCurrentTime(0)
         setProgress(0)
         setDuration(0)
@@ -540,18 +547,41 @@ export default function Dashboard() {
         
         // Set up periodic progress updates
         progressUpdateInterval.current = setInterval(async () => {
-          if (audio.duration > 0 && currentListenRecord) {
-            const completionPercentage = (audio.currentTime / audio.duration) * 100
-            await updateListenProgress(currentListenRecord, audio.currentTime, false, completionPercentage)
+          try {
+            console.log('🔄 Progress update interval running', { 
+              duration: audio.duration, 
+              listenRecord: currentListenRecord.current, 
+              currentTime: audio.currentTime,
+              isPlaying: !audio.paused 
+            })
             
-            // Refresh stats every minute of listening
-            const currentListenDuration = audioStartTimes.current[linkId] 
-              ? (Date.now() - audioStartTimes.current[linkId]) / 1000 
-              : 0
-            
-            if (currentListenDuration > 0 && Math.floor(currentListenDuration) % 60 === 0) {
-              await refreshStats()
+            if (audio.duration > 0 && currentListenRecord.current && !audio.paused) {
+              const completionPercentage = (audio.currentTime / audio.duration) * 100
+              console.log('📤 Sending progress update', { completionPercentage, currentTime: audio.currentTime })
+              
+              const result = await updateListenProgress(currentListenRecord.current, audio.currentTime, false, completionPercentage)
+              
+              if (!result) {
+                console.warn('⚠️ Progress update returned null - network or server error')
+              }
+              
+              // Refresh stats every minute of listening
+              const currentListenDuration = audioStartTimes.current[linkId] 
+                ? (Date.now() - audioStartTimes.current[linkId]) / 1000 
+                : 0
+              
+              if (currentListenDuration > 0 && Math.floor(currentListenDuration) % 60 === 0) {
+                await refreshStats()
+              }
+            } else {
+              console.log('⏭️ Skipping progress update:', { 
+                hasDuration: audio.duration > 0, 
+                hasListenRecord: !!currentListenRecord.current,
+                isPaused: audio.paused 
+              })
             }
+          } catch (error) {
+            console.error('❌ Error in progress update interval:', error)
           }
         }, 5000) // Update every 5 seconds
         
@@ -560,7 +590,7 @@ export default function Dashboard() {
         analytics.trackFeature('audio_play_error', { link_id: linkId, error: error.message })
         setCurrentlyPlaying(null)
         setAudioElement(null)
-        setCurrentListenRecord(null)
+        currentListenRecord.current = null
         setCurrentTime(0)
         setProgress(0)
         setDuration(0)
@@ -580,8 +610,8 @@ export default function Dashboard() {
       const completionPercentage = duration > 0 ? Math.round((currentTime / duration) * 100) : 0
       
       // Save current progress
-      if (currentListenRecord) {
-        await updateListenProgress(currentListenRecord, audioElement.currentTime, false, completionPercentage)
+      if (currentListenRecord.current) {
+        await updateListenProgress(currentListenRecord.current, audioElement.currentTime, false, completionPercentage)
         if (progressUpdateInterval.current) {
           clearInterval(progressUpdateInterval.current)
         }
@@ -606,7 +636,7 @@ export default function Dashboard() {
       audioElement.pause()
       setCurrentlyPlaying(null)
       setAudioElement(null)
-      setCurrentListenRecord(null)
+      currentListenRecord.current = null
       setCurrentTime(0)
       setProgress(0)
       setDuration(0)
