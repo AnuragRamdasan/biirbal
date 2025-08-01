@@ -310,6 +310,8 @@ function HomeContent() {
     try {
       const linkId = currentPlayingLinkId.current
       
+      console.log('🔄 updateListenProgress called:', { listenId, currentTime, completed, completionPercentage, linkId })
+      
       if (!linkId) {
         console.error('❌ Cannot update progress: linkId is null')
         return null
@@ -329,6 +331,8 @@ function HomeContent() {
         completionPercentage: completionPercentage
       }
 
+      console.log('📤 Sending payload:', payload)
+
       const response = await fetch('/api/dashboard/update-listen-progress', {
         method: 'POST',
         headers: {
@@ -344,10 +348,14 @@ function HomeContent() {
       }
 
       const result = await response.json()
+      console.log('📥 API response:', result)
       
       // If link was archived, refresh the data to reflect changes
       if (result.archived) {
+        console.log('✅ Link archived successfully, refreshing data')
         setTimeout(() => fetchData(false), 1000) // Background refresh after completion
+      } else {
+        console.log('⚠️ Link was NOT archived')
       }
 
       return result
@@ -455,28 +463,37 @@ function HomeContent() {
     })
     
     audio.addEventListener('ended', async () => {
+      console.log('🎵 Audio ended event triggered for linkId:', linkId)
+      
       const listenDuration = audioStartTimes.current[linkId] 
         ? (Date.now() - audioStartTimes.current[linkId]) / 1000 
         : audio.duration
+      
+      console.log('📊 Listen duration calculated:', listenDuration)
       
       // Track audio completion
       analytics.trackAudioComplete(linkId, 100, listenDuration)
       
       // Mark listen as completed (only if not already marked at 85%)
       if (currentListenRecord.current && !completedListens.current.has(currentListenRecord.current)) {
+        console.log('✅ Marking track as completed, listenId:', currentListenRecord.current)
         completedListens.current.add(currentListenRecord.current)
         try {
           // Wait for the progress update to complete before cleaning up state
-          await updateListenProgress(currentListenRecord.current, audio.currentTime, true, 100)
+          const result = await updateListenProgress(currentListenRecord.current, audio.currentTime, true, 100)
+          console.log('📋 Update progress result:', result)
         } catch (error) {
           console.error('Failed to update listen completion:', error)
         }
         if (progressUpdateInterval.current) {
           clearInterval(progressUpdateInterval.current)
         }
+      } else {
+        console.log('⚠️ Track completion skipped - already marked or no listen record')
       }
       
       // Clean up state AFTER the progress update completes
+      console.log('🧹 Cleaning up audio state')
       setCurrentlyPlaying(null)
       setAudioElement(null)
       currentListenRecord.current = null
@@ -487,6 +504,7 @@ function HomeContent() {
       setLoadingAudio(null) // Clear loading state when track ends
       
       // Refresh stats to update listen counts and minutes listened (after cleanup)
+      console.log('🔄 Refreshing dashboard data')
       await fetchData(false)
     })
     
