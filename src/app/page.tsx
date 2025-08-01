@@ -836,27 +836,47 @@ function HomeContent() {
                         </div>
                         
                         {/* Metadata Row */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}>
+                        <div style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: isMobile ? 8 : 16, 
+                          marginBottom: 8,
+                          flexWrap: isMobile ? 'wrap' : 'nowrap',
+                          minWidth: 0
+                        }}>
                           {/* Listen Count */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                             <EyeOutlined style={{ fontSize: 12, color: '#8c8c8c' }} />
-                            <Text style={{ fontSize: 12, color: '#8c8c8c' }}>
+                            <Text style={{ fontSize: 12, color: '#8c8c8c', whiteSpace: 'nowrap' }}>
                               {getListenCount(record)} listens
                             </Text>
                           </div>
                           
                           {/* Created Date */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                             <CalendarOutlined style={{ fontSize: 12, color: '#8c8c8c' }} />
-                            <Text style={{ fontSize: 12, color: '#8c8c8c' }}>
+                            <Text style={{ fontSize: 12, color: '#8c8c8c', whiteSpace: 'nowrap' }}>
                               {new Date(record.createdAt).toLocaleDateString()}
                             </Text>
                           </div>
                           
                           {/* Channel/Source */}
                           {record.channel?.channelName && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <Text style={{ fontSize: 12, color: '#8c8c8c' }}>
+                            <div style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: 6,
+                              minWidth: 0,
+                              flex: isMobile ? '1 1 100%' : '0 1 auto'
+                            }}>
+                              <Text style={{ 
+                                fontSize: 12, 
+                                color: '#8c8c8c',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                minWidth: 0
+                              }}>
                                 #{record.channel.channelName}
                               </Text>
                             </div>
