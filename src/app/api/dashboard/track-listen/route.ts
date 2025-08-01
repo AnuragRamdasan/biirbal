@@ -29,6 +29,21 @@ export async function POST(request: NextRequest) {
     // Check if user already has an incomplete listen record for this link
     const db = await getDbClient()
     
+    // Validate that userId exists in users table if provided
+    if (userId) {
+      const userExists = await db.user.findUnique({
+        where: { id: userId },
+        select: { id: true }
+      })
+      
+      if (!userExists) {
+        return NextResponse.json(
+          { error: 'Invalid userId - user not found' },
+          { status: 400 }
+        )
+      }
+    }
+    
     let existingListen = null
     
     // Prioritize userId (database user ID) for queries
