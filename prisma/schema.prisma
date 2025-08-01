@@ -115,16 +115,16 @@ model Subscription {
 model AudioListen {
   id              String        @id @default(cuid())
   processedLinkId String
-  userId          String?
+  userId          String?       // Primary user identifier (database user.id)
   userAgent       String?
   ipAddress       String?
   listenedAt      DateTime      @default(now())
   completed       Boolean       @default(false)
   listenDuration  Int?
-  slackUserId     String?
+  slackUserId     String?       // Legacy field for Slack users, kept for backward compatibility
   resumePosition  Int?          @default(0)
   processedLink   ProcessedLink @relation(fields: [processedLinkId], references: [id], onDelete: Cascade)
-  user            User?         @relation(fields: [slackUserId], references: [slackUserId])
+  user            User?         @relation(fields: [userId], references: [id])
 
   @@map("audio_listens")
 }

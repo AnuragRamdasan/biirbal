@@ -5,8 +5,8 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const teamId = searchParams.get('teamId')
-    const slackUserId = searchParams.get('slackUserId')
-    const userId = searchParams.get('userId')
+    const userId = searchParams.get('userId') // Primary user identifier (database user.id)
+    const slackUserId = searchParams.get('slackUserId') // Legacy parameter for backwards compatibility
 
     if (!teamId) {
       return NextResponse.json(
@@ -42,16 +42,16 @@ export async function GET(request: NextRequest) {
             slackChannelId: true
           }
         },
-        listens: slackUserId ? {
+        listens: userId ? {
           where: {
-            slackUserId: slackUserId
+            userId: userId
           },
           orderBy: {
             listenedAt: 'desc'
           }
-        } : userId ? {
+        } : slackUserId ? {
           where: {
-            userId: userId
+            slackUserId: slackUserId
           },
           orderBy: {
             listenedAt: 'desc'

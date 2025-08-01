@@ -5,7 +5,8 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const teamId = searchParams.get('teamId')
-    const slackUserId = searchParams.get('slackUserId')
+    const userId = searchParams.get('userId') // Primary user identifier (database user.id)
+    const slackUserId = searchParams.get('slackUserId') // Legacy parameter for backwards compatibility
 
     if (!teamId) {
       return NextResponse.json(
@@ -68,11 +69,16 @@ export async function GET(request: NextRequest) {
     let totalListens = 0
     let totalMinutesListened = 0
 
-    if (slackUserId) {
+    if (userId || slackUserId) {
       // User-specific stats - include all sessions, even incomplete ones with substantial listening time
+      // Prioritize userId (database user ID) over slackUserId
+      const whereCondition = userId 
+        ? { userId: userId }
+        : { slackUserId: slackUserId }
+      
       const userListens = await db.audioListen.findMany({
         where: {
-          slackUserId: slackUserId,
+          ...whereCondition,
           processedLink: {
             teamId: team.id
           }

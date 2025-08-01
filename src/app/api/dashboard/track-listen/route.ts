@@ -12,6 +12,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Prioritize userId (database user ID) as primary identifier
+    if (!userId && !slackUserId) {
+      return NextResponse.json(
+        { error: 'userId is required' },
+        { status: 400 }
+      )
+    }
+
     // Get user agent and IP for tracking (optional)
     const userAgent = request.headers.get('user-agent') || undefined
     const forwardedFor = request.headers.get('x-forwarded-for')
@@ -23,20 +31,22 @@ export async function POST(request: NextRequest) {
     
     let existingListen = null
     
-    if (slackUserId) {
-      existingListen = await db.audioListen.findFirst({
-        where: {
-          processedLinkId: linkId,
-          slackUserId: slackUserId,
-          completed: false
-        },
-        orderBy: { listenedAt: 'desc' }
-      })
-    } else if (userId) {
+    // Prioritize userId (database user ID) for queries
+    if (userId) {
       existingListen = await db.audioListen.findFirst({
         where: {
           processedLinkId: linkId,
           userId: userId,
+          completed: false
+        },
+        orderBy: { listenedAt: 'desc' }
+      })
+    } else if (slackUserId) {
+      // Fallback to slackUserId for legacy compatibility
+      existingListen = await db.audioListen.findFirst({
+        where: {
+          processedLinkId: linkId,
+          slackUserId: slackUserId,
           completed: false
         },
         orderBy: { listenedAt: 'desc' }
@@ -52,8 +62,8 @@ export async function POST(request: NextRequest) {
     const listen = await db.audioListen.create({
       data: {
         processedLinkId: linkId,
-        userId, // Keep for backwards compatibility
-        slackUserId, // New field for authenticated users
+        userId, // Primary user identifier (database user.id)
+        slackUserId, // Legacy field for backwards compatibility
         userAgent,
         ipAddress,
         resumePosition: 0

@@ -183,7 +183,7 @@ function HomeContent() {
         localStorage.setItem('biirbal_team_id', teamId)
       }
       if (userId) {
-        localStorage.setItem('biirbal_user_id', userId)
+        localStorage.setItem('biirbal_user_id', userId) // Store database user ID
         localStorage.setItem('biirbal_slack_user', 'true') // Mark as Slack OAuth user
       }
     }
@@ -212,7 +212,7 @@ function HomeContent() {
       }
       
       const teamId = localStorage.getItem('biirbal_team_id')
-      const userId = localStorage.getItem('biirbal_user_id')
+      const userId = localStorage.getItem('biirbal_user_id') // Database user ID
       
       if (!teamId || !userId) {
         setShowDashboard(false)
@@ -221,7 +221,7 @@ function HomeContent() {
 
       const [linksResponse, statsResponse, usageResponse] = await Promise.all([
         fetch(`/api/dashboard/links?teamId=${teamId}&userId=${userId}`),
-        fetch(`/api/dashboard/stats?teamId=${teamId}&slackUserId=${userId}`),
+        fetch(`/api/dashboard/stats?teamId=${teamId}&userId=${userId}`),
         fetch(`/api/dashboard/usage?teamId=${teamId}&userId=${userId}`)
       ])
 
@@ -280,11 +280,11 @@ function HomeContent() {
   // Dashboard helper functions
   const trackListen = async (linkId: string) => {
     try {
-      const slackUserId = localStorage.getItem('biirbal_user_id')
+      const userId = localStorage.getItem('biirbal_user_id') // Database user ID
       
       const requestBody = {
         linkId,
-        slackUserId
+        userId
       }
 
       const response = await fetch('/api/dashboard/track-listen', {
@@ -697,7 +697,7 @@ function HomeContent() {
     })
 
     // Get current user ID for filtering completed links
-    const currentUserId = typeof window !== 'undefined' ? localStorage.getItem('biirbal_user_id') : null
+    const currentUserId = typeof window !== 'undefined' ? localStorage.getItem('biirbal_user_id') : null // Database user ID
     
     // Helper function to check if current user has completed this link
     const hasUserCompleted = (link: any) => {
