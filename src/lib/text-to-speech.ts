@@ -16,7 +16,6 @@ export async function generateAudioSummary(
     throw new Error('OPENAI_API_KEY is required')
   }
 
-  console.log(`🎤 Generating audio for: ${title.substring(0, 50)}...`)
   
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
@@ -24,7 +23,6 @@ export async function generateAudioSummary(
 
   const processedText = `Here's a summary of ${title}: ${text}`
 
-  console.log(`📝 Converting ${processedText.split(' ').length} words to speech`)
 
   const response = await openai.audio.speech.create({
     model: 'tts-1',
@@ -38,7 +36,6 @@ export async function generateAudioSummary(
   const audioBuffer = Buffer.from(arrayBuffer)
   const fileName = `audio_${Date.now()}_${Math.random().toString(36).substring(7)}.mp3`
 
-  console.log(`✅ Generated ${(audioBuffer.length / 1024).toFixed(1)}KB audio file`)
 
   return {
     audioBuffer,
@@ -67,7 +64,6 @@ export async function uploadAudioToStorage(
     }
   })
 
-  console.log(`☁️ Uploading ${fileName} to S3`)
 
   const key = `audio/${fileName}`
   const command = new PutObjectCommand({
@@ -82,7 +78,6 @@ export async function uploadAudioToStorage(
   const region = process.env.AWS_REGION || 'us-east-1'
   const publicUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${key}`
   
-  console.log(`✅ Audio uploaded: ${publicUrl}`)
   return publicUrl
 }
 

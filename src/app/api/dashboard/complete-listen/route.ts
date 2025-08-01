@@ -60,7 +60,6 @@ export async function POST(request: NextRequest) {
               updatedAt: new Date()
             }
           })
-          console.log(`📁 Archived link ${linkId} after completion`)
         }
       } catch (archiveError) {
         // Don't fail the whole request if archiving fails

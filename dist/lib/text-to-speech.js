@@ -13,12 +13,10 @@ async function generateAudioSummary(text, title) {
     if (!process.env.OPENAI_API_KEY) {
         throw new Error('OPENAI_API_KEY is required');
     }
-    console.log(`🎤 Generating audio for: ${title.substring(0, 50)}...`);
     const openai = new openai_1.default({
         apiKey: process.env.OPENAI_API_KEY
     });
     const processedText = `Here's a summary of ${title}: ${text}`;
-    console.log(`📝 Converting ${processedText.split(' ').length} words to speech`);
     const response = await openai.audio.speech.create({
         model: 'tts-1',
         voice: 'nova',
@@ -29,7 +27,6 @@ async function generateAudioSummary(text, title) {
     const arrayBuffer = await response.arrayBuffer();
     const audioBuffer = Buffer.from(arrayBuffer);
     const fileName = `audio_${Date.now()}_${Math.random().toString(36).substring(7)}.mp3`;
-    console.log(`✅ Generated ${(audioBuffer.length / 1024).toFixed(1)}KB audio file`);
     return {
         audioBuffer,
         fileName,
@@ -50,7 +47,6 @@ async function uploadAudioToStorage(audioBuffer, fileName) {
             secretAccessKey
         }
     });
-    console.log(`☁️ Uploading ${fileName} to S3`);
     const key = `audio/${fileName}`;
     const command = new client_s3_1.PutObjectCommand({
         Bucket: bucketName,
@@ -61,7 +57,6 @@ async function uploadAudioToStorage(audioBuffer, fileName) {
     await s3Client.send(command);
     const region = process.env.AWS_REGION || 'us-east-1';
     const publicUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${key}`;
-    console.log(`✅ Audio uploaded: ${publicUrl}`);
     return publicUrl;
 }
 // Additional functions expected by tests

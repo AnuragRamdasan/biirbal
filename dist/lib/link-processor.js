@@ -102,23 +102,18 @@ async function setupChannelAndRecord({ channelId, teamId, url, messageTs, linkId
 }
 async function processContentAndAudio(url, updateProgress) {
     // Extract content
-    console.log('📄 Extracting content...');
     const extractedContent = await (0, content_extractor_1.extractContentFromUrl)(url);
     if (updateProgress)
         await updateProgress(50);
     // Summarize content
-    console.log('🤖 Summarizing content...');
     const summary = await (0, content_extractor_1.summarizeForAudio)(extractedContent.text, 150, extractedContent.url);
-    console.log('🖼️ OG Image extracted:', extractedContent.ogImage);
     if (updateProgress)
         await updateProgress(60);
     // Generate audio
-    console.log('🎤 Generating audio...');
     const audioResult = await (0, text_to_speech_1.generateAudioSummary)(summary, extractedContent.title);
     if (updateProgress)
         await updateProgress(80);
     // Upload to storage
-    console.log('☁️ Uploading audio...');
     const audioUrl = await (0, text_to_speech_1.uploadAudioToStorage)(audioResult.audioBuffer, audioResult.fileName);
     if (updateProgress)
         await updateProgress(90);
@@ -127,7 +122,6 @@ async function processContentAndAudio(url, updateProgress) {
 async function notifySlack(context, params, updateProgress) {
     const { team, processedLink, isLimitExceeded } = context;
     const { channelId, messageTs } = params;
-    console.log('📱 Notifying Slack...');
     const slackClient = new web_api_1.WebClient(team.accessToken);
     const baseMessage = `🎧 Audio summary ready: ${(0, config_1.getDashboardUrl)(processedLink.id)}`;
     const limitMessage = isLimitExceeded ? `\n\n⚠️ Note: You've exceeded your monthly limit. Upgrade to access playbook on dashboard.` : '';
@@ -136,7 +130,6 @@ async function notifySlack(context, params, updateProgress) {
         await sendDMsToTeamMembers(slackClient, team.id, fullMessage);
     }
     else {
-        console.log('📱 Sending channel reply...');
         await slackClient.chat.postMessage({
             channel: channelId,
             thread_ts: messageTs,
@@ -147,7 +140,6 @@ async function notifySlack(context, params, updateProgress) {
         await updateProgress(100);
 }
 async function sendDMsToTeamMembers(slackClient, teamId, message) {
-    console.log('📨 Sending DMs to team members...');
     const db = await (0, db_1.getDbClient)();
     const activeUsers = await db.user.findMany({
         where: {
@@ -160,7 +152,6 @@ async function sendDMsToTeamMembers(slackClient, teamId, message) {
             name: true
         }
     });
-    console.log(`📨 Found ${activeUsers.length} active users to notify`);
     const dmPromises = activeUsers.map(async (user) => {
         if (!user.slackUserId)
             return;
@@ -169,14 +160,12 @@ async function sendDMsToTeamMembers(slackClient, teamId, message) {
                 channel: user.slackUserId,
                 text: message
             });
-            console.log(`✅ Sent DM to ${user.name} (${user.slackUserId})`);
         }
         catch (error) {
             console.error(`❌ Failed to send DM to ${user.name} (${user.slackUserId}):`, error);
         }
     });
     await Promise.all(dmPromises);
-    console.log('📨 Finished sending DMs to team members');
 }
 function trackProcessingMetrics(context, success, extractedContent) {
     const { subscriptionTeamId, processedLink, processingStartTime } = context;
@@ -230,7 +219,6 @@ async function processLink(params, updateProgress) {
         });
         // Step 4: Notify Slack
         await notifySlack(context, params, updateProgress);
-        console.log(`✅ Successfully processed: ${params.url}`);
         trackProcessingMetrics(context, true, extractedContent);
     }
     catch (error) {

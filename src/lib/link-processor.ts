@@ -140,23 +140,18 @@ async function processContentAndAudio(
   updateProgress?: (progress: number) => Promise<void>
 ): Promise<{ extractedContent: any; summary: string; audioUrl: string; audioResult: any }> {
   // Extract content
-  console.log('📄 Extracting content...')
   const extractedContent = await extractContentFromUrl(url)
   if (updateProgress) await updateProgress(50)
   
   // Summarize content
-  console.log('🤖 Summarizing content...')
   const summary = await summarizeForAudio(extractedContent.text, 150, extractedContent.url)
-  console.log('🖼️ OG Image extracted:', extractedContent.ogImage)
   if (updateProgress) await updateProgress(60)
   
   // Generate audio
-  console.log('🎤 Generating audio...')
   const audioResult = await generateAudioSummary(summary, extractedContent.title)
   if (updateProgress) await updateProgress(80)
   
   // Upload to storage
-  console.log('☁️ Uploading audio...')
   const audioUrl = await uploadAudioToStorage(audioResult.audioBuffer, audioResult.fileName)
   if (updateProgress) await updateProgress(90)
   
@@ -171,7 +166,6 @@ async function notifySlack(
   const { team, processedLink, isLimitExceeded } = context
   const { channelId, messageTs } = params
   
-  console.log('📱 Notifying Slack...')
   const slackClient = new WebClient(team.accessToken)
   const baseMessage = `🎧 Audio summary ready: ${getDashboardUrl(processedLink.id)}`
   const limitMessage = isLimitExceeded ? `\n\n⚠️ Note: You've exceeded your monthly limit. Upgrade to access playbook on dashboard.` : ''
@@ -180,7 +174,6 @@ async function notifySlack(
   if (team.sendSummaryAsDM) {
     await sendDMsToTeamMembers(slackClient, team.id, fullMessage)
   } else {
-    console.log('📱 Sending channel reply...')
     await slackClient.chat.postMessage({
       channel: channelId,
       thread_ts: messageTs,
@@ -192,7 +185,6 @@ async function notifySlack(
 }
 
 async function sendDMsToTeamMembers(slackClient: WebClient, teamId: string, message: string): Promise<void> {
-  console.log('📨 Sending DMs to team members...')
   const db = await getDbClient()
   
   const activeUsers = await db.user.findMany({
@@ -207,7 +199,6 @@ async function sendDMsToTeamMembers(slackClient: WebClient, teamId: string, mess
     }
   })
   
-  console.log(`📨 Found ${activeUsers.length} active users to notify`)
   
   const dmPromises = activeUsers.map(async (user) => {
     if (!user.slackUserId) return
@@ -217,14 +208,12 @@ async function sendDMsToTeamMembers(slackClient: WebClient, teamId: string, mess
         channel: user.slackUserId,
         text: message
       })
-      console.log(`✅ Sent DM to ${user.name} (${user.slackUserId})`)
     } catch (error) {
       console.error(`❌ Failed to send DM to ${user.name} (${user.slackUserId}):`, error)
     }
   })
   
   await Promise.all(dmPromises)
-  console.log('📨 Finished sending DMs to team members')
 }
 
 function trackProcessingMetrics(
@@ -292,7 +281,6 @@ export async function processLink(params: ProcessLinkParams, updateProgress?: (p
     // Step 4: Notify Slack
     await notifySlack(context as ProcessingContext, params, updateProgress)
     
-    console.log(`✅ Successfully processed: ${params.url}`)
     trackProcessingMetrics(context as ProcessingContext, true, extractedContent)
 
   } catch (error) {
