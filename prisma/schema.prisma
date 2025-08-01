@@ -9,6 +9,144 @@ datasource db {
   directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
+model Team {
+  id             String          @id @default(cuid())
+  slackTeamId    String          @unique
+  teamName       String?
+  accessToken    String
+  botUserId      String?
+  isActive       Boolean         @default(true)
+  sendSummaryAsDM Boolean        @default(false)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  channels       Channel[]
+  processedLinks ProcessedLink[]
+  subscription   Subscription?
+  users          User[]
+  invitations    TeamInvitation[]
+
+  @@map("teams")
+}
+
+model User {
+  id               String        @id @default(cuid())
+  slackUserId      String?       @unique
+  teamId           String?
+  name             String?
+  displayName      String?
+  realName         String?
+  email            String?       @unique
+  profileImage24   String?
+  profileImage32   String?
+  profileImage48   String?
+  title            String?
+  userAccessToken  String?
+  isActive         Boolean       @default(true)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  password         String?
+  emailVerified    DateTime?
+  resetToken       String?       @unique
+  resetTokenExpiry DateTime?
+  accounts         accounts[]
+  audioListens     AudioListen[]
+  sessions         sessions[]
+  team             Team?         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@map("users")
+}
+
+model Channel {
+  id             String          @id @default(cuid())
+  slackChannelId String          @unique
+  channelName    String?
+  teamId         String
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  team           Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  processedLinks ProcessedLink[]
+
+  @@map("channels")
+}
+
+model ProcessedLink {
+  id               String           @id @default(cuid())
+  url              String
+  messageTs        String
+  channelId        String
+  teamId           String
+  title            String?
+  extractedText    String?
+  audioFileUrl     String?
+  audioFileKey     String?
+  processingStatus ProcessingStatus @default(PENDING)
+  errorMessage     String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  ttsScript        String?
+  ogImage          String?
+  source           String?          @default("slack")
+  listens          AudioListen[]
+  channel          Channel          @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  team             Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([url, messageTs, channelId])
+  @@map("processed_links")
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  teamId               String             @unique
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  status               SubscriptionStatus @default(TRIAL)
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  planId               String             @default("free")
+  monthlyLinkLimit     Int                @default(20)
+  userLimit            Int                @default(1)
+  team                 Team               @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model AudioListen {
+  id              String        @id @default(cuid())
+  processedLinkId String
+  userId          String?       // Primary user identifier (database user.id)
+  userAgent       String?
+  ipAddress       String?
+  listenedAt      DateTime      @default(now())
+  completed       Boolean       @default(false)
+  listenDuration  Int?
+  slackUserId     String?       // Legacy field for Slack users, kept for backward compatibility
+  resumePosition  Int?          @default(0)
+  processedLink   ProcessedLink @relation(fields: [processedLinkId], references: [id], onDelete: Cascade)
+  user            User?         @relation(fields: [userId], references: [id])
+
+  @@map("audio_listens")
+}
+
+model QueuedJob {
+  id          String    @id
+  type        String
+  payload     Json
+  status      String    @default("PENDING")
+  priority    Int       @default(1)
+  retryCount  Int       @default(0)
+  maxRetries  Int       @default(3)
+  error       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  processedAt DateTime?
+
+  @@index([status, priority])
+  @@index([createdAt])
+  @@map("queued_jobs")
+}
+
 model accounts {
   id                String  @id
   userId            String
@@ -22,77 +160,9 @@ model accounts {
   scope             String?
   id_token          String?
   session_state     String?
-  users             users   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  users             User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
-}
-
-model audio_listens {
-  id              String          @id
-  processedLinkId String
-  userId          String?
-  userAgent       String?
-  ipAddress       String?
-  listenedAt      DateTime        @default(now())
-  completed       Boolean         @default(false)
-  listenDuration  Int?
-  slackUserId     String?
-  resumePosition  Int?            @default(0)
-  processed_links processed_links @relation(fields: [processedLinkId], references: [id], onDelete: Cascade)
-  users           users?          @relation(fields: [userId], references: [id])
-}
-
-model channels {
-  id              String            @id
-  slackChannelId  String            @unique
-  channelName     String?
-  teamId          String
-  isActive        Boolean           @default(true)
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime
-  teams           teams             @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  processed_links processed_links[]
-}
-
-model processed_links {
-  id               String           @id
-  url              String
-  messageTs        String
-  channelId        String
-  teamId           String
-  title            String?
-  extractedText    String?
-  audioFileUrl     String?
-  audioFileKey     String?
-  processingStatus ProcessingStatus @default(PENDING)
-  errorMessage     String?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime
-  ttsScript        String?
-  ogImage          String?
-  source           String?          @default("slack")
-  audio_listens    audio_listens[]
-  channels         channels         @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  teams            teams            @relation(fields: [teamId], references: [id], onDelete: Cascade)
-
-  @@unique([url, messageTs, channelId])
-}
-
-model queued_jobs {
-  id          String    @id
-  type        String
-  payload     Json
-  status      String    @default("PENDING")
-  priority    Int       @default(1)
-  retryCount  Int       @default(0)
-  maxRetries  Int       @default(3)
-  error       String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime
-  processedAt DateTime?
-
-  @@index([createdAt])
-  @@index([status, priority])
 }
 
 model sessions {
@@ -100,81 +170,7 @@ model sessions {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-  users        users    @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model subscriptions {
-  id                   String             @id
-  teamId               String             @unique
-  stripeCustomerId     String?
-  stripeSubscriptionId String?
-  status               SubscriptionStatus @default(TRIAL)
-  currentPeriodEnd     DateTime?
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime
-  planId               String             @default("free")
-  monthlyLinkLimit     Int                @default(20)
-  userLimit            Int                @default(1)
-  teams                teams              @relation(fields: [teamId], references: [id], onDelete: Cascade)
-}
-
-model team_invitations {
-  id         String           @id
-  teamId     String
-  email      String
-  invitedBy  String?
-  token      String           @unique
-  status     InvitationStatus @default(PENDING)
-  expiresAt  DateTime
-  acceptedAt DateTime?
-  createdAt  DateTime         @default(now())
-  updatedAt  DateTime
-  teams      teams            @relation(fields: [teamId], references: [id], onDelete: Cascade)
-
-  @@unique([teamId, email])
-}
-
-model teams {
-  id               String             @id
-  slackTeamId      String             @unique
-  teamName         String?
-  accessToken      String
-  botUserId        String?
-  isActive         Boolean            @default(true)
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime
-  sendSummaryAsDM  Boolean            @default(false)
-  channels         channels[]
-  processed_links  processed_links[]
-  subscriptions    subscriptions?
-  team_invitations team_invitations[]
-  users            users[]
-}
-
-model users {
-  id               String          @id
-  slackUserId      String?         @unique
-  teamId           String?
-  name             String?
-  displayName      String?
-  realName         String?
-  email            String?         @unique
-  profileImage24   String?
-  profileImage32   String?
-  profileImage48   String?
-  title            String?
-  userAccessToken  String?
-  isActive         Boolean         @default(true)
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime
-  password         String?
-  emailVerified    DateTime?
-  resetToken       String?         @unique
-  resetTokenExpiry DateTime?
-  accounts         accounts[]
-  audio_listens    audio_listens[]
-  sessions         sessions[]
-  teams            teams?          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  users        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model verification_tokens {
@@ -183,6 +179,23 @@ model verification_tokens {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model TeamInvitation {
+  id          String            @id @default(cuid())
+  teamId      String
+  email       String
+  invitedBy   String?           // User ID who sent the invitation
+  token       String            @unique
+  status      InvitationStatus  @default(PENDING)
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  team        Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, email])
+  @@map("team_invitations")
 }
 
 enum InvitationStatus {
