@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server'
 
 // Mock dependencies
 const mockAudioListenUpdate = jest.fn()
+const mockAudioListenFindUnique = jest.fn()
 const mockProcessedLinkFindUnique = jest.fn()
 const mockProcessedLinkUpdate = jest.fn()
 
@@ -10,6 +11,7 @@ jest.mock('@/lib/db', () => ({
   getDbClient: jest.fn(() => ({
     audioListen: {
       update: mockAudioListenUpdate,
+      findUnique: mockAudioListenFindUnique,
     },
     processedLink: {
       findUnique: mockProcessedLinkFindUnique,
@@ -32,6 +34,7 @@ describe('/api/dashboard/update-listen-progress', () => {
       completed: false
     }
 
+    mockAudioListenFindUnique.mockResolvedValue({ listenDuration: 20 })
     mockAudioListenUpdate.mockResolvedValue(mockListen)
 
     const request = new NextRequest('http://localhost:3000/api/dashboard/update-listen-progress', {
@@ -85,6 +88,7 @@ describe('/api/dashboard/update-listen-progress', () => {
       isAccessRestricted: true
     }
 
+    mockAudioListenFindUnique.mockResolvedValue({ listenDuration: 80 })
     mockAudioListenUpdate.mockResolvedValue(mockListen)
     mockProcessedLinkFindUnique.mockResolvedValue(mockProcessedLink)
     mockProcessedLinkUpdate.mockResolvedValue(mockArchivedLink)
@@ -152,6 +156,7 @@ describe('/api/dashboard/update-listen-progress', () => {
       isAccessRestricted: true
     }
 
+    mockAudioListenFindUnique.mockResolvedValue({ listenDuration: 50 })
     mockAudioListenUpdate.mockResolvedValue(mockListen)
     mockProcessedLinkFindUnique.mockResolvedValue(mockProcessedLink)
     mockProcessedLinkUpdate.mockResolvedValue(mockArchivedLink)

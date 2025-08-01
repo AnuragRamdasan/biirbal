@@ -289,6 +289,39 @@ jest.mock('next/headers', () => ({
   }))
 }))
 
+// Mock NextResponse and NextRequest
+jest.mock('next/server', () => ({
+  NextResponse: {
+    json: jest.fn((data, init) => ({
+      json: jest.fn().mockResolvedValue(data),
+      status: init?.status || 200,
+      headers: new Map(Object.entries(init?.headers || {}))
+    })),
+    redirect: jest.fn((url) => ({
+      url,
+      status: 302,
+      headers: new Map([['location', url]])
+    }))
+  },
+  NextRequest: class MockNextRequest {
+    constructor(input, init) {
+      this.url = typeof input === 'string' ? input : input.href
+      this.method = init?.method || 'GET'
+      this.headers = new Map(Object.entries(init?.headers || {}))
+      this.body = init?.body
+      this.nextUrl = new URL(this.url)
+    }
+    
+    async json() {
+      return JSON.parse(this.body)
+    }
+    
+    async text() {
+      return this.body || ''
+    }
+  }
+}))
+
 // Mock fetch globally - will be overridden in individual tests as needed
 global.fetch = jest.fn(() =>
   Promise.resolve({
@@ -322,3 +355,68 @@ jest.mock('next/navigation', () => ({
     prefetch: jest.fn()
   }))
 }))
+
+// Add Web API globals for Next.js API routes
+global.Request = global.Request || class MockRequest {
+  constructor(input, init) {
+    this.url = input
+    this.method = init?.method || 'GET'
+    this.headers = new Map(Object.entries(init?.headers || {}))
+    this.body = init?.body
+  }
+  
+  async json() {
+    return JSON.parse(this.body)
+  }
+  
+  async text() {
+    return this.body || ''
+  }
+}
+
+global.Response = global.Response || class MockResponse {
+  constructor(body, init) {
+    this.body = body
+    this.status = init?.status || 200
+    this.statusText = init?.statusText || 'OK'
+    this.headers = new Map(Object.entries(init?.headers || {}))
+  }
+  
+  static json(data, init) {
+    return new MockResponse(JSON.stringify(data), {
+      ...init,
+      headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) }
+    })
+  }
+  
+  async json() {
+    return JSON.parse(this.body)
+  }
+  
+  async text() {
+    return this.body || ''
+  }
+}
+
+global.Headers = global.Headers || class MockHeaders extends Map {
+  get(name) {
+    return super.get(name.toLowerCase())
+  }
+  
+  set(name, value) {
+    return super.set(name.toLowerCase(), value)
+  }
+  
+  has(name) {
+    return super.has(name.toLowerCase())
+  }
+  
+  delete(name) {
+    return super.delete(name.toLowerCase())
+  }
+}
+
+// Add setImmediate for Node.js compatibility in tests
+global.setImmediate = global.setImmediate || ((callback, ...args) => {
+  setTimeout(callback, 0, ...args)
+})

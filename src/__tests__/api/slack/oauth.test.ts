@@ -15,7 +15,8 @@ describe('/api/slack/oauth', () => {
     const response = await GET(request)
     
     expect([302, 307]).toContain(response.status) // Redirect (Next.js can use either 302 or 307)
-    expect(response.headers.get('location')).toMatch(/installed=true&teamId=T123/)
+    const location = response.headers.get('location')
+    expect(String(location)).toMatch(/installed=true&teamId=T123/)
   })
 
   it('should handle OAuth errors', async () => {
@@ -32,7 +33,8 @@ describe('/api/slack/oauth', () => {
     const response = await GET(request)
     
     expect([302, 307]).toContain(response.status) // Redirect to error page (Next.js can use either 302 or 307)
-    expect(response.headers.get('location')).toMatch(/\?error=/)
+    const errorLocation = response.headers.get('location')
+    expect(String(errorLocation)).toMatch(/\?error=/)
   })
 
   it('should handle missing code parameter', async () => {
