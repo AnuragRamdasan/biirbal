@@ -37,40 +37,12 @@ export async function POST(request: NextRequest) {
       data: updateData
     })
 
-    // If marked as completed, archive the link
-    let archivedLink = null
-    if (completed === true) {
-      try {
-        // Get the processed link to check if it should be archived
-        const processedLink = await db.processedLink.findUnique({
-          where: { id: linkId },
-          include: {
-            listens: {
-              where: { completed: true }
-            }
-          }
-        })
-
-        // Archive the link if it has completed listens and isn't already archived
-        if (processedLink && processedLink.listens.length > 0 && !processedLink.isAccessRestricted) {
-          archivedLink = await db.processedLink.update({
-            where: { id: linkId },
-            data: { 
-              isAccessRestricted: true,
-              updatedAt: new Date()
-            }
-          })
-        }
-      } catch (archiveError) {
-        // Don't fail the whole request if archiving fails
-        console.error('Failed to archive link:', archiveError)
-      }
-    }
+    // No global archiving needed - completion is tracked per-user in audioListens table
 
     return NextResponse.json({ 
       listen: updatedListen,
-      archived: !!archivedLink,
-      message: completed ? 'Listen completed and link archived' : 'Progress updated'
+      archived: false, // No global archiving - completion is per-user
+      message: completed ? 'Listen completed' : 'Progress updated'
     })
   } catch (error) {
     console.error('Failed to update listen progress:', error)

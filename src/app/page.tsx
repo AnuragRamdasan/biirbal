@@ -350,13 +350,9 @@ function HomeContent() {
       const result = await response.json()
       console.log('📥 API response:', result)
       
-      // If link was archived, refresh the data to reflect changes
-      if (result.archived) {
-        console.log('✅ Link archived successfully, refreshing data')
-        setTimeout(() => fetchData(false), 1000) // Background refresh after completion
-      } else {
-        console.log('⚠️ Link was NOT archived')
-      }
+      // No global archiving - completion is tracked per-user in audioListens
+      // Refresh data to show updated listen status
+      setTimeout(() => fetchData(false), 1000) // Background refresh after completion
 
       return result
     } catch (error) {
@@ -700,9 +696,20 @@ function HomeContent() {
       return link.source === sourceFilter || (sourceFilter === 'slack' && !link.source)
     })
 
+    // Get current user ID for filtering completed links
+    const currentUserId = typeof window !== 'undefined' ? localStorage.getItem('biirbal_user_id') : null
+    
+    // Helper function to check if current user has completed this link
+    const hasUserCompleted = (link: any) => {
+      if (!currentUserId) return false
+      return link.listens?.some((listen: any) => 
+        listen.slackUserId === currentUserId && listen.completed
+      )
+    }
+    
     const visibleLinks = showListened 
       ? filteredLinks 
-      : filteredLinks.filter(link => !link.listens?.some(listen => listen.completed))
+      : filteredLinks.filter(link => !hasUserCompleted(link))
 
     return (
       <Layout currentPage="dashboard" showHeader={true}>

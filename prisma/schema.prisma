@@ -71,26 +71,25 @@ model Channel {
 }
 
 model ProcessedLink {
-  id                 String           @id @default(cuid())
-  url                String
-  messageTs          String
-  channelId          String
-  teamId             String
-  title              String?
-  extractedText      String?
-  audioFileUrl       String?
-  audioFileKey       String?
-  processingStatus   ProcessingStatus @default(PENDING)
-  errorMessage       String?
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
-  ttsScript          String?
-  ogImage            String?
-  isAccessRestricted Boolean          @default(false)
-  source             String?          @default("slack")
-  listens            AudioListen[]
-  channel            Channel          @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  team               Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  id               String           @id @default(cuid())
+  url              String
+  messageTs        String
+  channelId        String
+  teamId           String
+  title            String?
+  extractedText    String?
+  audioFileUrl     String?
+  audioFileKey     String?
+  processingStatus ProcessingStatus @default(PENDING)
+  errorMessage     String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  ttsScript        String?
+  ogImage          String?
+  source           String?          @default("slack")
+  listens          AudioListen[]
+  channel          Channel          @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  team             Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@unique([url, messageTs, channelId])
   @@map("processed_links")

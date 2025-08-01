@@ -3,17 +3,11 @@ import { NextRequest } from 'next/server'
 
 // Mock dependencies
 const mockAudioListenUpdate = jest.fn()
-const mockProcessedLinkFindUnique = jest.fn()
-const mockProcessedLinkUpdate = jest.fn()
 
 jest.mock('@/lib/db', () => ({
   getDbClient: jest.fn(() => ({
     audioListen: {
       update: mockAudioListenUpdate,
-    },
-    processedLink: {
-      findUnique: mockProcessedLinkFindUnique,
-      update: mockProcessedLinkUpdate,
     }
   }))
 }))
@@ -23,7 +17,7 @@ describe('/api/dashboard/complete-listen', () => {
     jest.clearAllMocks()
   })
 
-  it('should complete listen and archive link successfully', async () => {
+  it('should complete listen successfully', async () => {
     const mockListen = {
       id: 'listen123',
       processedLinkId: 'link123',
@@ -32,20 +26,7 @@ describe('/api/dashboard/complete-listen', () => {
       completed: true
     }
 
-    const mockProcessedLink = {
-      id: 'link123',
-      isAccessRestricted: false,
-      listens: [{ completed: true }]
-    }
-
-    const mockArchivedLink = {
-      ...mockProcessedLink,
-      isAccessRestricted: true
-    }
-
     mockAudioListenUpdate.mockResolvedValue(mockListen)
-    mockProcessedLinkFindUnique.mockResolvedValue(mockProcessedLink)
-    mockProcessedLinkUpdate.mockResolvedValue(mockArchivedLink)
 
     const request = new NextRequest('http://localhost:3000/api/dashboard/complete-listen', {
       method: 'POST',
@@ -66,8 +47,8 @@ describe('/api/dashboard/complete-listen', () => {
 
     expect(response.status).toBe(200)
     expect(data.listen).toEqual(mockListen)
-    expect(data.archived).toBe(true)
-    expect(data.message).toBe('Listen completed and link archived')
+    expect(data.archived).toBe(false) // No global archiving - completion is per-user
+    expect(data.message).toBe('Listen completed')
     
     expect(mockAudioListenUpdate).toHaveBeenCalledWith({
       where: { id: 'listen123' },
@@ -77,17 +58,9 @@ describe('/api/dashboard/complete-listen', () => {
         completed: true
       }
     })
-
-    expect(mockProcessedLinkUpdate).toHaveBeenCalledWith({
-      where: { id: 'link123' },
-      data: {
-        isAccessRestricted: true,
-        updatedAt: expect.any(Date)
-      }
-    })
   })
 
-  it('should update progress without archiving when not completed', async () => {
+  it('should update progress when not completed', async () => {
     const mockListen = {
       id: 'listen123',
       processedLinkId: 'link123',
@@ -127,46 +100,6 @@ describe('/api/dashboard/complete-listen', () => {
         resumePosition: 60
       }
     })
-
-    expect(mockProcessedLinkFindUnique).not.toHaveBeenCalled()
-  })
-
-  it('should not archive links without completed listens', async () => {
-    const mockListen = {
-      id: 'listen123',
-      processedLinkId: 'link123',
-      resumePosition: 120,
-      completed: true
-    }
-
-    const mockProcessedLink = {
-      id: 'link123',
-      isAccessRestricted: false,
-      listens: [] // No completed listens
-    }
-
-    mockAudioListenUpdate.mockResolvedValue(mockListen)
-    mockProcessedLinkFindUnique.mockResolvedValue(mockProcessedLink)
-
-    const request = new NextRequest('http://localhost:3000/api/dashboard/complete-listen', {
-      method: 'POST',
-      body: JSON.stringify({
-        linkId: 'link123',
-        listenId: 'listen123',
-        currentTime: 120,
-        completed: true
-      }),
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-
-    const response = await POST(request)
-    const data = await response.json()
-
-    expect(response.status).toBe(200)
-    expect(data.archived).toBe(false)
-    expect(mockProcessedLinkUpdate).not.toHaveBeenCalled()
   })
 
   it('should handle partial data updates with explicit completed=false', async () => {
@@ -266,45 +199,4 @@ describe('/api/dashboard/complete-listen', () => {
     expect(data.error).toBe('Failed to update listen progress')
   })
 
-  it('should continue when archiving fails', async () => {
-    const mockListen = {
-      id: 'listen123',
-      processedLinkId: 'link123',
-      completed: true
-    }
-
-    const mockProcessedLink = {
-      id: 'link123',
-      isAccessRestricted: false,
-      listens: [{ completed: true }]
-    }
-
-    mockAudioListenUpdate.mockResolvedValue(mockListen)
-    mockProcessedLinkFindUnique.mockResolvedValue(mockProcessedLink)
-    mockProcessedLinkUpdate.mockRejectedValue(new Error('Archive failed'))
-
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation()
-
-    const request = new NextRequest('http://localhost:3000/api/dashboard/complete-listen', {
-      method: 'POST',
-      body: JSON.stringify({
-        linkId: 'link123',
-        listenId: 'listen123',
-        completed: true
-      }),
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-
-    const response = await POST(request)
-    const data = await response.json()
-
-    expect(response.status).toBe(200)
-    expect(data.listen).toEqual(mockListen)
-    expect(data.archived).toBe(false)
-    expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to archive link:', expect.any(Error))
-
-    consoleErrorSpy.mockRestore()
-  })
 })
