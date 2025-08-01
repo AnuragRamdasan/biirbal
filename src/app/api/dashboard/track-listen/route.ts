@@ -30,13 +30,33 @@ export async function POST(request: NextRequest) {
     const db = await getDbClient()
     
     // Validate that userId exists in users table if provided
+    // Handle transition from Slack user IDs to database user IDs
+    let validatedUserId = userId
+    
     if (userId) {
-      const userExists = await db.user.findUnique({
+      // First check if it's a database user ID
+      let userExists = await db.user.findUnique({
         where: { id: userId },
         select: { id: true }
       })
       
-      if (!userExists) {
+      // If not found and it looks like a Slack user ID (starts with U), 
+      // try to find the user by slackUserId and get their database ID
+      if (!userExists && userId.startsWith('U')) {
+        const userBySlackId = await db.user.findUnique({
+          where: { slackUserId: userId },
+          select: { id: true }
+        })
+        
+        if (userBySlackId) {
+          validatedUserId = userBySlackId.id
+        } else {
+          return NextResponse.json(
+            { error: 'Invalid userId - user not found' },
+            { status: 400 }
+          )
+        }
+      } else if (!userExists) {
         return NextResponse.json(
           { error: 'Invalid userId - user not found' },
           { status: 400 }
@@ -47,11 +67,11 @@ export async function POST(request: NextRequest) {
     let existingListen = null
     
     // Prioritize userId (database user ID) for queries
-    if (userId) {
+    if (validatedUserId) {
       existingListen = await db.audioListen.findFirst({
         where: {
           processedLinkId: linkId,
-          userId: userId,
+          userId: validatedUserId,
           completed: false
         },
         orderBy: { listenedAt: 'desc' }
@@ -77,7 +97,7 @@ export async function POST(request: NextRequest) {
     const listen = await db.audioListen.create({
       data: {
         processedLinkId: linkId,
-        userId, // Primary user identifier (database user.id)
+        userId: validatedUserId, // Primary user identifier (database user.id)
         slackUserId, // Legacy field for backwards compatibility
         userAgent,
         ipAddress,

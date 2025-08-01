@@ -177,6 +177,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Store user information if available
+      let databaseUserId: string | null = null
       if (userId && userAccessToken) {
         try {
           const existingUser = await db.user.findUnique({
@@ -201,7 +202,7 @@ export async function GET(request: NextRequest) {
           if (userInfo.ok && userInfo.user) {
             const isNewUser = !existingUser
 
-            await db.user.upsert({
+            const upsertedUser = await db.user.upsert({
               where: { slackUserId: userId },
               update: {
                 teamId: existingTeam?.id || teamId,
@@ -232,6 +233,9 @@ export async function GET(request: NextRequest) {
                 isActive: userSeatAllowed
               }
             })
+            
+            // Store the database user ID for localStorage
+            databaseUserId = upsertedUser.id
 
             console.log('User information stored:', {
               userId,
@@ -267,10 +271,10 @@ export async function GET(request: NextRequest) {
     console.log(process.env.NEXTAUTH_URL)
     
     // Store team ID and user ID in URL for client-side storage
-    // Use Slack team ID (teamId) for profile API compatibility
+    // Use Slack team ID (teamId) for profile API compatibility, and database user ID for session management
     let redirectUrl = `/?installed=true&teamId=${encodeURIComponent(teamId)}`
-    if (userId) {
-      redirectUrl += `&userId=${encodeURIComponent(userId)}`
+    if (databaseUserId) {
+      redirectUrl += `&userId=${encodeURIComponent(databaseUserId)}`
     }
     
     return NextResponse.redirect(
