@@ -813,7 +813,10 @@ function HomeContent() {
                             display: '-webkit-box',
                             WebkitLineClamp: 2,
                             WebkitBoxOrient: 'vertical',
-                            marginBottom: 4
+                            marginBottom: 4,
+                            wordBreak: 'break-word',
+                            overflowWrap: 'break-word',
+                            hyphens: 'auto'
                           }}>
                             {record.title || 'Untitled'}
                           </div>
@@ -828,9 +831,11 @@ function HomeContent() {
                           fontSize: 12, 
                           color: '#8c8c8c',
                           marginBottom: 8,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
+                          wordBreak: 'break-all',
+                          overflowWrap: 'break-word',
+                          lineHeight: 1.3,
+                          maxWidth: '100%',
+                          hyphens: 'auto'
                         }}>
                           {record.url}
                         </div>
