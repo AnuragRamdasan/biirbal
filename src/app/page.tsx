@@ -263,13 +263,11 @@ function HomeContent() {
   // Dashboard helper functions
   const trackListen = async (linkId: string) => {
     try {
-      const teamId = localStorage.getItem('biirbal_team_id')
-      const userId = localStorage.getItem('biirbal_user_id')
+      const slackUserId = localStorage.getItem('biirbal_user_id')
       
       const requestBody = {
         linkId,
-        teamId,
-        userId
+        slackUserId
       }
 
       const response = await fetch('/api/dashboard/track-listen', {
