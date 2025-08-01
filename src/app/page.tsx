@@ -466,6 +466,7 @@ function HomeContent() {
       if (currentListenRecord.current && !completedListens.current.has(currentListenRecord.current)) {
         completedListens.current.add(currentListenRecord.current)
         try {
+          // Wait for the progress update to complete before cleaning up state
           await updateListenProgress(currentListenRecord.current, audio.currentTime, true, 100)
         } catch (error) {
           console.error('Failed to update listen completion:', error)
@@ -475,9 +476,7 @@ function HomeContent() {
         }
       }
       
-      // Refresh stats to update listen counts and minutes listened
-      await fetchData(false)
-      
+      // Clean up state AFTER the progress update completes
       setCurrentlyPlaying(null)
       setAudioElement(null)
       currentListenRecord.current = null
@@ -486,6 +485,9 @@ function HomeContent() {
       setProgress(0)
       setDuration(0)
       setLoadingAudio(null) // Clear loading state when track ends
+      
+      // Refresh stats to update listen counts and minutes listened (after cleanup)
+      await fetchData(false)
     })
     
       audio.addEventListener('error', () => {
