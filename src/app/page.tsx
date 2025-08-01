@@ -21,6 +21,7 @@ import {
   Empty,
   Tooltip,
   Select,
+  Slider,
 } from 'antd'
 import {
   SoundOutlined,
@@ -43,6 +44,15 @@ import {
   CalendarOutlined,
   ReadOutlined,
   CloseOutlined,
+  StepForwardOutlined,
+  StepBackwardOutlined,
+  FastBackwardOutlined,
+  SoundFilled,
+  ExpandOutlined,
+  CompressOutlined,
+  PauseOutlined,
+  UpOutlined,
+  DownOutlined,
 } from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
 import { getOAuthRedirectUri } from '@/lib/config'
@@ -137,6 +147,13 @@ function HomeContent() {
   const [sourceFilter, setSourceFilter] = useState<string>('all')
   const [loadingAudio, setLoadingAudio] = useState<string | null>(null)
   const [expandedSummary, setExpandedSummary] = useState<string | null>(null)
+  
+  // Audio player state
+  const [showAudioPlayer, setShowAudioPlayer] = useState(false)
+  const [audioVolume, setAudioVolume] = useState(1)
+  const [audioPlaybackRate, setAudioPlaybackRate] = useState(1)
+  const [isPlayerExpanded, setIsPlayerExpanded] = useState(false)
+  const [currentTrackInfo, setCurrentTrackInfo] = useState<{id: string, title: string, url: string} | null>(null)
   
   // Dashboard refs
   const audioStartTimes = useRef<Record<string, number>>({})
@@ -380,6 +397,15 @@ function HomeContent() {
       const audio = new Audio(audioUrl)
       audioStartTimes.current[linkId] = Date.now()
       
+      // Set up track info and show player
+      const linkData = links.find(link => link.id === linkId)
+      setCurrentTrackInfo({
+        id: linkId,
+        title: linkData?.title || 'Untitled',
+        url: linkData?.url || ''
+      })
+      setShowAudioPlayer(true)
+      
       // Clean up completion tracking for this audio
       if (listenRecord.id) {
         completedListens.current.delete(listenRecord.id)
@@ -388,6 +414,10 @@ function HomeContent() {
     // Add event listeners for progress tracking
     audio.addEventListener('loadedmetadata', () => {
       setDuration(audio.duration)
+      
+      // Set volume and playback rate
+      audio.volume = audioVolume
+      audio.playbackRate = audioPlaybackRate
       
       // Resume from saved position if available
       const resumePosition = listenRecord.resumePosition || 0
@@ -546,13 +576,64 @@ function HomeContent() {
       }
       
       setCurrentlyPlaying(null)
-      setAudioElement(null)
-      currentListenRecord.current = null
-      currentPlayingLinkId.current = null
+      setLoadingAudio(null) // Clear loading state when paused
+      // Keep player visible - don't reset other states when pausing
+    }
+  }
+
+  // Audio player control functions
+  const handleClosePlayer = async () => {
+    if (audioElement) {
+      audioElement.pause()
+      if (currentListenRecord.current && progressUpdateInterval.current) {
+        clearInterval(progressUpdateInterval.current)
+        await updateListenProgress(currentListenRecord.current, audioElement.currentTime, false)
+      }
+    }
+    
+    setShowAudioPlayer(false)
+    setCurrentlyPlaying(null)
+    setAudioElement(null)
+    setCurrentTrackInfo(null)
+    currentListenRecord.current = null
+    currentPlayingLinkId.current = null
+    setCurrentTime(0)
+    setProgress(0)
+    setDuration(0)
+    setLoadingAudio(null)
+  }
+
+  const handleRestartTrack = () => {
+    if (audioElement) {
+      audioElement.currentTime = 0
       setCurrentTime(0)
       setProgress(0)
-      setDuration(0)
-      setLoadingAudio(null) // Clear loading state when paused
+    }
+  }
+
+  const handlePlayNext = async () => {
+    if (!currentTrackInfo) return
+    
+    const currentIndex = links.findIndex(link => link.id === currentTrackInfo.id)
+    if (currentIndex < links.length - 1) {
+      const nextLink = links[currentIndex + 1]
+      if (nextLink.processingStatus === 'COMPLETED' && nextLink.audioFileUrl) {
+        await handlePlayAudio(nextLink.id, nextLink.audioFileUrl)
+      }
+    }
+  }
+
+  const handleVolumeChange = (volume: number) => {
+    setAudioVolume(volume)
+    if (audioElement) {
+      audioElement.volume = volume
+    }
+  }
+
+  const handlePlaybackRateChange = (rate: number) => {
+    setAudioPlaybackRate(rate)
+    if (audioElement) {
+      audioElement.playbackRate = rate
     }
   }
 
@@ -1045,6 +1126,290 @@ function HomeContent() {
             )}
           </div>
         </div>
+
+        {/* Fixed Bottom Audio Player */}
+        {showAudioPlayer && currentTrackInfo && (
+          <div style={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: 'white',
+            borderTop: '1px solid #f0f0f0',
+            boxShadow: '0 -4px 12px rgba(0, 0, 0, 0.1)',
+            zIndex: 1000,
+            padding: isMobile ? '12px 16px' : '16px 24px'
+          }}>
+            {/* Main Player Controls */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: isMobile ? 12 : 16,
+              maxWidth: 1200,
+              margin: '0 auto'
+            }}>
+              {/* Track Info */}
+              <div style={{ 
+                flex: 1, 
+                minWidth: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12
+              }}>
+                <div style={{
+                  width: isMobile ? 40 : 48,
+                  height: isMobile ? 40 : 48,
+                  backgroundColor: '#1890ff',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <SoundOutlined style={{ 
+                    color: 'white', 
+                    fontSize: isMobile ? 16 : 20 
+                  }} />
+                </div>
+                
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontSize: isMobile ? 14 : 16,
+                    fontWeight: 600,
+                    color: '#262626',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {currentTrackInfo.title}
+                  </div>
+                  <div style={{
+                    fontSize: 12,
+                    color: '#8c8c8c',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    marginTop: 2
+                  }}>
+                    {formatTime(currentTime)} / {duration > 0 ? formatTime(duration) : '--:--'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Main Controls */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: isMobile ? 8 : 12,
+                flexShrink: 0
+              }}>
+                {/* Restart Button */}
+                <Tooltip title="Restart">
+                  <Button
+                    type="text"
+                    shape="circle"
+                    size={isMobile ? "middle" : "large"}
+                    icon={<StepBackwardOutlined />}
+                    onClick={handleRestartTrack}
+                    style={{ 
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  />
+                </Tooltip>
+
+                {/* Play/Pause Button */}
+                <Button
+                  type="primary"
+                  shape="circle"
+                  size={isMobile ? "middle" : "large"}
+                  icon={currentlyPlaying ? <PauseOutlined /> : <PlayCircleOutlined />}
+                  onClick={currentlyPlaying ? handlePauseAudio : () => handlePlayAudio(currentTrackInfo.id, currentTrackInfo.url)}
+                  style={{ 
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                />
+
+                {/* Play Next Button */}
+                <Tooltip title="Play Next">
+                  <Button
+                    type="text"
+                    shape="circle"
+                    size={isMobile ? "middle" : "large"}
+                    icon={<StepForwardOutlined />}
+                    onClick={handlePlayNext}
+                    style={{ 
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  />
+                </Tooltip>
+
+                {/* Volume Control (Desktop only) */}
+                {!isMobile && (
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 8,
+                    minWidth: 120
+                  }}>
+                    <SoundOutlined style={{ color: '#8c8c8c', fontSize: 14 }} />
+                    <Slider
+                      min={0}
+                      max={1}
+                      step={0.1}
+                      value={audioVolume}
+                      onChange={handleVolumeChange}
+                      style={{ flex: 1, margin: 0 }}
+                      tooltip={{ formatter: (value = 0) => `${Math.round(value * 100)}%` }}
+                    />
+                  </div>
+                )}
+
+                {/* Playback Speed (Desktop only) */}
+                {!isMobile && (
+                  <Select
+                    value={audioPlaybackRate}
+                    onChange={handlePlaybackRateChange}
+                    size="small"
+                    style={{ width: 70 }}
+                    options={[
+                      { value: 0.5, label: '0.5x' },
+                      { value: 0.75, label: '0.75x' },
+                      { value: 1, label: '1x' },
+                      { value: 1.25, label: '1.25x' },
+                      { value: 1.5, label: '1.5x' },
+                      { value: 2, label: '2x' }
+                    ]}
+                  />
+                )}
+
+                {/* Expand/Collapse Button (Mobile only) */}
+                {isMobile && (
+                  <Tooltip title={isPlayerExpanded ? "Collapse" : "Expand"}>
+                    <Button
+                      type="text"
+                      shape="circle"
+                      size="middle"
+                      icon={isPlayerExpanded ? <DownOutlined /> : <UpOutlined />}
+                      onClick={() => setIsPlayerExpanded(!isPlayerExpanded)}
+                      style={{ 
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    />
+                  </Tooltip>
+                )}
+
+                {/* Close Button */}
+                <Tooltip title="Close">
+                  <Button
+                    type="text"
+                    shape="circle"
+                    size={isMobile ? "middle" : "large"}
+                    icon={<CloseOutlined />}
+                    onClick={handleClosePlayer}
+                    style={{ 
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#8c8c8c'
+                    }}
+                  />
+                </Tooltip>
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div style={{
+              marginTop: 12,
+              maxWidth: 1200,
+              margin: '12px auto 0'
+            }}>
+              <div style={{
+                width: '100%',
+                height: 4,
+                backgroundColor: '#f0f0f0',
+                borderRadius: 2,
+                cursor: 'pointer'
+              }}
+              onClick={(e) => {
+                if (audioElement && duration > 0) {
+                  const rect = e.currentTarget.getBoundingClientRect()
+                  const clickX = e.clientX - rect.left
+                  const newTime = (clickX / rect.width) * duration
+                  audioElement.currentTime = newTime
+                }
+              }}>
+                <div style={{
+                  width: `${progress * 100}%`,
+                  height: '100%',
+                  backgroundColor: '#1890ff',
+                  borderRadius: 2,
+                  transition: 'width 0.1s ease'
+                }} />
+              </div>
+            </div>
+
+            {/* Expanded Mobile Controls */}
+            {isMobile && isPlayerExpanded && (
+              <div style={{
+                marginTop: 16,
+                paddingTop: 16,
+                borderTop: '1px solid #f0f0f0',
+                maxWidth: 1200,
+                margin: '16px auto 0'
+              }}>
+                <Row gutter={[16, 16]} align="middle">
+                  <Col span={12}>
+                    <div style={{ textAlign: 'center' }}>
+                      <Text style={{ fontSize: 12, color: '#8c8c8c', display: 'block', marginBottom: 8 }}>
+                        Volume
+                      </Text>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <SoundOutlined style={{ color: '#8c8c8c', fontSize: 14 }} />
+                        <Slider
+                          min={0}
+                          max={1}
+                          step={0.1}
+                          value={audioVolume}
+                          onChange={handleVolumeChange}
+                          style={{ flex: 1, margin: 0 }}
+                        />
+                      </div>
+                    </div>
+                  </Col>
+                  <Col span={12}>
+                    <div style={{ textAlign: 'center' }}>
+                      <Text style={{ fontSize: 12, color: '#8c8c8c', display: 'block', marginBottom: 8 }}>
+                        Speed
+                      </Text>
+                      <Select
+                        value={audioPlaybackRate}
+                        onChange={handlePlaybackRateChange}
+                        size="small"
+                        style={{ width: '100%' }}
+                        options={[
+                          { value: 0.5, label: '0.5x' },
+                          { value: 0.75, label: '0.75x' },
+                          { value: 1, label: '1x' },
+                          { value: 1.25, label: '1.25x' },
+                          { value: 1.5, label: '1.5x' },
+                          { value: 2, label: '2x' }
+                        ]}
+                      />
+                    </div>
+                  </Col>
+                </Row>
+              </div>
+            )}
+          </div>
+        )}
       </Layout>
     )
   }
