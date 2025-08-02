@@ -1756,25 +1756,82 @@ function HomeContent() {
       </div>
 
       {/* Conversion Stats Section */}
-      <div style={{ padding: '60px 0', background: '#f8f9fa' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
+      <div style={{ 
+        padding: '80px 0', 
+        background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
+        position: 'relative'
+      }}>
+        {/* Background Pattern */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.05) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(118, 75, 162, 0.05) 0%, transparent 50%)',
+          pointerEvents: 'none'
+        }} />
+        
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 1 }}>
+          <div style={{ textAlign: 'center', marginBottom: '60px' }}>
+            <Title level={2} style={{ 
+              fontSize: '36px', 
+              fontWeight: 700, 
+              margin: '0 0 16px 0',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}>
+              Proven Results
+            </Title>
+            <Paragraph style={{ fontSize: '18px', color: '#666', margin: 0 }}>
+              Join thousands of teams who've transformed their information consumption
+            </Paragraph>
+          </div>
+          
           <Row gutter={[32, 32]} justify="center">
             {conversionStats.map((stat, index) => (
               <Col xs={24} sm={8} key={index}>
-                <Card 
-                  style={{ textAlign: 'center', height: '100%' }}
-                  bordered={false}
-                  hoverable
-                >
-                  <Space direction="vertical" size="middle">
-                    <Statistic
-                      title={stat.label}
-                      value={stat.number}
-                      suffix={stat.unit}
-                      valueStyle={{ fontSize: 32, fontWeight: 'bold', color: '#1890ff' }}
-                    />
-                  </Space>
-                </Card>
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.8)',
+                  backdropFilter: 'blur(20px)',
+                  border: '1px solid rgba(102, 126, 234, 0.1)',
+                  borderRadius: '20px',
+                  padding: '32px',
+                  textAlign: 'center',
+                  height: '100%',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer'
+                }}>
+                  <div style={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    borderRadius: '50%',
+                    width: '60px',
+                    height: '60px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 20px auto',
+                    boxShadow: '0 8px 24px rgba(102, 126, 234, 0.3)'
+                  }}>
+                    <ClockCircleOutlined style={{ fontSize: '24px', color: 'white' }} />
+                  </div>
+                  <Statistic
+                    title={stat.label}
+                    value={stat.number}
+                    suffix={stat.unit}
+                    valueStyle={{ 
+                      fontSize: '32px', 
+                      fontWeight: '700', 
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text'
+                    }}
+                  />
+                </div>
               </Col>
             ))}
           </Row>
@@ -1782,16 +1839,36 @@ function HomeContent() {
       </div>
 
       {/* Benefits Section */}
-      <div style={{ padding: '80px 0' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
-          <div style={{ textAlign: 'center', marginBottom: 60 }}>
-            <Title level={2}>
-              <Space>
-                <RocketOutlined />
-                Transform How Your Team Consumes Information
-              </Space>
+      <div style={{ 
+        padding: '100px 0', 
+        background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+        position: 'relative'
+      }}>
+        {/* Background Pattern */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.03) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(118, 75, 162, 0.03) 0%, transparent 50%)',
+          pointerEvents: 'none'
+        }} />
+        
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 1 }}>
+          <div style={{ textAlign: 'center', marginBottom: '80px' }}>
+            <Title level={2} style={{ 
+              fontSize: '36px', 
+              fontWeight: 700, 
+              margin: '0 0 16px 0',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}>
+              Transform How Your Team Consumes Information
             </Title>
-            <Paragraph style={{ fontSize: 18, color: '#666' }}>
+            <Paragraph style={{ fontSize: '18px', color: '#666', margin: 0 }}>
               Stop drowning in articles. Start listening to insights.
             </Paragraph>
           </div>
@@ -1799,45 +1876,74 @@ function HomeContent() {
           <Row gutter={[32, 32]}>
             {benefits.map((benefit, index) => (
               <Col xs={24} lg={8} key={index}>
-                <Card 
-                  style={{ 
-                    height: '100%', 
-                    textAlign: 'center',
-                    border: `2px solid ${benefit.color}`,
-                    borderRadius: 12
-                  }}
-                  bordered={false}
-                  hoverable
-                >
-                  <Space direction="vertical" size="large" style={{ width: '100%' }}>
-                    <div style={{ 
-                      background: `${benefit.color}15`, 
-                      borderRadius: '50%',
-                      width: 80,
-                      height: 80,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      margin: '0 auto'
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.9)',
+                  backdropFilter: 'blur(20px)',
+                  border: `1px solid ${benefit.color}20`,
+                  borderRadius: '24px',
+                  padding: '40px 32px',
+                  textAlign: 'center',
+                  height: '100%',
+                  boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}>
+                  {/* Background Accent */}
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: '4px',
+                    background: `linear-gradient(135deg, ${benefit.color} 0%, ${benefit.color}80 100%)`
+                  }} />
+                  
+                  <div style={{ 
+                    background: `${benefit.color}15`, 
+                    borderRadius: '50%',
+                    width: '80px',
+                    height: '80px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 24px auto',
+                    boxShadow: `0 8px 24px ${benefit.color}30`
+                  }}>
+                    {benefit.icon}
+                  </div>
+                  <Title level={3} style={{ 
+                    color: benefit.color, 
+                    margin: '0 0 16px 0',
+                    fontSize: '24px',
+                    fontWeight: 600
+                  }}>
+                    {benefit.title}
+                  </Title>
+                  <Paragraph style={{ 
+                    fontSize: '16px', 
+                    lineHeight: '1.6',
+                    color: '#666',
+                    margin: '0 0 24px 0'
+                  }}>
+                    {benefit.description}
+                  </Paragraph>
+                  <div style={{
+                    background: `linear-gradient(135deg, ${benefit.color} 0%, ${benefit.color}80 100%)`,
+                    borderRadius: '50px',
+                    padding: '8px 16px',
+                    display: 'inline-block'
+                  }}>
+                    <Text style={{ 
+                      color: 'white', 
+                      fontSize: '14px',
+                      fontWeight: '600'
                     }}>
-                      {benefit.icon}
-                    </div>
-                    <Title level={3} style={{ color: benefit.color }}>
-                      {benefit.title}
-                    </Title>
-                    <Paragraph style={{ fontSize: 16, lineHeight: 1.6 }}>
-                      {benefit.description}
-                    </Paragraph>
-                    <Badge 
-                      count={benefit.stats} 
-                      style={{ 
-                        backgroundColor: benefit.color,
-                        fontSize: 14,
-                        fontWeight: 'bold'
-                      }} 
-                    />
-                  </Space>
-                </Card>
+                      {benefit.stats}
+                    </Text>
+                  </div>
+                </div>
               </Col>
             ))}
           </Row>
@@ -1845,16 +1951,38 @@ function HomeContent() {
       </div>
 
       {/* Social Proof Section */}
-      <div style={{ padding: '80px 0', background: '#f8f9fa' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
-          <div style={{ textAlign: 'center', marginBottom: 60 }}>
-            <Title level={2}>
-              <Space>
-                <CheckCircleOutlined />
-                Trusted by Teams Worldwide
-              </Space>
+      <div style={{ 
+        padding: '100px 0', 
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        {/* Background Pattern */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%)',
+          pointerEvents: 'none'
+        }} />
+        
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 1 }}>
+          <div style={{ textAlign: 'center', marginBottom: '80px' }}>
+            <Title level={2} style={{ 
+              color: 'white',
+              fontSize: '36px', 
+              fontWeight: 700, 
+              margin: '0 0 16px 0'
+            }}>
+              Trusted by Teams Worldwide
             </Title>
-            <Paragraph style={{ fontSize: 18, color: '#666' }}>
+            <Paragraph style={{ 
+              fontSize: '18px', 
+              color: 'rgba(255,255,255,0.9)', 
+              margin: 0 
+            }}>
               Join thousands of teams who've transformed their information consumption
             </Paragraph>
           </div>
@@ -1862,25 +1990,40 @@ function HomeContent() {
           <Row gutter={[32, 32]} justify="center">
             {socialProof.map((proof, index) => (
               <Col xs={24} sm={8} key={index}>
-                <Card 
-                  style={{ 
-                    textAlign: 'center', 
-                    height: '100%',
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    color: 'white'
-                  }}
-                  bordered={false}
-                  hoverable
-                >
-                  <Space direction="vertical" size="middle">
-                    <div style={{ fontSize: 32, color: 'white' }}>
-                      {proof.icon}
-                    </div>
-                    <Title level={4} style={{ color: 'white', margin: 0 }}>
-                      {proof.text}
-                    </Title>
-                  </Space>
-                </Card>
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  backdropFilter: 'blur(20px)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '24px',
+                  padding: '40px 32px',
+                  textAlign: 'center',
+                  height: '100%',
+                  boxShadow: '0 12px 40px rgba(0, 0, 0, 0.1)',
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer'
+                }}>
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    borderRadius: '50%',
+                    width: '60px',
+                    height: '60px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 24px auto',
+                    boxShadow: '0 8px 24px rgba(255, 255, 255, 0.2)'
+                  }}>
+                    {proof.icon}
+                  </div>
+                  <Title level={4} style={{ 
+                    color: 'white', 
+                    margin: 0,
+                    fontSize: '20px',
+                    fontWeight: 600
+                  }}>
+                    {proof.text}
+                  </Title>
+                </div>
               </Col>
             ))}
           </Row>
@@ -1888,128 +2031,339 @@ function HomeContent() {
       </div>
 
       {/* Pricing Section */}
-      <div style={{ padding: '80px 0' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
-          <div style={{ textAlign: 'center', marginBottom: 60 }}>
-            <Title level={2}>
-              <Space>
-                <CheckCircleOutlined />
-                Start Free, Scale as You Grow
-              </Space>
+      <div style={{ 
+        padding: '100px 0', 
+        background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+        position: 'relative'
+      }}>
+        {/* Background Pattern */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.03) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(118, 75, 162, 0.03) 0%, transparent 50%)',
+          pointerEvents: 'none'
+        }} />
+        
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 1 }}>
+          <div style={{ textAlign: 'center', marginBottom: '80px' }}>
+            <Title level={2} style={{ 
+              fontSize: '36px', 
+              fontWeight: 700, 
+              margin: '0 0 16px 0',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}>
+              Start Free, Scale as You Grow
             </Title>
-            <Paragraph style={{ fontSize: 18, color: '#666' }}>
+            <Paragraph style={{ fontSize: '18px', color: '#666', margin: 0 }}>
               No credit card required. Cancel anytime.
             </Paragraph>
           </div>
 
           <Row gutter={[32, 32]} justify="center">
             <Col xs={24} sm={6}>
-              <Card style={{ textAlign: 'center', height: '100%' }} hoverable>
-                <Title level={3}>Free</Title>
-                <Title level={1} style={{ color: '#52c41a', margin: '16px 0' }}>$0</Title>
-                <Text type="secondary">Perfect for individuals getting started</Text>
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.9)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(82, 196, 26, 0.2)',
+                borderRadius: '24px',
+                padding: '40px 32px',
+                textAlign: 'center',
+                height: '100%',
+                boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                {/* Background Accent */}
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: '4px',
+                  background: 'linear-gradient(135deg, #52c41a 0%, #73d13d 100%)'
+                }} />
+                
+                <Title level={3} style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: 600 }}>Free</Title>
+                <Title level={1} style={{ 
+                  color: '#52c41a', 
+                  margin: '16px 0', 
+                  fontSize: '48px',
+                  fontWeight: 700
+                }}>$0</Title>
+                <Text style={{ 
+                  color: '#666', 
+                  fontSize: '16px',
+                  marginBottom: '32px',
+                  display: 'block'
+                }}>Perfect for individuals getting started</Text>
                 <List
-                  style={{ margin: '24px 0' }}
+                  style={{ margin: '24px 0 32px 0' }}
                   dataSource={['20 audio summaries per month', '1 user', '2-5 min processing time', 'Basic Slack integration', 'Community support']}
                   renderItem={(item) => (
-                    <List.Item style={{ border: 'none', padding: '4px 0' }}>
+                    <List.Item style={{ border: 'none', padding: '8px 0' }}>
                       <Space>
-                        <CheckCircleOutlined style={{ color: '#52c41a' }} />
-                        <Text>{item}</Text>
+                        <CheckCircleOutlined style={{ color: '#52c41a', fontSize: '16px' }} />
+                        <Text style={{ fontSize: '14px' }}>{item}</Text>
                       </Space>
                     </List.Item>
                   )}
                 />
-                <Button type="default" size="large" href={slackInstallUrl} style={{ width: '100%' }}>
+                <Button 
+                  type="default" 
+                  size="large" 
+                  href={slackInstallUrl} 
+                  style={{ 
+                    width: '100%',
+                    height: '48px',
+                    borderRadius: '12px',
+                    fontSize: '16px',
+                    fontWeight: 600,
+                    border: '2px solid #52c41a',
+                    color: '#52c41a',
+                    background: 'transparent',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
                   Start Free Trial
                 </Button>
-              </Card>
+              </div>
             </Col>
 
             <Col xs={24} sm={6}>
-              <Card style={{ textAlign: 'center', height: '100%' }} hoverable>
-                <Title level={3}>Starter</Title>
-                <Title level={1} style={{ color: '#1890ff', margin: '16px 0' }}>$9</Title>
-                <Text type="secondary">For individual power users</Text>
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.9)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(24, 144, 255, 0.2)',
+                borderRadius: '24px',
+                padding: '40px 32px',
+                textAlign: 'center',
+                height: '100%',
+                boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                {/* Background Accent */}
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: '4px',
+                  background: 'linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)'
+                }} />
+                
+                <Title level={3} style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: 600 }}>Starter</Title>
+                <Title level={1} style={{ 
+                  color: '#1890ff', 
+                  margin: '16px 0', 
+                  fontSize: '48px',
+                  fontWeight: 700
+                }}>$9</Title>
+                <Text style={{ 
+                  color: '#666', 
+                  fontSize: '16px',
+                  marginBottom: '32px',
+                  display: 'block'
+                }}>For individual power users</Text>
                 <List
-                  style={{ margin: '24px 0' }}
+                  style={{ margin: '24px 0 32px 0' }}
                   dataSource={['Unlimited audio summaries', '1 user', '1-2 min processing time', 'Basic analytics', 'Email support']}
                   renderItem={(item) => (
-                    <List.Item style={{ border: 'none', padding: '4px 0' }}>
+                    <List.Item style={{ border: 'none', padding: '8px 0' }}>
                       <Space>
-                        <CheckCircleOutlined style={{ color: '#52c41a' }} />
-                        <Text>{item}</Text>
+                        <CheckCircleOutlined style={{ color: '#52c41a', fontSize: '16px' }} />
+                        <Text style={{ fontSize: '14px' }}>{item}</Text>
                       </Space>
                     </List.Item>
                   )}
                 />
-                <Button type="default" size="large" href={slackInstallUrl} style={{ width: '100%' }}>
+                <Button 
+                  type="primary" 
+                  size="large" 
+                  href={slackInstallUrl} 
+                  style={{ 
+                    width: '100%',
+                    height: '48px',
+                    borderRadius: '12px',
+                    fontSize: '16px',
+                    fontWeight: 600,
+                    background: 'linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)',
+                    border: 'none',
+                    boxShadow: '0 8px 24px rgba(24, 144, 255, 0.3)',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
                   Start Free Trial
                 </Button>
-              </Card>
+              </div>
             </Col>
 
             <Col xs={24} sm={6}>
-              <Card 
-                style={{ 
-                  textAlign: 'center', 
-                  height: '100%', 
-                  border: '2px solid #1890ff',
-                  position: 'relative'
-                }} 
-                hoverable
-              >
-                <Badge 
-                  count="Most Popular" 
-                  style={{ 
-                    position: 'absolute', 
-                    top: -10, 
-                    right: -10, 
-                    backgroundColor: '#1890ff' 
-                  }} 
-                />
-                <Title level={3}>Pro</Title>
-                <Title level={1} style={{ color: '#1890ff', margin: '16px 0' }}>$39</Title>
-                <Text type="secondary">For growing teams</Text>
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.9)',
+                backdropFilter: 'blur(20px)',
+                border: '2px solid rgba(24, 144, 255, 0.3)',
+                borderRadius: '24px',
+                padding: '40px 32px',
+                textAlign: 'center',
+                height: '100%',
+                boxShadow: '0 16px 48px rgba(24, 144, 255, 0.15)',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                {/* Popular Badge */}
+                <div style={{
+                  position: 'absolute',
+                  top: '16px',
+                  right: '16px',
+                  background: 'linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)',
+                  color: 'white',
+                  padding: '4px 12px',
+                  borderRadius: '20px',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  boxShadow: '0 4px 12px rgba(24, 144, 255, 0.3)'
+                }}>
+                  Most Popular
+                </div>
+                
+                {/* Background Accent */}
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: '4px',
+                  background: 'linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)'
+                }} />
+                
+                <Title level={3} style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: 600 }}>Pro</Title>
+                <Title level={1} style={{ 
+                  color: '#1890ff', 
+                  margin: '16px 0', 
+                  fontSize: '48px',
+                  fontWeight: 700
+                }}>$39</Title>
+                <Text style={{ 
+                  color: '#666', 
+                  fontSize: '16px',
+                  marginBottom: '32px',
+                  display: 'block'
+                }}>For growing teams</Text>
                 <List
-                  style={{ margin: '24px 0' }}
+                  style={{ margin: '24px 0 32px 0' }}
                   dataSource={['Unlimited audio summaries', 'Up to 10 team members', '30s processing time', 'Advanced analytics & reports', 'Priority support']}
                   renderItem={(item) => (
-                    <List.Item style={{ border: 'none', padding: '4px 0' }}>
+                    <List.Item style={{ border: 'none', padding: '8px 0' }}>
                       <Space>
-                        <CheckCircleOutlined style={{ color: '#52c41a' }} />
-                        <Text>{item}</Text>
+                        <CheckCircleOutlined style={{ color: '#52c41a', fontSize: '16px' }} />
+                        <Text style={{ fontSize: '14px' }}>{item}</Text>
                       </Space>
                     </List.Item>
                   )}
                 />
-                <Button type="primary" size="large" href={slackInstallUrl} style={{ width: '100%' }}>
+                <Button 
+                  type="primary" 
+                  size="large" 
+                  href={slackInstallUrl} 
+                  style={{ 
+                    width: '100%',
+                    height: '48px',
+                    borderRadius: '12px',
+                    fontSize: '16px',
+                    fontWeight: 600,
+                    background: 'linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)',
+                    border: 'none',
+                    boxShadow: '0 8px 24px rgba(24, 144, 255, 0.3)',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
                   Start Free Trial
                 </Button>
-              </Card>
+              </div>
             </Col>
 
             <Col xs={24} sm={6}>
-              <Card style={{ textAlign: 'center', height: '100%' }} hoverable>
-                <Title level={3}>Business</Title>
-                <Title level={1} style={{ color: '#722ed1', margin: '16px 0' }}>$99</Title>
-                <Text type="secondary">For large organizations</Text>
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.9)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(114, 46, 209, 0.2)',
+                borderRadius: '24px',
+                padding: '40px 32px',
+                textAlign: 'center',
+                height: '100%',
+                boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                {/* Background Accent */}
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: '4px',
+                  background: 'linear-gradient(135deg, #722ed1 0%, #9254de 100%)'
+                }} />
+                
+                <Title level={3} style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: 600 }}>Business</Title>
+                <Title level={1} style={{ 
+                  color: '#722ed1', 
+                  margin: '16px 0', 
+                  fontSize: '48px',
+                  fontWeight: 700
+                }}>$99</Title>
+                <Text style={{ 
+                  color: '#666', 
+                  fontSize: '16px',
+                  marginBottom: '32px',
+                  display: 'block'
+                }}>For large organizations</Text>
                 <List
-                  style={{ margin: '24px 0' }}
+                  style={{ margin: '24px 0 32px 0' }}
                   dataSource={['Unlimited audio summaries', 'Unlimited team members', '15s processing time', 'Advanced analytics & reporting', 'Priority support']}
                   renderItem={(item) => (
-                    <List.Item style={{ border: 'none', padding: '4px 0' }}>
+                    <List.Item style={{ border: 'none', padding: '8px 0' }}>
                       <Space>
-                        <CheckCircleOutlined style={{ color: '#52c41a' }} />
-                        <Text>{item}</Text>
+                        <CheckCircleOutlined style={{ color: '#52c41a', fontSize: '16px' }} />
+                        <Text style={{ fontSize: '14px' }}>{item}</Text>
                       </Space>
                     </List.Item>
                   )}
                 />
-                <Button type="default" size="large" href={slackInstallUrl} style={{ width: '100%' }}>
+                <Button 
+                  type="primary" 
+                  size="large" 
+                  href={slackInstallUrl} 
+                  style={{ 
+                    width: '100%',
+                    height: '48px',
+                    borderRadius: '12px',
+                    fontSize: '16px',
+                    fontWeight: 600,
+                    background: 'linear-gradient(135deg, #722ed1 0%, #9254de 100%)',
+                    border: 'none',
+                    boxShadow: '0 8px 24px rgba(114, 46, 209, 0.3)',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
                   Start Free Trial
                 </Button>
-              </Card>
+              </div>
             </Col>
           </Row>
 
@@ -2023,29 +2377,61 @@ function HomeContent() {
       </div>
 
       {/* CTA Section */}
-      <div style={{ padding: '80px 0', background: '#001529', color: 'white' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
+      <div style={{ 
+        padding: '100px 0', 
+        background: 'linear-gradient(135deg, #001529 0%, #003a70 100%)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        {/* Background Pattern */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.05) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.05) 0%, transparent 50%)',
+          pointerEvents: 'none'
+        }} />
+        
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', textAlign: 'center', position: 'relative', zIndex: 1 }}>
           <Space direction="vertical" size="large" style={{ width: '100%' }}>
-            <Title level={2} style={{ color: 'white' }}>
+            <Title level={2} style={{ 
+              color: 'white',
+              fontSize: '36px',
+              fontWeight: 700,
+              margin: '0 0 24px 0'
+            }}>
               Ready to Stop Drowning in Articles?
             </Title>
             
-            <Paragraph style={{ color: 'rgba(255,255,255,0.8)', fontSize: 18 }}>
+            <Paragraph style={{ 
+              color: 'rgba(255,255,255,0.9)', 
+              fontSize: '18px',
+              margin: '0 0 40px 0',
+              maxWidth: '600px',
+              marginLeft: 'auto',
+              marginRight: 'auto'
+            }}>
               Join 500+ teams who've saved 10,000+ hours by listening instead of reading.
             </Paragraph>
 
-            <Space size="large">
+            <Space size="large" style={{ marginBottom: '48px' }}>
               <Button 
                 type="primary" 
                 size="large" 
                 icon={<SlackOutlined />}
                 href={slackInstallUrl}
                 style={{ 
-                  background: '#4A154B', 
-                  borderColor: '#4A154B',
-                  height: 48,
-                  fontSize: 16,
-                  fontWeight: 600
+                  background: 'linear-gradient(135deg, #4A154B 0%, #6B4E71 100%)',
+                  border: 'none',
+                  height: '56px',
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  padding: '0 40px',
+                  borderRadius: '12px',
+                  boxShadow: '0 8px 32px rgba(74, 21, 75, 0.3)',
+                  transition: 'all 0.3s ease'
                 }}
               >
                 Start Free Trial - No Credit Card
@@ -2057,31 +2443,61 @@ function HomeContent() {
                 href="/pricing"
                 icon={<ArrowRightOutlined />}
                 style={{ 
-                  borderColor: 'white',
+                  border: '2px solid rgba(255, 255, 255, 0.3)',
                   color: 'white',
-                  height: 48,
-                  fontSize: 16
+                  height: '56px',
+                  fontSize: '16px',
+                  fontWeight: 500,
+                  padding: '0 32px',
+                  borderRadius: '12px',
+                  backdropFilter: 'blur(10px)',
+                  transition: 'all 0.3s ease'
                 }}
               >
                 Compare Plans
               </Button>
             </Space>
 
-            <div style={{ marginTop: 40 }}>
-              <Space split={<Divider type="vertical" />}>
-                <Space>
-                  <SafetyCertificateOutlined />
-                  <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Secure & Reliable</Text>
-                </Space>
-                <Space>
-                  <GlobalOutlined />
-                  <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Fast Processing</Text>
-                </Space>
-                <Space>
-                  <TeamOutlined />
-                  <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Team Support</Text>
-                </Space>
-              </Space>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              gap: '32px',
+              flexWrap: 'wrap'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ 
+                  width: '8px', 
+                  height: '8px', 
+                  borderRadius: '50%', 
+                  background: '#52c41a' 
+                }} />
+                <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>
+                  Secure & Reliable
+                </Text>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ 
+                  width: '8px', 
+                  height: '8px', 
+                  borderRadius: '50%', 
+                  background: '#52c41a' 
+                }} />
+                <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>
+                  Fast Processing
+                </Text>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ 
+                  width: '8px', 
+                  height: '8px', 
+                  borderRadius: '50%', 
+                  background: '#52c41a' 
+                }} />
+                <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>
+                  Team Support
+                </Text>
+              </div>
             </div>
           </Space>
         </div>
