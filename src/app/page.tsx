@@ -214,15 +214,15 @@ function HomeContent() {
       const teamId = localStorage.getItem('biirbal_team_id')
       const userId = localStorage.getItem('biirbal_user_id') // Database user ID
       
-      if (!teamId || !userId) {
+      if (!teamId) {
         setShowDashboard(false)
         return
       }
 
       const [linksResponse, statsResponse, usageResponse] = await Promise.all([
-        fetch(`/api/dashboard/links?teamId=${teamId}&userId=${userId}`),
-        fetch(`/api/dashboard/stats?teamId=${teamId}&userId=${userId}`),
-        fetch(`/api/dashboard/usage?teamId=${teamId}&userId=${userId}`)
+        fetch(`/api/dashboard/links?teamId=${teamId}${userId ? `&userId=${userId}` : ''}`),
+        fetch(`/api/dashboard/stats?teamId=${teamId}${userId ? `&userId=${userId}` : ''}`),
+        fetch(`/api/dashboard/usage?teamId=${teamId}${userId ? `&userId=${userId}` : ''}`)
       ])
 
       if (!linksResponse.ok || !statsResponse.ok || !usageResponse.ok) {
