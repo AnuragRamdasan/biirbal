@@ -270,9 +270,8 @@ export async function GET(request: NextRequest) {
 
     console.log(process.env.NEXTAUTH_URL)
     
-    // Store team ID and user ID in URL for client-side storage
-    // Use Slack team ID (teamId) for profile API compatibility, and database user ID for session management
-    let redirectUrl = `/?installed=true&teamId=${encodeURIComponent(teamId)}`
+    // Store database user ID in URL for client-side storage
+    let redirectUrl = `/?installed=true`
     if (databaseUserId) {
       redirectUrl += `&userId=${encodeURIComponent(databaseUserId)}`
     }

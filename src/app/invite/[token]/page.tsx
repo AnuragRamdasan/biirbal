@@ -67,7 +67,6 @@ export default function InvitePage({ params }: { params: { token: string } }) {
         // Store user info in localStorage for authentication
         if (data.user) {
           localStorage.setItem('biirbal_user_id', data.user.id)
-          localStorage.setItem('biirbal_team_id', data.user.teamId)
           localStorage.setItem('biirbal_user_email', data.user.email)
           localStorage.setItem('biirbal_team_name', data.user.teamName)
           localStorage.setItem('biirbal_slack_user', 'false') // Mark as non-Slack user

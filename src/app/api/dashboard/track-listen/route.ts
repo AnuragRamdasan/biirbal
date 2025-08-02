@@ -3,7 +3,7 @@ import { getDbClient } from '@/lib/db'
 
 export async function POST(request: NextRequest) {
   try {
-    const { linkId, userId, slackUserId } = await request.json()
+    const { linkId, userId } = await request.json()
 
     if (!linkId) {
       return NextResponse.json(
@@ -12,8 +12,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Prioritize userId (database user ID) as primary identifier
-    if (!userId && !slackUserId) {
+    if (!userId) {
       return NextResponse.json(
         { error: 'userId is required' },
         { status: 400 }
@@ -66,27 +65,15 @@ export async function POST(request: NextRequest) {
     
     let existingListen = null
     
-    // Prioritize userId (database user ID) for queries
-    if (validatedUserId) {
-      existingListen = await db.audioListen.findFirst({
-        where: {
-          processedLinkId: linkId,
-          userId: validatedUserId,
-          completed: false
-        },
-        orderBy: { listenedAt: 'desc' }
-      })
-    } else if (slackUserId) {
-      // Fallback to slackUserId for legacy compatibility
-      existingListen = await db.audioListen.findFirst({
-        where: {
-          processedLinkId: linkId,
-          slackUserId: slackUserId,
-          completed: false
-        },
-        orderBy: { listenedAt: 'desc' }
-      })
-    }
+    // Find existing listen session for this user and link
+    existingListen = await db.audioListen.findFirst({
+      where: {
+        processedLinkId: linkId,
+        userId: validatedUserId,
+        completed: false
+      },
+      orderBy: { listenedAt: 'desc' }
+    })
 
     if (existingListen) {
       // Return existing incomplete listen record to resume from
@@ -97,8 +84,7 @@ export async function POST(request: NextRequest) {
     const listen = await db.audioListen.create({
       data: {
         processedLinkId: linkId,
-        userId: validatedUserId, // Primary user identifier (database user.id)
-        slackUserId, // Legacy field for backwards compatibility
+        userId: validatedUserId,
         userAgent,
         ipAddress,
         resumePosition: 0

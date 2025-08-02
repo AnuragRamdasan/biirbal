@@ -4,24 +4,39 @@ import { getTeamUsageStats, getUpgradeMessage, canUserConsume } from '@/lib/subs
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const teamId = searchParams.get('teamId')
     const userId = searchParams.get('userId')
 
-    if (!teamId) {
+    if (!userId) {
       return NextResponse.json(
-        { error: 'teamId is required' },
+        { error: 'userId is required' },
         { status: 400 }
       )
     }
 
-    const usageStats = await getTeamUsageStats(teamId)
-    const warning = getUpgradeMessage(usageStats)
+    // Get user's team ID from database
+    const { getDbClient } = await import('@/lib/db')
+    const db = await getDbClient()
     
-    // Check if specific user can consume (for dashboard access control)
-    let userCanConsume = true
-    if (userId) {
-      userCanConsume = await canUserConsume(teamId, userId)
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { 
+        teamId: true,
+        team: {
+          select: { slackTeamId: true }
+        }
+      }
+    })
+    
+    if (!user || !user.team) {
+      return NextResponse.json(
+        { error: 'User or team not found' },
+        { status: 404 }
+      )
     }
+
+    const usageStats = await getTeamUsageStats(user.team.slackTeamId)
+    const warning = getUpgradeMessage(usageStats)
+    const userCanConsume = await canUserConsume(user.team.slackTeamId, userId)
 
     return NextResponse.json({
       ...usageStats,

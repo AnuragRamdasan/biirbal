@@ -21,18 +21,17 @@ export const Header: React.FC<HeaderProps> = ({
   const router = useRouter()
 
   useEffect(() => {
-    // Check if user is authenticated via Slack by looking for team ID in localStorage
-    const teamId = localStorage.getItem('biirbal_team_id')
-    setSlackAuthenticated(!!teamId)
+    // Check if user is authenticated by looking for user ID in localStorage
+    const userId = localStorage.getItem('biirbal_user_id')
+    setSlackAuthenticated(!!userId)
   }, [])
 
   const isAuthenticated = slackAuthenticated
 
   const handleLogout = async () => {
     try {
-      // Clear all local storage items for Slack auth
+      // Clear all local storage items for auth
       localStorage.removeItem('biirbal_visited_dashboard')
-      localStorage.removeItem('biirbal_team_id')
       localStorage.removeItem('biirbal_user_id')
       
       // Clear any other app-specific storage

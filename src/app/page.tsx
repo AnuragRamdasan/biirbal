@@ -177,11 +177,7 @@ function HomeContent() {
       setShowDashboard(true)
       
       // Store team ID and user ID from OAuth response
-      const teamId = searchParams.get('teamId')
       const userId = searchParams.get('userId')
-      if (teamId) {
-        localStorage.setItem('biirbal_team_id', teamId)
-      }
       if (userId) {
         localStorage.setItem('biirbal_user_id', userId) // Store database user ID
         localStorage.setItem('biirbal_slack_user', 'true') // Mark as Slack OAuth user
@@ -193,8 +189,8 @@ function HomeContent() {
     
     // Check if user has been here before (simple check)
     const hasVisitedDashboard = localStorage.getItem('biirbal_visited_dashboard')
-    const hasTeamId = localStorage.getItem('biirbal_team_id')
-    if (hasVisitedDashboard && hasTeamId && !searchParams.get('error')) {
+    const hasUserId = localStorage.getItem('biirbal_user_id')
+    if (hasVisitedDashboard && hasUserId && !searchParams.get('error')) {
       setShowDashboard(true)
       localStorage.setItem('biirbal_visited_dashboard', 'true')
     }
@@ -211,18 +207,17 @@ function HomeContent() {
         setInitialLoading(true)
       }
       
-      const teamId = localStorage.getItem('biirbal_team_id')
       const userId = localStorage.getItem('biirbal_user_id') // Database user ID
       
-      if (!teamId) {
+      if (!userId) {
         setShowDashboard(false)
         return
       }
 
       const [linksResponse, statsResponse, usageResponse] = await Promise.all([
-        fetch(`/api/dashboard/links?teamId=${teamId}${userId ? `&userId=${userId}` : ''}`),
-        fetch(`/api/dashboard/stats?teamId=${teamId}${userId ? `&userId=${userId}` : ''}`),
-        fetch(`/api/dashboard/usage?teamId=${teamId}${userId ? `&userId=${userId}` : ''}`)
+        fetch(`/api/dashboard/links?userId=${userId}`),
+        fetch(`/api/dashboard/stats?userId=${userId}`),
+        fetch(`/api/dashboard/usage?userId=${userId}`)
       ])
 
       if (!linksResponse.ok || !statsResponse.ok || !usageResponse.ok) {

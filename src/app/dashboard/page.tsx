@@ -209,27 +209,17 @@ export default function Dashboard() {
 
   const fetchLinks = async () => {
     try {
-      // Get team and user IDs from localStorage
-      const teamId = localStorage.getItem('biirbal_team_id')
+      // Get user ID from localStorage
       const userId = localStorage.getItem('biirbal_user_id')
-      const isSlackUser = localStorage.getItem('biirbal_slack_user') === 'true'
       
-      if (!teamId) {
-        throw new Error('No team found. Please install the bot first.')
+      if (!userId) {
+        throw new Error('No user found. Please log in again.')
       }
 
-      // Build URL with query parameters for user-specific filtering
+      // Build URL with query parameters
       const params = new URLSearchParams({
-        teamId: teamId
+        userId: userId
       })
-      
-      if (userId) {
-        if (isSlackUser) {
-          params.append('slackUserId', userId)
-        } else {
-          params.append('userId', userId)
-        }
-      }
 
       const response = await fetch(`/api/dashboard/links?${params.toString()}`)
       if (!response.ok) {
@@ -301,19 +291,13 @@ export default function Dashboard() {
 
   const fetchStats = async () => {
     try {
-      const teamId = localStorage.getItem('biirbal_team_id')
-      const slackUserId = localStorage.getItem('biirbal_user_id')
+      const userId = localStorage.getItem('biirbal_user_id')
       
-      if (!teamId) {
+      if (!userId) {
         return
       }
 
-      const params = new URLSearchParams({ teamId })
-      if (slackUserId) {
-        params.append('slackUserId', slackUserId)
-      }
-
-      const response = await fetch(`/api/dashboard/stats?${params}`)
+      const response = await fetch(`/api/dashboard/stats?userId=${userId}`)
       if (response.ok) {
         const data = await response.json()
         setStats(data)
@@ -329,18 +313,12 @@ export default function Dashboard() {
 
   const trackListen = async (linkId: string): Promise<{ listen: any } | null> => {
     try {
-      // Get the current user ID from localStorage if available
+      // Get the current user ID from localStorage
       const userId = localStorage.getItem('biirbal_user_id')
-      const isSlackUser = localStorage.getItem('biirbal_slack_user') === 'true'
       
-      const requestBody: any = { linkId: linkId }
-      
-      if (userId) {
-        if (isSlackUser) {
-          requestBody.slackUserId = userId
-        } else {
-          requestBody.userId = userId
-        }
+      const requestBody = { 
+        linkId: linkId,
+        userId: userId
       }
       
       const response = await fetch('/api/dashboard/track-listen', {
