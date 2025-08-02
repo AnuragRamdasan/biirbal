@@ -1,6 +1,6 @@
 'use client'
 
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { useEffect, useState, useRef, Suspense } from 'react'
 import Script from 'next/script'
 import { 
@@ -120,6 +120,7 @@ interface AudioListen {
 
 function HomeContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   
   // Home page state
   const [installed, setInstalled] = useState(false)
@@ -170,27 +171,30 @@ function HomeContent() {
     trackTimeOnPage: true
   })
 
-  // Check authentication and set initial state
+  // Simple authentication check
   useEffect(() => {
+    // Handle OAuth installation success
     if (searchParams.get('installed') === 'true') {
       setInstalled(true)
       setShowDashboard(true)
-      
-      // Store team ID and user ID from OAuth response
       const userId = searchParams.get('userId')
       if (userId) {
-        localStorage.setItem('biirbal_user_id', userId) // Store database user ID
-        localStorage.setItem('biirbal_slack_user', 'true') // Mark as Slack OAuth user
+        localStorage.setItem('biirbal_user_id', userId)
+        localStorage.setItem('biirbal_slack_user', 'true')
+        localStorage.setItem('biirbal_visited_dashboard', 'true')
       }
+      return
     }
+
+    // Handle OAuth errors
     if (searchParams.get('error')) {
       setError(searchParams.get('error') || 'Installation failed')
+      return
     }
-    
-    // Check if user has been here before (simple check)
-    const hasVisitedDashboard = localStorage.getItem('biirbal_visited_dashboard')
+
+    // Check if user is authenticated - simple check
     const hasUserId = localStorage.getItem('biirbal_user_id')
-    if (hasVisitedDashboard && hasUserId && !searchParams.get('error')) {
+    if (hasUserId) {
       setShowDashboard(true)
       localStorage.setItem('biirbal_visited_dashboard', 'true')
     }
