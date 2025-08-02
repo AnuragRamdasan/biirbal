@@ -708,7 +708,7 @@ function HomeContent() {
     
     const visibleLinks = showListened 
       ? filteredLinks 
-      : filteredLinks.filter(link => !hasUserCompleted(link))
+      : filteredLinks.filter(link => !hasUserListened(link))
 
     return (
       <Layout currentPage="dashboard" showHeader={true}>
