@@ -14,12 +14,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { teamId, planId, isAnnual = false } = await request.json()
-    console.log(`🚀 Checkout request: planId=${planId}, teamId=${teamId}, isAnnual=${isAnnual}`)
+    const { userId, planId, isAnnual = false } = await request.json()
+    console.log(`🚀 Checkout request: planId=${planId}, userId=${userId}, isAnnual=${isAnnual}`)
 
-    if (!teamId || !planId) {
+    if (!userId || !planId) {
       return NextResponse.json(
-        { error: 'Missing teamId or planId' },
+        { error: 'Missing userId or planId' },
         { status: 400 }
       )
     }
@@ -61,31 +61,35 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get team and subscription info
+    // Get user and their team info
     const db = await getDbClient()
-    // teamId from localStorage is actually the Slack team ID, not our internal ID
-    const team = await db.team.findUnique({
-      where: { slackTeamId: teamId },
-      include: { subscription: true }
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      include: { 
+        team: {
+          include: { subscription: true }
+        }
+      }
     })
 
-    if (!team) {
-      console.log(`Team lookup failed for Slack ID: ${teamId}`)
+    if (!user || !user.team) {
+      console.log(`User or team lookup failed for user ID: ${userId}`)
       
-      // Check if any teams exist at all
-      const teamCount = await db.team.count()
-      console.log(`Total teams in database: ${teamCount}`)
+      // Check if user exists
+      const userExists = await db.user.findUnique({ where: { id: userId } })
+      console.log(`User exists: ${!!userExists}`)
       
       return NextResponse.json(
         { 
-          error: 'Team not found',
-          details: `No team found with Slack ID: ${teamId}. Total teams in database: ${teamCount}`,
-          suggestion: 'Please ensure the biirbal.ai Slack app is properly installed for your workspace.'
+          error: 'User or team not found',
+          details: `No user or team found with user ID: ${userId}`,
+          suggestion: 'Please ensure you are logged in and have access to a team.'
         },
         { status: 404 }
       )
     }
 
+    const team = user.team
     console.log(`✅ Team found: ${team.teamName} (Internal ID: ${team.id}, Slack ID: ${team.slackTeamId})`)
 
     let customerId = team.subscription?.stripeCustomerId

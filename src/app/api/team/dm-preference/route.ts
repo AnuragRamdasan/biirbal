@@ -12,37 +12,38 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get team ID from query parameters (same approach as profile API)
-    const teamId = request.nextUrl.searchParams.get('teamId')
+    // Get user ID from query parameters
+    const userId = request.nextUrl.searchParams.get('userId')
     
-    if (!teamId) {
+    if (!userId) {
       return NextResponse.json(
-        { error: 'Team ID not found. Please ensure you are logged in.' },
+        { error: 'User ID not found. Please ensure you are logged in.' },
         { status: 401 }
       )
     }
 
     const db = await getDbClient()
 
-    // Find team by Slack team ID (since that's what we store in localStorage)
-    const team = await db.team.findUnique({
-      where: { slackTeamId: teamId }
+    // Find user and their team
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      include: { team: true }
     })
 
-    if (!team) {
+    if (!user || !user.team) {
       return NextResponse.json(
-        { error: 'Team not found' },
+        { error: 'User or team not found' },
         { status: 404 }
       )
     }
 
     // Update the team's DM preference
     const updatedTeam = await db.team.update({
-      where: { slackTeamId: teamId },
+      where: { id: user.teamId },
       data: { sendSummaryAsDM }
     })
 
-    console.log(`✅ Updated DM preference for team ${team.teamName}: ${sendSummaryAsDM}`)
+    console.log(`✅ Updated DM preference for team ${user.team.teamName}: ${sendSummaryAsDM}`)
 
     return NextResponse.json({
       success: true,
@@ -61,32 +62,36 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const teamId = request.nextUrl.searchParams.get('teamId')
+    const userId = request.nextUrl.searchParams.get('userId')
     
-    if (!teamId) {
+    if (!userId) {
       return NextResponse.json(
-        { error: 'Team ID is required' },
+        { error: 'User ID is required' },
         { status: 400 }
       )
     }
 
     const db = await getDbClient()
     
-    const team = await db.team.findUnique({
-      where: { slackTeamId: teamId },
-      select: { sendSummaryAsDM: true, teamName: true }
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      include: { 
+        team: {
+          select: { sendSummaryAsDM: true, teamName: true }
+        }
+      }
     })
 
-    if (!team) {
+    if (!user || !user.team) {
       return NextResponse.json(
-        { error: 'Team not found' },
+        { error: 'User or team not found' },
         { status: 404 }
       )
     }
 
     return NextResponse.json({
-      sendSummaryAsDM: team.sendSummaryAsDM,
-      teamName: team.teamName
+      sendSummaryAsDM: user.team.sendSummaryAsDM,
+      teamName: user.team.teamName
     })
 
   } catch (error) {

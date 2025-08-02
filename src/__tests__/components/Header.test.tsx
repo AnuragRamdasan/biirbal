@@ -68,7 +68,7 @@ describe('Header Component', () => {
   describe('Authenticated User', () => {
     beforeEach(() => {
       ;(window.localStorage.getItem as jest.Mock).mockImplementation((key) => {
-        if (key === 'biirbal_team_id') return 'T123456'
+        if (key === 'biirbal_user_id') return 'T123456'
         return null
       })
     })
@@ -113,7 +113,7 @@ describe('Header Component', () => {
 
       // Verify localStorage items are removed
       expect(window.localStorage.removeItem).toHaveBeenCalledWith('biirbal_visited_dashboard')
-      expect(window.localStorage.removeItem).toHaveBeenCalledWith('biirbal_team_id')
+      expect(window.localStorage.removeItem).toHaveBeenCalledWith('biirbal_user_id')
       expect(window.localStorage.removeItem).toHaveBeenCalledWith('biirbal_user_id')
       
       // Verify router push to home
@@ -124,7 +124,7 @@ describe('Header Component', () => {
       // Mock the localStorage storage to have some biirbal_ prefixed keys
       const mockLocalStorage = {
         getItem: jest.fn((key) => {
-          if (key === 'biirbal_team_id') return 'T123456'
+          if (key === 'biirbal_user_id') return 'T123456'
           return null
         }),
         setItem: jest.fn(),
@@ -174,7 +174,7 @@ describe('Header Component', () => {
   describe('Current Page Highlighting', () => {
     beforeEach(() => {
       ;(window.localStorage.getItem as jest.Mock).mockImplementation((key) => {
-        if (key === 'biirbal_team_id') return 'T123456'
+        if (key === 'biirbal_user_id') return 'T123456'
         return null
       })
     })

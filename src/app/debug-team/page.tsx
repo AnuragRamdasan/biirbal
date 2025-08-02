@@ -7,27 +7,27 @@ import Layout from '@/components/layout/Layout'
 const { Title, Text, Paragraph } = Typography
 
 export default function DebugTeamPage() {
-  const [teamId, setTeamId] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
   const [teamData, setTeamData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Get team ID from localStorage
-    const storedTeamId = localStorage.getItem('biirbal_team_id')
-    setTeamId(storedTeamId)
+    // Get user ID from localStorage
+    const storedUserId = localStorage.getItem('biirbal_user_id')
+    setUserId(storedUserId)
     
-    if (storedTeamId) {
-      checkTeam(storedTeamId)
+    if (storedUserId) {
+      checkUserTeam(storedUserId)
     }
   }, [])
 
-  const checkTeam = async (teamIdToCheck: string) => {
+  const checkUserTeam = async (userIdToCheck: string) => {
     setLoading(true)
     setError(null)
     
     try {
-      const response = await fetch(`/api/debug/teams?teamId=${teamIdToCheck}`)
+      const response = await fetch(`/api/debug/teams?userId=${userIdToCheck}`)
       const data = await response.json()
       setTeamData(data)
     } catch (err) {
@@ -61,20 +61,20 @@ export default function DebugTeamPage() {
         </Paragraph>
 
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
-          {/* Team ID from localStorage */}
+          {/* User ID from localStorage */}
           <Card>
-            <Title level={4}>Team ID from localStorage</Title>
-            {teamId ? (
+            <Title level={4}>User ID from localStorage</Title>
+            {userId ? (
               <Alert
                 type="info"
-                message={`Team ID: ${teamId}`}
-                description="This is the team ID stored in your browser's localStorage"
+                message={`User ID: ${userId}`}
+                description="This is the user ID stored in your browser's localStorage"
               />
             ) : (
               <Alert
                 type="warning"
-                message="No team ID found in localStorage"
-                description="You may need to install the biirbal.ai Slack app first"
+                message="No user ID found in localStorage"
+                description="You may need to log in first"
               />
             )}
           </Card>
@@ -87,7 +87,7 @@ export default function DebugTeamPage() {
                 <Alert
                   type="error"
                   message="Team Not Found"
-                  description={`No team found with ID: ${teamData.teamId}`}
+                  description={`No team found for user ID: ${teamData.userId}`}
                 />
               ) : teamData.team ? (
                 <Descriptions bordered column={1}>
@@ -140,10 +140,10 @@ export default function DebugTeamPage() {
           <Card>
             <Title level={4}>Actions</Title>
             <Space>
-              {teamId && (
+              {userId && (
                 <Button 
                   type="primary" 
-                  onClick={() => checkTeam(teamId)}
+                  onClick={() => checkUserTeam(userId)}
                   loading={loading}
                 >
                   Check My Team

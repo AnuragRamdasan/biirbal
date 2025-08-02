@@ -59,10 +59,10 @@ export default function PricingPage() {
   useEffect(() => {
     const fetchCurrentPlan = async () => {
       try {
-        const teamId = localStorage.getItem('teamId')
-        if (!teamId) return
+        const userId = localStorage.getItem('biirbal_user_id')
+        if (!userId) return
         
-        const response = await fetch(`/api/dashboard/usage?teamId=${teamId}`)
+        const response = await fetch(`/api/dashboard/usage?userId=${userId}`)
         if (response.ok) {
           const data = await response.json()
           setCurrentPlan(data.plan?.id || 'free')
@@ -97,23 +97,23 @@ export default function PricingPage() {
     })
     
     try {
-      // Get team ID from localStorage
-      const teamId = localStorage.getItem('biirbal_team_id')
+      // Get user ID from localStorage
+      const userId = localStorage.getItem('biirbal_user_id')
       
-      if (!teamId) {
-        analytics.trackFeature('checkout_blocked_no_team', { plan_id: planId })
-        alert('Please install the biirbal.ai Slack app first to access subscription plans.')
+      if (!userId) {
+        analytics.trackFeature('checkout_blocked_no_user', { plan_id: planId })
+        alert('Please log in first to access subscription plans.')
         window.location.href = '/'
         return
       }
 
-      // Debug: Log the team ID being used
-      console.log('Using team ID:', teamId)
+      // Debug: Log the user ID being used
+      console.log('Using user ID:', userId)
 
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId, teamId, isAnnual })
+        body: JSON.stringify({ planId, userId, isAnnual })
       })
 
       if (!response.ok) {

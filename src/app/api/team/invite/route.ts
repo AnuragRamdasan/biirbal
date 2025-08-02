@@ -6,11 +6,11 @@ import crypto from 'crypto'
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, teamId, invitedBy } = await request.json()
+    const { email, invitedBy } = await request.json()
 
-    if (!email || !teamId || !invitedBy) {
+    if (!email || !invitedBy) {
       return NextResponse.json(
-        { error: 'Email, teamId, and invitedBy are required' },
+        { error: 'Email and invitedBy are required' },
         { status: 400 }
       )
     }
@@ -26,26 +26,31 @@ export async function POST(request: NextRequest) {
 
     const db = await getDbClient()
 
-    // Check if team exists and get team info
-    const team = await db.team.findUnique({
-      where: { slackTeamId: teamId },
-      include: {
-        users: { where: { isActive: true } }
+    // Get the inviting user and their team
+    const invitingUser = await db.user.findUnique({
+      where: { id: invitedBy },
+      include: { 
+        team: {
+          include: {
+            users: { where: { isActive: true } }
+          }
+        }
       }
     })
 
-    if (!team) {
+    if (!invitingUser || !invitingUser.team) {
       return NextResponse.json(
-        { error: 'Team not found' },
+        { error: 'User or team not found' },
         { status: 404 }
       )
     }
 
-    // Check if inviting user is part of the team and active
-    const invitingUser = team.users.find(u => u.slackUserId === invitedBy)
-    if (!invitingUser) {
+    const team = invitingUser.team
+
+    // Check if inviting user is active
+    if (!invitingUser.isActive) {
       return NextResponse.json(
-        { error: 'Only team members can send invitations' },
+        { error: 'Only active team members can send invitations' },
         { status: 403 }
       )
     }
@@ -128,7 +133,7 @@ export async function POST(request: NextRequest) {
 
     // Send admin notification
     await adminNotifications.notifyUserInvited({
-      teamId: teamId,
+      teamId: team.slackTeamId,
       teamName: team.teamName || undefined,
       email: email,
       invitedBy: invitedBy,

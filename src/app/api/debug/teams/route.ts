@@ -4,37 +4,41 @@ import { getDbClient } from '@/lib/db'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const teamId = searchParams.get('teamId')
+    const userId = searchParams.get('userId')
 
     const db = await getDbClient()
     
-    if (teamId) {
-      // Get specific team - teamId is actually the Slack team ID
-      const team = await db.team.findUnique({
-        where: { slackTeamId: teamId },
+    if (userId) {
+      // Get user's team info
+      const user = await db.user.findUnique({
+        where: { id: userId },
         include: { 
-          subscription: true,
-          users: { select: { id: true, slackUserId: true, isActive: true } },
-          processedLinks: { 
-            select: { id: true, createdAt: true },
-            orderBy: { createdAt: 'desc' },
-            take: 5
+          team: {
+            include: {
+              subscription: true,
+              users: { select: { id: true, slackUserId: true, isActive: true } },
+              processedLinks: { 
+                select: { id: true, createdAt: true },
+                orderBy: { createdAt: 'desc' },
+                take: 5
+              }
+            }
           }
         }
       })
 
       return NextResponse.json({
-        teamId,
-        found: !!team,
-        team: team ? {
-          id: team.id,
-          slackTeamId: team.slackTeamId,
-          teamName: team.teamName,
-          isActive: team.isActive,
-          subscription: team.subscription,
-          userCount: team.users.length,
-          linkCount: team.processedLinks.length,
-          recentLinks: team.processedLinks
+        userId,
+        found: !!(user && user.team),
+        team: user?.team ? {
+          id: user.team.id,
+          slackTeamId: user.team.slackTeamId,
+          teamName: user.team.teamName,
+          isActive: user.team.isActive,
+          subscription: user.team.subscription,
+          userCount: user.team.users.length,
+          linkCount: user.team.processedLinks.length,
+          recentLinks: user.team.processedLinks
         } : null
       })
     } else {

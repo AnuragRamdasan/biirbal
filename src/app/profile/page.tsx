@@ -119,19 +119,14 @@ export default function ProfilePage() {
 
   const fetchProfileData = async () => {
     try {
-      const storedTeamId = localStorage.getItem('biirbal_team_id')
-      if (!storedTeamId) {
-        setError('No team found. Please install the bot first.')
+      const storedUserId = localStorage.getItem('biirbal_user_id')
+      if (!storedUserId) {
+        setError('No user found. Please log in first.')
         setLoading(false)
         return
       }
-
-      const storedUserId = localStorage.getItem('biirbal_user_id')
       
-      let url = `/api/profile?teamId=${storedTeamId}`
-      if (storedUserId) {
-        url += `&userId=${storedUserId}`
-      }
+      let url = `/api/profile?userId=${storedUserId}`
       
       const response = await fetch(url)
       if (!response.ok) {
@@ -188,12 +183,12 @@ export default function ProfilePage() {
 
   const handleDMPreferenceChange = async (checked: boolean) => {
     try {
-      const teamId = localStorage.getItem('biirbal_team_id')
-      if (!teamId) {
-        throw new Error('Team ID not found')
+      const userId = localStorage.getItem('biirbal_user_id')
+      if (!userId) {
+        throw new Error('User ID not found')
       }
 
-      const response = await fetch(`/api/team/dm-preference?teamId=${teamId}`, {
+      const response = await fetch(`/api/team/dm-preference?userId=${userId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

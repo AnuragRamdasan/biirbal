@@ -5,41 +5,42 @@ import { adminNotifications } from '@/lib/admin-notifications'
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, teamId, removedBy } = await request.json()
+    const { userId, removedBy } = await request.json()
 
-    if (!userId || !teamId || !removedBy) {
+    if (!userId || !removedBy) {
       return NextResponse.json(
-        { error: 'userId, teamId, and removedBy are required' },
+        { error: 'userId and removedBy are required' },
         { status: 400 }
       )
     }
 
     const db = await getDbClient()
 
-    // Check if team exists and get team info
-    const team = await db.team.findUnique({
-      where: { slackTeamId: teamId },
-      include: {
-        users: { where: { isActive: true } }
+    // Get the removing user and their team
+    const removingUser = await db.user.findUnique({
+      where: { id: removedBy },
+      include: { 
+        team: {
+          include: {
+            users: { where: { isActive: true } }
+          }
+        }
       }
     })
 
-    if (!team) {
+    if (!removingUser || !removingUser.team) {
       return NextResponse.json(
-        { error: 'Team not found' },
+        { error: 'User or team not found' },
         { status: 404 }
       )
     }
 
-    // Check if removing user is part of the team and active
-    // First try to find by slackUserId, then by database id for invited users
-    let removingUser = team.users.find(u => u.slackUserId === removedBy)
-    if (!removingUser) {
-      removingUser = team.users.find(u => u.id === removedBy)
-    }
-    if (!removingUser) {
+    const team = removingUser.team
+
+    // Check if removing user is active
+    if (!removingUser.isActive) {
       return NextResponse.json(
-        { error: 'Only team members can remove users' },
+        { error: 'Only active team members can remove users' },
         { status: 403 }
       )
     }
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest) {
 
     // Send admin notification
     await adminNotifications.notifyUserRemoved({
-      teamId: teamId,
+      teamId: team.slackTeamId,
       teamName: team.teamName || undefined,
       email: userToRemove.email || 'No email',
       invitedBy: removedBy,

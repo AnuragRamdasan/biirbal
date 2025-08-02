@@ -3,15 +3,13 @@ import { prisma } from '../../../lib/prisma'
 
 export async function GET(request: NextRequest) {
   try {
-    // Get Slack team ID and optional user ID from query params
-    // In a real app, this would come from authenticated session
+    // Get user ID from query params
     const { searchParams } = new URL(request.url)
-    const slackTeamId = searchParams.get('teamId')
-    const userId = searchParams.get('userId') // Optional current user ID
+    const userId = searchParams.get('userId')
     
-    if (!slackTeamId) {
+    if (!userId) {
       return NextResponse.json(
-        { error: 'Team ID required' },
+        { error: 'User ID required' },
         { status: 400 }
       )
     }
@@ -19,24 +17,31 @@ export async function GET(request: NextRequest) {
     // Test database connection
     await prisma.$connect()
 
-    const team = await prisma.team.findUnique({
-      where: { slackTeamId: slackTeamId },
+    // Get user and their team
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
       include: {
-        subscription: true,
-        _count: {
-          select: {
-            processedLinks: true
+        team: {
+          include: {
+            subscription: true,
+            _count: {
+              select: {
+                processedLinks: true
+              }
+            }
           }
         }
       }
     })
 
-    if (!team) {
+    if (!user || !user.team) {
       return NextResponse.json(
-        { error: 'Team not found' },
+        { error: 'User or team not found' },
         { status: 404 }
       )
     }
+
+    const team = user.team
 
     // Get usage statistics
     const currentMonth = new Date()
@@ -170,136 +175,87 @@ export async function GET(request: NextRequest) {
       })
     )
 
-    // Fetch current user information and their specific stats if userId is provided
-    let currentUser = null
-    let userListenStats = null
-    if (userId) {
-      try {
-        // Try to find user by database ID first, then by slackUserId for backward compatibility
-        let user = await prisma.user.findUnique({
-          where: { id: userId },
-          select: {
-            id: true,
-            slackUserId: true,
-            name: true,
-            displayName: true,
-            realName: true,
-            email: true,
-            profileImage24: true,
-            profileImage32: true,
-            profileImage48: true,
-            title: true,
-            teamId: true
-          }
-        })
-        
-        // If not found by database ID and userId looks like a Slack ID, try slackUserId
-        if (!user && userId.startsWith('U')) {
-          user = await prisma.user.findUnique({
-            where: { slackUserId: userId },
-            select: {
-              id: true,
-              slackUserId: true,
-              name: true,
-              displayName: true,
-              realName: true,
-              email: true,
-              profileImage24: true,
-              profileImage32: true,
-              profileImage48: true,
-              title: true,
-              teamId: true
-            }
-          })
-        }
-        
-        if (user && user.teamId === team.id) {
-          currentUser = {
-            id: user.id, // Use database user ID
-            name: user.name || user.realName || 'Unknown User',
-            email: user.email,
-            profile: {
-              display_name: user.displayName,
-              real_name: user.realName,
-              image_24: user.profileImage24,
-              image_32: user.profileImage32,
-              image_48: user.profileImage48,
-              title: user.title
-            }
-          }
-
-          // Get user-specific listen statistics using database user ID
-          const [userTotalListens, userMonthlyListens, userCompletedListens, userListenDurations] = await Promise.all([
-            prisma.audioListen.count({
-              where: {
-                userId: user.id,
-                processedLink: {
-                  teamId: team.id
-                }
-              }
-            }),
-            prisma.audioListen.count({
-              where: {
-                userId: user.id,
-                processedLink: {
-                  teamId: team.id
-                },
-                listenedAt: {
-                  gte: currentMonth
-                }
-              }
-            }),
-            prisma.audioListen.count({
-              where: {
-                userId: user.id,
-                processedLink: {
-                  teamId: team.id
-                },
-                completed: true
-              }
-            }),
-            prisma.audioListen.findMany({
-              where: {
-                userId: user.id,
-                processedLink: {
-                  teamId: team.id
-                }
-              },
-              select: {
-                listenDuration: true,
-                completed: true,
-                processedLink: {
-                  select: {
-                    audioFileUrl: true
-                  }
-                }
-              }
-            })
-          ])
-
-          // Calculate minutes listened from actual durations
-          const userTotalSecondsListened = userListenDurations.reduce((total, listen) => {
-            if (listen.listenDuration && listen.listenDuration > 0) {
-              return total + listen.listenDuration
-            }
-            // For completed listens without duration, estimate ~59 seconds
-            if (listen.completed && listen.processedLink.audioFileUrl) {
-              return total + 59
-            }
-            return total
-          }, 0)
-
-          userListenStats = {
-            totalListens: userTotalListens,
-            monthlyListens: userMonthlyListens,
-            completedListens: userCompletedListens,
-            minutesListened: Math.round(userTotalSecondsListened / 60)
-          }
-        }
-      } catch (error) {
-        console.warn('Failed to fetch user info from database:', error)
-        // Don't fail the entire request if user info fetch fails
+    // Set current user info (we already have the user from the initial query)
+    const currentUser = {
+      id: user.id,
+      name: user.name || user.realName || 'Unknown User',
+      email: user.email,
+      profile: {
+        display_name: user.displayName,
+        real_name: user.realName,
+        image_24: user.profileImage24,
+        image_32: user.profileImage32,
+        image_48: user.profileImage48,
+        title: user.title
       }
+    }
+
+    // Get user-specific listen statistics
+    const [userTotalListens, userMonthlyListens, userCompletedListens, userListenDurations] = await Promise.all([
+      prisma.audioListen.count({
+        where: {
+          userId: user.id,
+          processedLink: {
+            teamId: team.id
+          }
+        }
+      }),
+      prisma.audioListen.count({
+        where: {
+          userId: user.id,
+          processedLink: {
+            teamId: team.id
+          },
+          listenedAt: {
+            gte: currentMonth
+          }
+        }
+      }),
+      prisma.audioListen.count({
+        where: {
+          userId: user.id,
+          processedLink: {
+            teamId: team.id
+          },
+          completed: true
+        }
+      }),
+      prisma.audioListen.findMany({
+        where: {
+          userId: user.id,
+          processedLink: {
+            teamId: team.id
+          }
+        },
+        select: {
+          listenDuration: true,
+          completed: true,
+          processedLink: {
+            select: {
+              audioFileUrl: true
+            }
+          }
+        }
+      })
+    ])
+
+    // Calculate minutes listened from actual durations
+    const userTotalSecondsListened = userListenDurations.reduce((total, listen) => {
+      if (listen.listenDuration && listen.listenDuration > 0) {
+        return total + listen.listenDuration
+      }
+      // For completed listens without duration, estimate ~59 seconds
+      if (listen.completed && listen.processedLink.audioFileUrl) {
+        return total + 59
+      }
+      return total
+    }, 0)
+
+    const userListenStats = {
+      totalListens: userTotalListens,
+      monthlyListens: userMonthlyListens,
+      completedListens: userCompletedListens,
+      minutesListened: Math.round(userTotalSecondsListened / 60)
     }
 
     return NextResponse.json({

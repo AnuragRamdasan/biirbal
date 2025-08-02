@@ -166,7 +166,6 @@ export default function TeamManagement() {
         },
         body: JSON.stringify({
           userId,
-          teamId: teamData?.team.slackTeamId,
           removedBy: currentUserId
         }),
       })
@@ -208,7 +207,6 @@ export default function TeamManagement() {
         },
         body: JSON.stringify({
           email: values.email,
-          teamId: teamData?.team.slackTeamId,
           invitedBy: currentUserId
         }),
       })
