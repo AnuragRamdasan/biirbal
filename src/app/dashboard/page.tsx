@@ -363,7 +363,7 @@ export default function Dashboard() {
         completionPercentage: completionPercentage
       }
 
-      console.log('📤 Sending progress update:', payload)
+
 
       const response = await fetch('/api/dashboard/update-listen-progress', {
         method: 'POST',
@@ -380,11 +380,11 @@ export default function Dashboard() {
       }
 
       const result = await response.json()
-      console.log('✅ Progress update successful:', result)
+
       
       // If link was archived, refresh the data to reflect changes
       if (result.archived) {
-        console.log('🗃️ Link archived after completion')
+
         setTimeout(() => fetchData(), 1000) // Refresh after a short delay
       }
 
@@ -538,16 +538,28 @@ export default function Dashboard() {
         // Set up periodic progress updates
         progressUpdateInterval.current = setInterval(async () => {
           try {
-            console.log('🔄 Progress update interval running', { 
-              duration: audio.duration, 
-              listenRecord: currentListenRecord.current, 
-              currentTime: audio.currentTime,
-              isPlaying: !audio.paused 
-            })
+            if (audio.duration > 0 && currentListenRecord.current && !audio.paused) {
+              const completionPercentage = (audio.currentTime / audio.duration) * 100
+              
+              const result = await updateListenProgress(currentListenRecord.current, audio.currentTime, false, completionPercentage)
+              
+              if (!result) {
+                console.warn('⚠️ Progress update returned null - network or server error')
+              }
+              
+              // Refresh stats every minute of listening
+              const currentListenDuration = audioStartTimes.current[linkId] 
+                ? (Date.now() - audioStartTimes.current[linkId]) / 1000 
+                : 0
+              
+              if (currentListenDuration > 0 && Math.floor(currentListenDuration) % 60 === 0) {
+                await refreshStats()
+              }
+            }
             
             if (audio.duration > 0 && currentListenRecord.current && !audio.paused) {
               const completionPercentage = (audio.currentTime / audio.duration) * 100
-              console.log('📤 Sending progress update', { completionPercentage, currentTime: audio.currentTime })
+
               
               const result = await updateListenProgress(currentListenRecord.current, audio.currentTime, false, completionPercentage)
               
@@ -564,11 +576,7 @@ export default function Dashboard() {
                 await refreshStats()
               }
             } else {
-              console.log('⏭️ Skipping progress update:', { 
-                hasDuration: audio.duration > 0, 
-                hasListenRecord: !!currentListenRecord.current,
-                isPaused: audio.paused 
-              })
+
             }
           } catch (error) {
             console.error('❌ Error in progress update interval:', error)

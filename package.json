@@ -11,6 +11,8 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
+    "db:seed": "tsx prisma/seed.ts",
+    "setup:dev": "tsx scripts/setup-dev.ts",
     "heroku-postbuild": "npm run build"
   },
   "dependencies": {
@@ -61,6 +63,7 @@
     "tailwindcss": "^3.4.16",
     "ts-jest": "^29.4.0",
     "ts-node": "^10.9.2",
+    "tsx": "^4.19.2",
     "typescript": "^5"
   }
 }
