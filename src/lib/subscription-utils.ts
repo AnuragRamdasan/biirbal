@@ -52,8 +52,13 @@ export async function getTeamUsageStats(teamId: string): Promise<UsageStats> {
     throw new Error('Team subscription not found')
   }
 
-  // Get plan details
-  const plan = getPlanById(subscription.planId) || PRICING_PLANS.FREE
+  // Get plan details - use subscription's actual limits, not default plan limits
+  const basePlan = getPlanById(subscription.planId) || PRICING_PLANS.FREE
+  const plan = {
+    ...basePlan,
+    monthlyLinkLimit: subscription.monthlyLinkLimit,
+    userLimit: subscription.userLimit
+  }
   
   // Calculate current usage
   const currentLinks = team.processedLinks.length
@@ -109,7 +114,7 @@ export async function canUserConsume(teamId: string, userId: string): Promise<bo
     const db = await getDbClient()
     const user = await db.user.findFirst({
       where: { 
-        slackUserId: userId,
+        id: userId,
         team: { slackTeamId: teamId }
       }
     })
@@ -133,7 +138,12 @@ export async function canUserConsume(teamId: string, userId: string): Promise<bo
       return false
     }
 
-    const plan = getPlanById(team.subscription.planId) || PRICING_PLANS.FREE
+    const basePlan = getPlanById(team.subscription.planId) || PRICING_PLANS.FREE
+    const plan = {
+      ...basePlan,
+      monthlyLinkLimit: team.subscription.monthlyLinkLimit,
+      userLimit: team.subscription.userLimit
+    }
     
     // Early returns for simple cases
     if (plan.id === 'free' || plan.userLimit === -1) {
@@ -141,7 +151,7 @@ export async function canUserConsume(teamId: string, userId: string): Promise<bo
     }
     
     // Check seat limit for paid plans with user limits
-    const userIndex = team.users.findIndex(u => u.slackUserId === userId)
+    const userIndex = team.users.findIndex(u => u.id === userId)
     return userIndex !== -1 && userIndex < plan.userLimit
     
   } catch (error) {
