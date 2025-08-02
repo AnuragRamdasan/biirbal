@@ -111,6 +111,7 @@ export default function Dashboard() {
   const [linkLimitExceeded, setLinkLimitExceeded] = useState<boolean>(false)
   const [isExceptionTeam, setIsExceptionTeam] = useState<boolean>(false)
   const [userCanConsume, setUserCanConsume] = useState<boolean>(true)
+  const [usageData, setUsageData] = useState<any>(null)
   const [sourceFilter, setSourceFilter] = useState<string>('all')
   const [loadingAudio, setLoadingAudio] = useState<string | null>(null)
   const [expandedSummary, setExpandedSummary] = useState<string | null>(null)
@@ -263,6 +264,7 @@ export default function Dashboard() {
       const response = await fetch(`/api/dashboard/usage?${params.toString()}`)
       if (response.ok) {
         const data = await response.json()
+        setUsageData(data) // Store complete usage data
         setUsageWarning(data.warning)
         setLinkLimitExceeded(data.linkLimitExceeded || false)
         setIsExceptionTeam(data.isExceptionTeam || false)
@@ -923,6 +925,106 @@ export default function Dashboard() {
                   View Plans
                 </Button>
               </Space>
+            </div>
+          </div>
+        )}
+
+        {/* Additional User Limit Warning for Free Plans */}
+        {usageData && usageData.plan?.id === 'free' && usageData.currentUsers > 1 && !isExceptionTeam && (
+          <div style={{
+            background: 'linear-gradient(135deg, #ff7a45 0%, #ff9c6e 100%)',
+            borderRadius: '16px',
+            padding: '16px 20px',
+            marginBottom: '24px',
+            boxShadow: '0 8px 24px rgba(255, 122, 69, 0.15)',
+            border: '1px solid rgba(255, 122, 69, 0.2)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <ExclamationCircleOutlined style={{ color: 'white', fontSize: '16px' }} />
+                </div>
+                <div>
+                  <div style={{ color: 'white', fontWeight: 600, fontSize: '16px', marginBottom: '4px' }}>
+                    Team Size Limit Exceeded
+                  </div>
+                  <div style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '14px' }}>
+                    Your free plan supports 1 user, but you have {usageData.currentUsers} team members. Only the first user can access audio playback.
+                  </div>
+                </div>
+              </div>
+              <Button 
+                size="small" 
+                href="/pricing" 
+                type="primary"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.9)',
+                  border: 'none',
+                  color: '#ff7a45',
+                  borderRadius: '8px',
+                  fontWeight: 600
+                }}
+              >
+                Upgrade Plan
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Additional Link Limit Warning for Free Plans */}
+        {usageData && usageData.plan?.id === 'free' && usageData.currentLinks >= 16 && !isExceptionTeam && (
+          <div style={{
+            background: 'linear-gradient(135deg, #722ed1 0%, #9254de 100%)',
+            borderRadius: '16px',
+            padding: '16px 20px',
+            marginBottom: '24px',
+            boxShadow: '0 8px 24px rgba(114, 46, 209, 0.15)',
+            border: '1px solid rgba(114, 46, 209, 0.2)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <ExclamationCircleOutlined style={{ color: 'white', fontSize: '16px' }} />
+                </div>
+                <div>
+                  <div style={{ color: 'white', fontWeight: 600, fontSize: '16px', marginBottom: '4px' }}>
+                    {usageData.currentLinks >= 20 ? 'Monthly Link Limit Reached' : 'Approaching Link Limit'}
+                  </div>
+                  <div style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '14px' }}>
+                    You've used {usageData.currentLinks} of your 20 free monthly links{usageData.currentLinks >= 20 ? '. Audio playback is now disabled.' : '. Consider upgrading for unlimited links.'}
+                  </div>
+                </div>
+              </div>
+              <Button 
+                size="small" 
+                href="/pricing" 
+                type="primary"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.9)',
+                  border: 'none',
+                  color: '#722ed1',
+                  borderRadius: '8px',
+                  fontWeight: 600
+                }}
+              >
+                Upgrade Plan
+              </Button>
             </div>
           </div>
         )}
