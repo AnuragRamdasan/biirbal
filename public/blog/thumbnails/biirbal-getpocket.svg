@@ -1,0 +1,20 @@
+<svg width="400" height="225"
+     viewBox="0 0 400 225"
+     xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink">
+  <rect width="400" height="225" fill="#F3F4F6" />
+
+  <!-- Pocket logo -->
+  <image xlink:href="/blog/thumbnails/pocket-logo.svg" x="40" y="53" width="100" height="100" />
+
+  <!-- vs marker -->
+  <text x="200" y="115" fill="#374151" font-size="28" font-weight="bold"
+        text-anchor="middle" font-family="sans-serif">vs</text>
+
+  <!-- Biirbal logo -->
+  <image xlink:href="/logo.png" x="260" y="53" width="100" height="100" />
+
+  <!-- Subtitle -->
+  <text x="200" y="180" fill="#374151" font-size="14"
+        text-anchor="middle" font-family="sans-serif">Feature Comparison</text>
+</svg>

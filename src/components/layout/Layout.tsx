@@ -5,7 +5,7 @@ import DevAuthStatus from '@/components/dev/DevAuthStatus'
 
 interface LayoutProps {
   children: React.ReactNode
-  currentPage?: 'home' | 'dashboard' | 'profile' | 'pricing' | 'privacy' | 'contact'
+  currentPage?: 'home' | 'dashboard' | 'profile' | 'pricing' | 'privacy' | 'contact' | 'blog'
   showHeader?: boolean
   className?: string
 }

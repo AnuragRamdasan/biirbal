@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 interface HeaderProps {
   className?: string
   showNavigation?: boolean
-  currentPage?: 'home' | 'dashboard' | 'profile' | 'pricing' | 'team'
+  currentPage?: 'home' | 'dashboard' | 'profile' | 'pricing' | 'team' | 'blog'
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -107,6 +107,15 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
               >
                 Pricing
+              </Link>
+              <Link
+                href="/blog"
+                className={cn(
+                  'text-white/80 hover:text-white transition-colors text-sm font-medium',
+                  currentPage === 'blog' && 'text-white font-semibold'
+                )}
+              >
+                Blog
               </Link>
               {isAuthenticated ? (
                 <Button 
