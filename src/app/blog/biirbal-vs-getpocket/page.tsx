@@ -1,11 +1,12 @@
 "use client";
+import Layout from '@/components/layout/Layout';
 import { Typography, Divider } from 'antd'
 
 const { Title, Paragraph, Text } = Typography
 
 export default function ComparisonPage() {
   return (
-    <div>
+    <Layout currentPage="blog" showHeader>
       {/* Hero Section */}
       <section className="bg-white dark:bg-gray-800">
         <div className="max-w-3xl mx-auto px-6 py-12 text-center">
@@ -140,6 +141,6 @@ export default function ComparisonPage() {
           or team‑centric.
         </Paragraph>
       </section>
-    </div>
+    </Layout>
   )
 }
