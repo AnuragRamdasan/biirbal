@@ -4,21 +4,45 @@ import { getTeamUsageStats } from '@/lib/subscription-utils'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
-  const teamId = searchParams.get('teamId')
+  const userId = searchParams.get('userId')
   
   try {
-    if (!teamId) {
+    if (!userId) {
       return NextResponse.json(
-        { error: 'teamId is required' },
+        { error: 'userId is required' },
         { status: 400 }
       )
     }
 
     const db = await getDbClient()
     
-    // Get team with users, pending invitations, and subscription info
+    // Get user's team info first
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        teamId: true,
+        team: {
+          select: {
+            id: true,
+            slackTeamId: true,
+            teamName: true,
+            sendSummaryAsDM: true
+          }
+        }
+      }
+    })
+
+    if (!user || !user.team) {
+      return NextResponse.json(
+        { error: 'User or team not found' },
+        { status: 404 }
+      )
+    }
+
+    // Get complete team data with users, pending invitations, and subscription info
     const team = await db.team.findUnique({
-      where: { slackTeamId: teamId },
+      where: { id: user.teamId! },
       include: {
         users: {
           orderBy: { createdAt: 'asc' }, // First users get priority
@@ -64,15 +88,16 @@ export async function GET(request: NextRequest) {
     }
 
     // Get usage stats for seat information
-    const usageStats = await getTeamUsageStats(teamId)
+    const usageStats = await getTeamUsageStats(team.slackTeamId)
 
     return NextResponse.json({
       members: team.users,
       pendingInvitations: team.invitations,
-      teamInfo: {
+      team: {
         id: team.id,
         slackTeamId: team.slackTeamId,
-        teamName: team.teamName
+        teamName: team.teamName,
+        sendSummaryAsDM: team.sendSummaryAsDM
       },
       subscription: {
         planId: team.subscription?.planId || 'free',

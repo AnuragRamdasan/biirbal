@@ -123,12 +123,12 @@ export default function TeamManagement() {
 
   const fetchTeamData = async () => {
     try {
-      const teamId = localStorage.getItem('biirbal_team_id')
-      if (!teamId) {
-        throw new Error('No team found. Please install the bot first.')
+      const userId = localStorage.getItem('biirbal_user_id')
+      if (!userId) {
+        throw new Error('No user found. Please log in again.')
       }
 
-      const response = await fetch(`/api/team/members?teamId=${teamId}`)
+      const response = await fetch(`/api/team/members?userId=${userId}`)
       if (!response.ok) {
         throw new Error('Failed to fetch team data')
       }
@@ -138,7 +138,7 @@ export default function TeamManagement() {
       
       // Track team management visit
       analytics.trackFeature('team_management_visit', {
-        team_id: teamId,
+        team_id: data.team.slackTeamId, // Use team ID from response
         member_count: data.members.length,
         plan_type: data.subscription.planId
       })
@@ -156,7 +156,6 @@ export default function TeamManagement() {
       const uniqueId = member.slackUserId || member.id // For loading state
       
       setActionLoading(uniqueId)
-      const teamId = localStorage.getItem('biirbal_team_id')
       const currentUserId = localStorage.getItem('biirbal_user_id')
       // Note: currentUserId is either slackUserId (for Slack OAuth users) or database id (for invited users)
       
@@ -167,7 +166,7 @@ export default function TeamManagement() {
         },
         body: JSON.stringify({
           userId,
-          teamId,
+          teamId: teamData?.team.slackTeamId,
           removedBy: currentUserId
         }),
       })
@@ -182,7 +181,7 @@ export default function TeamManagement() {
       
       // Track the action
       analytics.trackFeature('member_action', {
-        team_id: teamId,
+        team_id: teamData?.team.slackTeamId,
         action,
         target_user_id: userId
       })
@@ -200,7 +199,6 @@ export default function TeamManagement() {
   const handleInviteUser = async (values: { email: string }) => {
     try {
       setInviteLoading(true)
-      const teamId = localStorage.getItem('biirbal_team_id')
       const currentUserId = localStorage.getItem('biirbal_user_id')
       
       const response = await fetch('/api/team/invite', {
@@ -210,7 +208,7 @@ export default function TeamManagement() {
         },
         body: JSON.stringify({
           email: values.email,
-          teamId,
+          teamId: teamData?.team.slackTeamId,
           invitedBy: currentUserId
         }),
       })
@@ -225,7 +223,7 @@ export default function TeamManagement() {
       
       // Track the invitation
       analytics.trackFeature('user_invitation_sent', {
-        team_id: teamId,
+        team_id: teamData?.team.slackTeamId,
         invited_email: values.email
       })
       
