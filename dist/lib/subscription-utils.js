@@ -45,8 +45,13 @@ async function getTeamUsageStats(teamId) {
     if (!subscription) {
         throw new Error('Team subscription not found');
     }
-    // Get plan details
-    const plan = (0, stripe_1.getPlanById)(subscription.planId) || stripe_1.PRICING_PLANS.FREE;
+    // Get plan details - use subscription's actual limits, not default plan limits
+    const basePlan = (0, stripe_1.getPlanById)(subscription.planId) || stripe_1.PRICING_PLANS.FREE;
+    const plan = {
+        ...basePlan,
+        monthlyLinkLimit: subscription.monthlyLinkLimit,
+        userLimit: subscription.userLimit
+    };
     // Calculate current usage
     const currentLinks = team.processedLinks.length;
     const currentUsers = team.users.filter(user => user.isActive).length;
@@ -95,7 +100,7 @@ async function canUserConsume(teamId, userId) {
         const db = await (0, db_1.getDbClient)();
         const user = await db.user.findFirst({
             where: {
-                slackUserId: userId,
+                id: userId,
                 team: { slackTeamId: teamId }
             }
         });
@@ -115,14 +120,36 @@ async function canUserConsume(teamId, userId) {
         if (!team?.subscription) {
             return false;
         }
-        const plan = (0, stripe_1.getPlanById)(team.subscription.planId) || stripe_1.PRICING_PLANS.FREE;
-        // Early returns for simple cases
-        if (plan.id === 'free' || plan.userLimit === -1) {
+        const basePlan = (0, stripe_1.getPlanById)(team.subscription.planId) || stripe_1.PRICING_PLANS.FREE;
+        const plan = {
+            ...basePlan,
+            monthlyLinkLimit: team.subscription.monthlyLinkLimit,
+            userLimit: team.subscription.userLimit
+        };
+        // For paid plans with unlimited users, allow access
+        if (plan.userLimit === -1) {
             return true;
         }
-        // Check seat limit for paid plans with user limits
-        const userIndex = team.users.findIndex(u => u.slackUserId === userId);
-        return userIndex !== -1 && userIndex < plan.userLimit;
+        // For all plans with user limits (including free), check seat limits
+        const userIndex = team.users.findIndex(u => u.id === userId);
+        const withinUserLimit = userIndex !== -1 && userIndex < plan.userLimit;
+        // Free plans also need to check link limits
+        if (plan.id === 'free') {
+            const currentDate = new Date();
+            const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            const monthlyLinks = await db.processedLink.count({
+                where: {
+                    teamId: team.id,
+                    createdAt: {
+                        gte: firstDayOfMonth
+                    }
+                }
+            });
+            const withinLinkLimit = plan.monthlyLinkLimit === -1 || monthlyLinks < plan.monthlyLinkLimit;
+            return withinUserLimit && withinLinkLimit;
+        }
+        // For paid plans with user limits, only check user limits
+        return withinUserLimit;
     }
     catch (error) {
         console.error('Error checking user consumption access:', error);

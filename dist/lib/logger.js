@@ -1,11 +1,8 @@
 "use strict";
 // Enhanced logging for Vercel deployment
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.legacyLog = exports.extractorLogger = exports.ttsLogger = exports.queueLogger = exports.slackLogger = exports.logger = void 0;
+exports.extractorLogger = exports.ttsLogger = exports.queueLogger = exports.slackLogger = exports.logger = void 0;
 exports.createLogger = createLogger;
-exports.log = log;
-exports.logError = logError;
-exports.logPerformance = logPerformance;
 class Logger {
     constructor(context = 'App') {
         this.context = context;
@@ -78,50 +75,3 @@ exports.extractorLogger = exports.logger.child('Extractor');
 function createLogger(context) {
     return new Logger(context);
 }
-// Legacy logging functions for backward compatibility
-function log(level, message, data) {
-    // Suppress debug logs in production
-    if (level === 'debug' && process.env.NODE_ENV === 'production') {
-        return;
-    }
-    const timestamp = new Date().toISOString();
-    const levelUpper = level.toUpperCase();
-    const logMessage = `${timestamp} [${levelUpper}] ${message}`;
-    if (level === 'error') {
-        console.error(logMessage, data || '');
-    }
-    else if (level === 'warn') {
-        console.log(logMessage, data || '');
-    }
-    else {
-        console.log(logMessage, data || '');
-    }
-}
-function logError(context, error) {
-    const timestamp = new Date().toISOString();
-    let errorMessage = `${timestamp} [ERROR] ${context}: `;
-    if (error instanceof Error) {
-        errorMessage += `${error.message}`;
-        if (error.stack) {
-            errorMessage += `\nStack: ${error.stack}`;
-        }
-    }
-    else if (typeof error === 'string') {
-        errorMessage += error;
-    }
-    else {
-        errorMessage += JSON.stringify(error);
-    }
-    console.error(errorMessage);
-}
-function logPerformance(label, duration) {
-    const timestamp = new Date().toISOString();
-    console.log(`${timestamp} [PERF] ${label}: ${duration}ms`);
-}
-// Legacy console replacement object (for existing code)
-exports.legacyLog = {
-    info: (msg, data) => exports.logger.info(msg, data),
-    warn: (msg, data) => exports.logger.warn(msg, data),
-    error: (msg, data) => exports.logger.error(msg, data),
-    debug: (msg, data) => exports.logger.debug(msg, data),
-};

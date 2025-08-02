@@ -120,11 +120,12 @@ async function createStripeCustomer(teamId, teamName, email) {
     });
     return customer;
 }
-async function createCheckoutSession(customerId, priceId, teamId, successUrl, cancelUrl) {
+async function createCheckoutSession(customerId, priceId, teamId, successUrl, cancelUrl, couponCode) {
     if (!exports.stripe) {
         throw new Error('Stripe is not configured');
     }
-    const session = await exports.stripe.checkout.sessions.create({
+    // Build session configuration
+    const sessionConfig = {
         customer: customerId,
         payment_method_types: ['card'],
         line_items: [
@@ -144,7 +145,45 @@ async function createCheckoutSession(customerId, priceId, teamId, successUrl, ca
                 teamId
             }
         }
-    });
+    };
+    // Add coupon if provided
+    if (couponCode) {
+        try {
+            // First try to find promotion code
+            const promotionCodes = await exports.stripe.promotionCodes.list({
+                code: couponCode.trim().toUpperCase(),
+                limit: 1
+            });
+            if (promotionCodes.data.length > 0) {
+                // Use promotion code
+                sessionConfig.discounts = [{
+                        promotion_code: promotionCodes.data[0].id
+                    }];
+                console.log(`✅ Applied promotion code: ${promotionCodes.data[0].id}`);
+            }
+            else {
+                // Try as coupon ID
+                try {
+                    const coupon = await exports.stripe.coupons.retrieve(couponCode.trim());
+                    if (coupon.valid) {
+                        sessionConfig.discounts = [{
+                                coupon: coupon.id
+                            }];
+                        console.log(`✅ Applied coupon: ${coupon.id}`);
+                    }
+                }
+                catch (error) {
+                    console.log(`❌ Invalid coupon code: ${couponCode}`);
+                    // Don't throw error, just proceed without coupon
+                }
+            }
+        }
+        catch (error) {
+            console.log(`❌ Failed to apply coupon: ${couponCode}`, error);
+            // Don't throw error, just proceed without coupon
+        }
+    }
+    const session = await exports.stripe.checkout.sessions.create(sessionConfig);
     return session;
 }
 async function createPortalSession(customerId, returnUrl) {
