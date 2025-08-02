@@ -363,7 +363,7 @@ export default function TeamManagement() {
                 <TeamOutlined style={{ fontSize: 24, color: '#1890ff' }} />
                 <div>
                   <Title level={3} style={{ margin: 0 }}>
-                    {teamData.teamInfo.teamName || 'Team Management'}
+                    {teamData.teamInfo?.teamName || 'Team Management'}
                   </Title>
                   <Text type="secondary">Manage team members and access</Text>
                 </div>
