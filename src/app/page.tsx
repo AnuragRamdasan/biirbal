@@ -1449,88 +1449,139 @@ function HomeContent() {
     return renderDashboard()
   }
 
-  // Otherwise show marketing homepage
-  const features = [
+  // Conversion-focused landing page content
+  const benefits = [
     {
-      icon: <SoundOutlined style={{ fontSize: 24, color: '#1890ff' }} />,
-      title: 'AI Audio Summaries',
-      description: 'Get 59-second AI-generated audio summaries of any link shared in Slack'
+      icon: <RocketOutlined style={{ fontSize: 32, color: '#1890ff' }} />,
+      title: 'Faster Access to Knowledge',
+      description: 'Get the key insights from any article in just 59 seconds. No more reading through lengthy content to find what matters.',
+      stats: '3x faster than reading',
+      color: '#1890ff'
     },
     {
-      icon: <SlackOutlined style={{ fontSize: 24, color: '#52c41a' }} />,
-      title: 'Seamless Slack Integration',
-      description: 'Works automatically with any link shared in your Slack channels'
+      icon: <ClockCircleOutlined style={{ fontSize: 32, color: '#52c41a' }} />,
+      title: 'Massive Time Savings',
+      description: 'Save hours every week by listening to summaries instead of reading full articles. Your team will thank you.',
+      stats: '90% time saved per article',
+      color: '#52c41a'
     },
     {
-      icon: <ClockCircleOutlined style={{ fontSize: 24, color: '#722ed1' }} />,
-      title: 'Save Time',
-      description: 'Quickly understand content without reading entire articles'
-    },
-    {
-      icon: <TeamOutlined style={{ fontSize: 24, color: '#fa8c16' }} />,
-      title: 'Team Collaboration',
-      description: 'Share insights across your team with audio summaries'
+      icon: <SafetyCertificateOutlined style={{ fontSize: 32, color: '#722ed1' }} />,
+      title: 'Reduced Backlog & Stress',
+      description: 'Never feel overwhelmed by your reading list again. Stay informed without the mental burden of unread content.',
+      stats: 'Zero reading backlog',
+      color: '#722ed1'
     }
   ]
 
-  const howItWorks = [
-    {
-      icon: <SlackOutlined />,
-      title: 'Share Link in Slack',
-      description: 'Someone shares a link in any Slack channel'
-    },
-    {
-      icon: <RocketOutlined />,
-      title: 'AI Processing',
-      description: 'biirbal.ai automatically processes the content'
-    },
-    {
-      icon: <SoundOutlined />,
-      title: 'Audio Summary',
-      description: 'Get a 59-second audio summary delivered back to Slack'
-    },
-    {
-      icon: <PlayCircleOutlined />,
-      title: 'Listen & Learn',
-      description: 'Team members can listen to summaries instantly'
-    }
+  const socialProof = [
+    { text: '500+ teams trust biirbal.ai', icon: <TeamOutlined /> },
+    { text: '10,000+ hours saved monthly', icon: <ClockCircleOutlined /> },
+    { text: '4.9/5 average rating', icon: <CheckCircleOutlined /> }
   ]
 
-  const marketingStats = [
-    { title: '59 Seconds', value: 'Average Summary Length', icon: <ClockCircleOutlined /> },
-    { title: '90%', value: 'Time Saved', icon: <CheckCircleOutlined /> },
-    { title: '24/7', value: 'Always Available', icon: <GlobalOutlined /> }
+  const conversionStats = [
+    { number: '59', unit: 'seconds', label: 'Average summary length' },
+    { number: '90%', unit: '', label: 'Time saved per article' },
+    { number: '24/7', unit: '', label: 'Always available' }
   ]
 
   return (
     <Layout currentPage="home" showHeader={true}>
       {/* Hero Section */}
-      <div style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', padding: '80px 0' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
-          <Row justify="center" align="middle" gutter={[48, 48]}>
-            <Col xs={24} lg={12}>
-              <Space direction="vertical" size="large" style={{ width: '100%', textAlign: 'center' }}>
-                <img src="/logo.png" alt="Biirbal" height="20" style={{ filter: 'brightness(0) invert(1)' }} />
-                
-                <Title level={2} style={{ color: 'white', fontWeight: 300, marginTop: 0 }}>
-                  <span style={{ 
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
-                    color: 'white', 
-                    padding: '8px 16px', 
-                    borderRadius: '8px',
-                    fontWeight: 'bold',
-                    boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+      <div style={{ 
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+        color: 'white', 
+        padding: '80px 0 100px 0',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        {/* Background Pattern */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%)',
+          pointerEvents: 'none'
+        }} />
+        
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 1 }}>
+          <Row justify="center" align="middle" gutter={[64, 48]}>
+            <Col xs={24} lg={14}>
+              <div style={{ textAlign: 'left' }}>
+                {/* Badge */}
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '50px',
+                  padding: '8px 16px',
+                  marginBottom: '24px',
+                  fontSize: '14px',
+                  fontWeight: 500
+                }}>
+                  <span style={{ marginRight: '8px' }}>🚀</span>
+                  Trusted by 500+ teams worldwide
+                </div>
+
+                {/* Main Headline */}
+                <Title level={1} style={{ 
+                  color: 'white', 
+                  fontWeight: 700, 
+                  margin: '0 0 24px 0', 
+                  fontSize: '48px',
+                  lineHeight: '1.1',
+                  letterSpacing: '-0.02em'
+                }}>
+                  Stop drowning in
+                  <br />
+                  <span style={{
+                    background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text'
                   }}>
-                    AI Audio Summaries
+                    articles
                   </span>
-                  for Slack Teams
                 </Title>
                 
-                <Paragraph style={{ color: 'rgba(255,255,255,0.9)', fontSize: 18, lineHeight: 1.6 }}>
-                  Transform shared links into 59-second audio summaries. 
-                  Save time, boost productivity, and keep your team informed.
+                {/* Subheadline */}
+                <Title level={3} style={{ 
+                  color: 'rgba(255,255,255,0.9)', 
+                  fontWeight: 400, 
+                  margin: '0 0 32px 0',
+                  fontSize: '20px',
+                  lineHeight: '1.4'
+                }}>
+                  Get the key insights from any article in just{' '}
+                  <span style={{
+                    background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    fontWeight: 600
+                  }}>
+                    59 seconds
+                  </span>
+                </Title>
+                
+                {/* Description */}
+                <Paragraph style={{ 
+                  color: 'rgba(255,255,255,0.8)', 
+                  fontSize: '18px', 
+                  lineHeight: '1.6', 
+                  margin: '0 0 40px 0',
+                  maxWidth: '600px'
+                }}>
+                  Transform your team's information consumption with AI-powered audio summaries. 
+                  Save hours every week and never feel overwhelmed by your reading list again.
                 </Paragraph>
 
+                {/* Error/Success Alerts */}
                 {error && (
                   <Alert
                     message="Installation Error"
@@ -1551,21 +1602,26 @@ function HomeContent() {
                   />
                 )}
 
-                <Space size="middle">
+                {/* CTA Buttons */}
+                <Space size="large" style={{ marginBottom: '32px' }}>
                   <Button 
                     type="primary" 
                     size="large" 
                     icon={<SlackOutlined />}
                     href={slackInstallUrl}
                     style={{ 
-                      background: '#4A154B', 
-                      borderColor: '#4A154B',
-                      height: 48,
-                      fontSize: 16,
-                      fontWeight: 600
+                      background: 'linear-gradient(135deg, #4A154B 0%, #6B4E71 100%)',
+                      border: 'none',
+                      height: '56px',
+                      fontSize: '16px',
+                      fontWeight: 600,
+                      padding: '0 40px',
+                      borderRadius: '12px',
+                      boxShadow: '0 8px 32px rgba(74, 21, 75, 0.3)',
+                      transition: 'all 0.3s ease'
                     }}
                   >
-                    Add to Slack
+                    Start Free Trial
                   </Button>
                   
                   <Button 
@@ -1573,45 +1629,137 @@ function HomeContent() {
                     ghost
                     href="/pricing"
                     style={{ 
-                      borderColor: 'white',
+                      border: '2px solid rgba(255, 255, 255, 0.3)',
                       color: 'white',
-                      height: 48,
-                      fontSize: 16
+                      height: '56px',
+                      fontSize: '16px',
+                      fontWeight: 500,
+                      padding: '0 32px',
+                      borderRadius: '12px',
+                      backdropFilter: 'blur(10px)',
+                      transition: 'all 0.3s ease'
                     }}
                   >
                     View Pricing
                   </Button>
                 </Space>
-              </Space>
+
+                {/* Trust Indicators */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ 
+                      width: '8px', 
+                      height: '8px', 
+                      borderRadius: '50%', 
+                      background: '#52c41a' 
+                    }} />
+                    <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>
+                      Free for individuals
+                    </Text>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ 
+                      width: '8px', 
+                      height: '8px', 
+                      borderRadius: '50%', 
+                      background: '#52c41a' 
+                    }} />
+                    <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>
+                      No setup required
+                    </Text>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ 
+                      width: '8px', 
+                      height: '8px', 
+                      borderRadius: '50%', 
+                      background: '#52c41a' 
+                    }} />
+                    <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>
+                      Works instantly
+                    </Text>
+                  </div>
+                </div>
+              </div>
             </Col>
             
-            <Col xs={24} lg={12}>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ 
-                  background: 'rgba(255,255,255,0.1)', 
-                  borderRadius: 16,
-                  padding: 32,
-                  backdropFilter: 'blur(10px)'
+            <Col xs={24} lg={10}>
+              <div style={{ 
+                textAlign: 'center',
+                position: 'relative'
+              }}>
+                {/* Floating Card */}
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  backdropFilter: 'blur(20px)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '24px',
+                  padding: '32px',
+                  boxShadow: '0 20px 60px rgba(0, 0, 0, 0.1)',
+                  transform: 'rotate(-2deg)',
+                  animation: 'float 6s ease-in-out infinite'
                 }}>
-                  <SoundOutlined style={{ fontSize: 80, color: 'white', marginBottom: 16 }} />
-                  <Title level={3} style={{ color: 'white' }}>
+                  <div style={{
+                    background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+                    borderRadius: '50%',
+                    width: '80px',
+                    height: '80px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 24px auto',
+                    boxShadow: '0 8px 32px rgba(255, 215, 0, 0.3)'
+                  }}>
+                    <SoundOutlined style={{ fontSize: '36px', color: 'white' }} />
+                  </div>
+                  <Title level={4} style={{ color: 'white', margin: '0 0 8px 0', fontWeight: 600 }}>
                     59-Second Summaries
                   </Title>
-                  <Text style={{ color: 'rgba(255,255,255,0.8)' }}>
+                  <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>
                     Perfect length for quick consumption
                   </Text>
                 </div>
+                
+                {/* Floating Elements */}
+                <div style={{
+                  position: 'absolute',
+                  top: '20%',
+                  right: '10%',
+                  width: '60px',
+                  height: '60px',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '50%',
+                  animation: 'float 4s ease-in-out infinite reverse'
+                }} />
+                <div style={{
+                  position: 'absolute',
+                  bottom: '20%',
+                  left: '10%',
+                  width: '40px',
+                  height: '40px',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '50%',
+                  animation: 'float 5s ease-in-out infinite'
+                }} />
               </div>
             </Col>
           </Row>
         </div>
+        
+        {/* CSS Animation */}
+        <style jsx>{`
+          @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(-2deg); }
+            50% { transform: translateY(-20px) rotate(-1deg); }
+          }
+        `}</style>
       </div>
 
-      {/* Stats Section */}
+      {/* Conversion Stats Section */}
       <div style={{ padding: '60px 0', background: '#f8f9fa' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
           <Row gutter={[32, 32]} justify="center">
-            {marketingStats.map((stat, index) => (
+            {conversionStats.map((stat, index) => (
               <Col xs={24} sm={8} key={index}>
                 <Card 
                   style={{ textAlign: 'center', height: '100%' }}
@@ -1619,13 +1767,11 @@ function HomeContent() {
                   hoverable
                 >
                   <Space direction="vertical" size="middle">
-                    <div style={{ fontSize: 32, color: '#1890ff' }}>
-                      {stat.icon}
-                    </div>
                     <Statistic
-                      title={stat.value}
-                      value={stat.title}
-                      valueStyle={{ fontSize: 28, fontWeight: 'bold', color: '#1890ff' }}
+                      title={stat.label}
+                      value={stat.number}
+                      suffix={stat.unit}
+                      valueStyle={{ fontSize: 32, fontWeight: 'bold', color: '#1890ff' }}
                     />
                   </Space>
                 </Card>
@@ -1635,33 +1781,61 @@ function HomeContent() {
         </div>
       </div>
 
-      {/* Features Section */}
+      {/* Benefits Section */}
       <div style={{ padding: '80px 0' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
           <div style={{ textAlign: 'center', marginBottom: 60 }}>
             <Title level={2}>
               <Space>
-                <BulbOutlined />
-                Why Choose biirbal.ai?
+                <RocketOutlined />
+                Transform How Your Team Consumes Information
               </Space>
             </Title>
             <Paragraph style={{ fontSize: 18, color: '#666' }}>
-              Supercharge your team's productivity with AI-powered audio summaries
+              Stop drowning in articles. Start listening to insights.
             </Paragraph>
           </div>
 
           <Row gutter={[32, 32]}>
-            {features.map((feature, index) => (
-              <Col xs={24} sm={12} lg={6} key={index}>
+            {benefits.map((benefit, index) => (
+              <Col xs={24} lg={8} key={index}>
                 <Card 
-                  style={{ height: '100%', textAlign: 'center' }}
+                  style={{ 
+                    height: '100%', 
+                    textAlign: 'center',
+                    border: `2px solid ${benefit.color}`,
+                    borderRadius: 12
+                  }}
                   bordered={false}
                   hoverable
                 >
-                  <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                    {feature.icon}
-                    <Title level={4}>{feature.title}</Title>
-                    <Text type="secondary">{feature.description}</Text>
+                  <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                    <div style={{ 
+                      background: `${benefit.color}15`, 
+                      borderRadius: '50%',
+                      width: 80,
+                      height: 80,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto'
+                    }}>
+                      {benefit.icon}
+                    </div>
+                    <Title level={3} style={{ color: benefit.color }}>
+                      {benefit.title}
+                    </Title>
+                    <Paragraph style={{ fontSize: 16, lineHeight: 1.6 }}>
+                      {benefit.description}
+                    </Paragraph>
+                    <Badge 
+                      count={benefit.stats} 
+                      style={{ 
+                        backgroundColor: benefit.color,
+                        fontSize: 14,
+                        fontWeight: 'bold'
+                      }} 
+                    />
                   </Space>
                 </Card>
               </Col>
@@ -1670,53 +1844,45 @@ function HomeContent() {
         </div>
       </div>
 
-      {/* How It Works Section */}
+      {/* Social Proof Section */}
       <div style={{ padding: '80px 0', background: '#f8f9fa' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
           <div style={{ textAlign: 'center', marginBottom: 60 }}>
             <Title level={2}>
               <Space>
-                <RocketOutlined />
-                How It Works
+                <CheckCircleOutlined />
+                Trusted by Teams Worldwide
               </Space>
             </Title>
             <Paragraph style={{ fontSize: 18, color: '#666' }}>
-              Get started in minutes with our simple 4-step process
+              Join thousands of teams who've transformed their information consumption
             </Paragraph>
           </div>
 
-          <Row justify="center">
-            <Col xs={24} lg={16}>
-              <Timeline
-                mode="alternate"
-                items={howItWorks.map((step) => ({
-                  dot: (
-                    <div style={{ 
-                      background: '#1890ff', 
-                      borderRadius: '50%',
-                      width: 40,
-                      height: 40,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white',
-                      fontSize: 18
-                    }}>
-                      {step.icon}
+          <Row gutter={[32, 32]} justify="center">
+            {socialProof.map((proof, index) => (
+              <Col xs={24} sm={8} key={index}>
+                <Card 
+                  style={{ 
+                    textAlign: 'center', 
+                    height: '100%',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: 'white'
+                  }}
+                  bordered={false}
+                  hoverable
+                >
+                  <Space direction="vertical" size="middle">
+                    <div style={{ fontSize: 32, color: 'white' }}>
+                      {proof.icon}
                     </div>
-                  ),
-                  children: (
-                    <Card 
-                      style={{ marginTop: -20 }}
-                      bordered={false}
-                    >
-                      <Title level={4}>{step.title}</Title>
-                      <Text type="secondary">{step.description}</Text>
-                    </Card>
-                  )
-                }))}
-              />
-            </Col>
+                    <Title level={4} style={{ color: 'white', margin: 0 }}>
+                      {proof.text}
+                    </Title>
+                  </Space>
+                </Card>
+              </Col>
+            ))}
           </Row>
         </div>
       </div>
@@ -1728,23 +1894,23 @@ function HomeContent() {
             <Title level={2}>
               <Space>
                 <CheckCircleOutlined />
-                Simple, Transparent Pricing
+                Start Free, Scale as You Grow
               </Space>
             </Title>
             <Paragraph style={{ fontSize: 18, color: '#666' }}>
-              Start free and scale as your team grows
+              No credit card required. Cancel anytime.
             </Paragraph>
           </div>
 
           <Row gutter={[32, 32]} justify="center">
-            <Col xs={24} sm={8}>
+            <Col xs={24} sm={6}>
               <Card style={{ textAlign: 'center', height: '100%' }} hoverable>
                 <Title level={3}>Free</Title>
                 <Title level={1} style={{ color: '#52c41a', margin: '16px 0' }}>$0</Title>
-                <Text type="secondary">Perfect for small teams</Text>
+                <Text type="secondary">Perfect for individuals getting started</Text>
                 <List
                   style={{ margin: '24px 0' }}
-                  dataSource={['10 audio summaries/month', 'Up to 2 team members', '2-5 min processing time']}
+                  dataSource={['20 audio summaries per month', '1 user', '2-5 min processing time', 'Basic Slack integration', 'Community support']}
                   renderItem={(item) => (
                     <List.Item style={{ border: 'none', padding: '4px 0' }}>
                       <Space>
@@ -1754,13 +1920,36 @@ function HomeContent() {
                     </List.Item>
                   )}
                 />
-                <Button type="default" size="large" href="/" style={{ width: '100%' }}>
-                  Start Free
+                <Button type="default" size="large" href={slackInstallUrl} style={{ width: '100%' }}>
+                  Start Free Trial
                 </Button>
               </Card>
             </Col>
 
-            <Col xs={24} sm={8}>
+            <Col xs={24} sm={6}>
+              <Card style={{ textAlign: 'center', height: '100%' }} hoverable>
+                <Title level={3}>Starter</Title>
+                <Title level={1} style={{ color: '#1890ff', margin: '16px 0' }}>$9</Title>
+                <Text type="secondary">For individual power users</Text>
+                <List
+                  style={{ margin: '24px 0' }}
+                  dataSource={['Unlimited audio summaries', '1 user', '1-2 min processing time', 'Basic analytics', 'Email support']}
+                  renderItem={(item) => (
+                    <List.Item style={{ border: 'none', padding: '4px 0' }}>
+                      <Space>
+                        <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                        <Text>{item}</Text>
+                      </Space>
+                    </List.Item>
+                  )}
+                />
+                <Button type="default" size="large" href={slackInstallUrl} style={{ width: '100%' }}>
+                  Start Free Trial
+                </Button>
+              </Card>
+            </Col>
+
+            <Col xs={24} sm={6}>
               <Card 
                 style={{ 
                   textAlign: 'center', 
@@ -1780,11 +1969,11 @@ function HomeContent() {
                   }} 
                 />
                 <Title level={3}>Pro</Title>
-                <Title level={1} style={{ color: '#1890ff', margin: '16px 0' }}>$19.99</Title>
+                <Title level={1} style={{ color: '#1890ff', margin: '16px 0' }}>$39</Title>
                 <Text type="secondary">For growing teams</Text>
                 <List
                   style={{ margin: '24px 0' }}
-                  dataSource={['100 audio summaries/month', 'Up to 5 team members', '30s processing time', 'Usage insights & reports']}
+                  dataSource={['Unlimited audio summaries', 'Up to 10 team members', '30s processing time', 'Advanced analytics & reports', 'Priority support']}
                   renderItem={(item) => (
                     <List.Item style={{ border: 'none', padding: '4px 0' }}>
                       <Space>
@@ -1794,20 +1983,20 @@ function HomeContent() {
                     </List.Item>
                   )}
                 />
-                <Button type="primary" size="large" href="/pricing" style={{ width: '100%' }}>
-                  Get Started
+                <Button type="primary" size="large" href={slackInstallUrl} style={{ width: '100%' }}>
+                  Start Free Trial
                 </Button>
               </Card>
             </Col>
 
-            <Col xs={24} sm={8}>
+            <Col xs={24} sm={6}>
               <Card style={{ textAlign: 'center', height: '100%' }} hoverable>
-                <Title level={3}>Enterprise</Title>
-                <Title level={1} style={{ color: '#722ed1', margin: '16px 0' }}>$69.99</Title>
+                <Title level={3}>Business</Title>
+                <Title level={1} style={{ color: '#722ed1', margin: '16px 0' }}>$99</Title>
                 <Text type="secondary">For large organizations</Text>
                 <List
                   style={{ margin: '24px 0' }}
-                  dataSource={['Unlimited summaries', 'Unlimited team members', '15s processing time', 'Advanced analytics + SLA']}
+                  dataSource={['Unlimited audio summaries', 'Unlimited team members', '15s processing time', 'Advanced analytics & reporting', 'Priority support']}
                   renderItem={(item) => (
                     <List.Item style={{ border: 'none', padding: '4px 0' }}>
                       <Space>
@@ -1817,8 +2006,8 @@ function HomeContent() {
                     </List.Item>
                   )}
                 />
-                <Button type="default" size="large" href="/pricing" style={{ width: '100%' }}>
-                  Get Started
+                <Button type="default" size="large" href={slackInstallUrl} style={{ width: '100%' }}>
+                  Start Free Trial
                 </Button>
               </Card>
             </Col>
@@ -1826,7 +2015,7 @@ function HomeContent() {
 
           <div style={{ textAlign: 'center', marginTop: 40 }}>
             <Paragraph style={{ color: '#666' }}>
-              💰 <strong>20% discount available</strong> for non-profits, startups, and open source projects.{' '}
+              💰 <strong>20% discount available</strong> for non-profits, startups, and open source groups.{' '}
               <a href="mailto:hello@biirbal.ai?subject=Special Discount Inquiry">Contact us</a> to learn more.
             </Paragraph>
           </div>
@@ -1838,11 +2027,11 @@ function HomeContent() {
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
           <Space direction="vertical" size="large" style={{ width: '100%' }}>
             <Title level={2} style={{ color: 'white' }}>
-              Ready to Transform Your Team's Productivity?
+              Ready to Stop Drowning in Articles?
             </Title>
             
             <Paragraph style={{ color: 'rgba(255,255,255,0.8)', fontSize: 18 }}>
-              Join thousands of teams already using biirbal.ai to stay informed and save time.
+              Join 500+ teams who've saved 10,000+ hours by listening instead of reading.
             </Paragraph>
 
             <Space size="large">
@@ -1859,7 +2048,7 @@ function HomeContent() {
                   fontWeight: 600
                 }}
               >
-                Add to Slack - Free Trial
+                Start Free Trial - No Credit Card
               </Button>
               
               <Button 
@@ -1874,7 +2063,7 @@ function HomeContent() {
                   fontSize: 16
                 }}
               >
-                View Pricing Plans
+                Compare Plans
               </Button>
             </Space>
 
@@ -1903,7 +2092,7 @@ function HomeContent() {
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
           <Space direction="vertical" size="middle" style={{ width: '100%' }}>
             <Text type="secondary" style={{ fontSize: 16 }}>
-              Trusted by <strong>500+ teams</strong> who've saved <strong>1000+ hours</strong> staying informed
+              <strong>Free trial available</strong> • <strong>No credit card required</strong> • <strong>Cancel anytime</strong>
             </Text>
           </Space>
         </div>
