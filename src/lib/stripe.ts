@@ -125,13 +125,15 @@ export async function createCheckoutSession(
   priceId: string,
   teamId: string,
   successUrl: string,
-  cancelUrl: string
+  cancelUrl: string,
+  couponCode?: string
 ) {
   if (!stripe) {
     throw new Error('Stripe is not configured')
   }
   
-  const session = await stripe.checkout.sessions.create({
+  // Build session configuration
+  const sessionConfig: any = {
     customer: customerId,
     payment_method_types: ['card'],
     line_items: [
@@ -151,7 +153,45 @@ export async function createCheckoutSession(
         teamId
       }
     }
-  })
+  }
+
+  // Add coupon if provided
+  if (couponCode) {
+    try {
+      // First try to find promotion code
+      const promotionCodes = await stripe.promotionCodes.list({
+        code: couponCode.trim().toUpperCase(),
+        limit: 1
+      })
+
+      if (promotionCodes.data.length > 0) {
+        // Use promotion code
+        sessionConfig.discounts = [{
+          promotion_code: promotionCodes.data[0].id
+        }]
+        console.log(`✅ Applied promotion code: ${promotionCodes.data[0].id}`)
+      } else {
+        // Try as coupon ID
+        try {
+          const coupon = await stripe.coupons.retrieve(couponCode.trim())
+          if (coupon.valid) {
+            sessionConfig.discounts = [{
+              coupon: coupon.id
+            }]
+            console.log(`✅ Applied coupon: ${coupon.id}`)
+          }
+        } catch (error) {
+          console.log(`❌ Invalid coupon code: ${couponCode}`)
+          // Don't throw error, just proceed without coupon
+        }
+      }
+    } catch (error) {
+      console.log(`❌ Failed to apply coupon: ${couponCode}`, error)
+      // Don't throw error, just proceed without coupon
+    }
+  }
+
+  const session = await stripe.checkout.sessions.create(sessionConfig)
 
   return session
 }

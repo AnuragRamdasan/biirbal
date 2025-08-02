@@ -14,8 +14,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { userId, planId, isAnnual = false } = await request.json()
-    console.log(`🚀 Checkout request: planId=${planId}, userId=${userId}, isAnnual=${isAnnual}`)
+    const { userId, planId, isAnnual = false, couponCode } = await request.json()
+    console.log(`🚀 Checkout request: planId=${planId}, userId=${userId}, isAnnual=${isAnnual}, couponCode=${couponCode ? 'provided' : 'none'}`)
 
     if (!userId || !planId) {
       return NextResponse.json(
@@ -144,7 +144,8 @@ export async function POST(request: NextRequest) {
         priceId,
         team.id,
         `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
-        `${baseUrl}/pricing?canceled=true`
+        `${baseUrl}/pricing?canceled=true`,
+        couponCode
       )
       console.log(`✅ Created checkout session: ${session.id}`)
       return NextResponse.json({ sessionId: session.id, url: session.url })

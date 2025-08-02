@@ -1512,7 +1512,7 @@ function HomeContent() {
             <Col xs={24} lg={14}>
               <div style={{ textAlign: 'left' }}>
                 {/* Badge */}
-                <div style={{
+                {/* <div style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   background: 'rgba(255, 255, 255, 0.1)',
@@ -1526,7 +1526,7 @@ function HomeContent() {
                 }}>
                   <span style={{ marginRight: '8px' }}>🚀</span>
                   Trusted by 500+ teams worldwide
-                </div>
+                </div> */}
 
                 {/* Main Headline */}
                 <Title level={1} style={{ 
@@ -1576,8 +1576,14 @@ function HomeContent() {
                   lineHeight: '1.6', 
                   margin: '0 0 40px 0',
                   maxWidth: '600px'
-                }}>
-                  Transform your team's information consumption with AI-powered audio summaries. 
+                }}>Get to &nbsp;
+                  <span style={{
+                    color: '#52c41a',
+                    fontWeight: '600'
+                  }}>
+                    zero reading backlog
+                  </span>
+                  {' '}and transform your team's information consumption with AI-powered audio summaries. 
                   Save hours every week and never feel overwhelmed by your reading list again.
                 </Paragraph>
 
@@ -1654,7 +1660,7 @@ function HomeContent() {
                       background: '#52c41a' 
                     }} />
                     <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>
-                      Free for individuals
+                      Free Trial Available
                     </Text>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1968,7 +1974,7 @@ function HomeContent() {
           pointerEvents: 'none'
         }} />
         
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 1 }}>
+        {/* <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 1 }}>
           <div style={{ textAlign: 'center', marginBottom: '80px' }}>
             <Title level={2} style={{ 
               color: 'white',
@@ -2027,8 +2033,8 @@ function HomeContent() {
               </Col>
             ))}
           </Row>
-        </div>
-      </div>
+        </div>*/}
+      </div> 
 
       {/* Pricing Section */}
       <div style={{ 

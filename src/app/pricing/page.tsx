@@ -32,6 +32,21 @@ import { useAnalytics } from '@/hooks/useAnalytics'
 
 const { Title, Text, Paragraph } = Typography
 
+// Add spinner animation CSS
+const spinnerStyle = `
+  @keyframes spin {
+    0% { transform: translateY(-50%) rotate(0deg); }
+    100% { transform: translateY(-50%) rotate(360deg); }
+  }
+`
+
+// Inject the CSS
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style')
+  style.textContent = spinnerStyle
+  document.head.appendChild(style)
+}
+
 interface PricingPlan {
   id: string
   name: string
@@ -48,6 +63,13 @@ export default function PricingPage() {
   const [linksPerWeek, setLinksPerWeek] = useState(8)
   const [teamSize, setTeamSize] = useState(3)
   const [currentPlan, setCurrentPlan] = useState<string | null>(null)
+  const [couponCode, setCouponCode] = useState('')
+  const [couponValidation, setCouponValidation] = useState<{
+    valid: boolean
+    loading: boolean
+    discount?: { type: string, amount: number, name?: string }
+    error?: string
+  }>({ valid: false, loading: false })
   
   // Initialize analytics
   const analytics = useAnalytics({
@@ -84,6 +106,55 @@ export default function PricingPage() {
     })
   }, [])
 
+  // Validate coupon code
+  const validateCoupon = async (code: string) => {
+    if (!code.trim()) {
+      setCouponValidation({ valid: false, loading: false })
+      return
+    }
+
+    setCouponValidation({ valid: false, loading: true })
+    
+    try {
+      const response = await fetch('/api/stripe/validate-coupon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ couponCode: code.trim() })
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.valid) {
+        setCouponValidation({
+          valid: true,
+          loading: false,
+          discount: data.discount
+        })
+      } else {
+        setCouponValidation({
+          valid: false,
+          loading: false,
+          error: data.error || 'Invalid coupon code'
+        })
+      }
+    } catch (error) {
+      setCouponValidation({
+        valid: false,
+        loading: false,
+        error: 'Failed to validate coupon'
+      })
+    }
+  }
+
+  // Debounced coupon validation
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      validateCoupon(couponCode)
+    }, 500) // Wait 500ms after user stops typing
+
+    return () => clearTimeout(timeoutId)
+  }, [couponCode])
+
   const handleSubscribe = async (planId: string) => {
     setLoading(planId)
     
@@ -113,7 +184,12 @@ export default function PricingPage() {
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId, userId, isAnnual })
+        body: JSON.stringify({ 
+          planId, 
+          userId, 
+          isAnnual,
+          couponCode: couponValidation.valid ? couponCode.trim() : undefined
+        })
       })
 
       if (!response.ok) {
@@ -153,6 +229,21 @@ export default function PricingPage() {
     } finally {
       setLoading(null)
     }
+  }
+
+  // Calculate discounted price
+  const getDiscountedPrice = (originalPrice: number) => {
+    if (!couponValidation.valid || !couponValidation.discount) {
+      return originalPrice
+    }
+
+    const { type, amount } = couponValidation.discount
+    if (type === 'percent') {
+      return originalPrice * (1 - amount / 100)
+    } else if (type === 'amount') {
+      return Math.max(0, originalPrice - (amount / 100)) // amount is in cents
+    }
+    return originalPrice
   }
 
   const plans: PricingPlan[] = [
@@ -641,6 +732,104 @@ export default function PricingPage() {
                 )}
               </Space>
             </div>
+
+            {/* Coupon Code Input */}
+            <div style={{ 
+              textAlign: 'center', 
+              marginBottom: '60px',
+              padding: '24px',
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(20px)',
+              borderRadius: '20px',
+              border: '1px solid rgba(102, 126, 234, 0.1)',
+              boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
+              maxWidth: '400px',
+              margin: '0 auto 60px auto'
+            }}>
+              <Text style={{ 
+                fontSize: '16px', 
+                fontWeight: 600,
+                color: '#333',
+                marginBottom: '16px',
+                display: 'block'
+              }}>
+                Have a coupon code?
+              </Text>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  placeholder="Enter coupon code"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    fontSize: '14px',
+                    border: `2px solid ${
+                      couponValidation.loading 
+                        ? '#1890ff' 
+                        : couponValidation.valid 
+                        ? '#52c41a' 
+                        : couponValidation.error 
+                        ? '#ff4d4f' 
+                        : '#d9d9d9'
+                    }`,
+                    borderRadius: '8px',
+                    outline: 'none',
+                    transition: 'border-color 0.3s ease'
+                  }}
+                />
+                {couponValidation.loading && (
+                  <div style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: '16px',
+                    height: '16px',
+                    border: '2px solid #1890ff',
+                    borderTop: '2px solid transparent',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }} />
+                )}
+              </div>
+              
+              {couponValidation.valid && couponValidation.discount && (
+                <div style={{
+                  marginTop: '12px',
+                  padding: '8px 12px',
+                  background: '#f6ffed',
+                  border: '1px solid #b7eb8f',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  color: '#52c41a',
+                  fontWeight: '500'
+                }}>
+                  ✓ {couponValidation.discount.name || 'Coupon'} applied! 
+                  {couponValidation.discount.type === 'percent' 
+                    ? ` ${couponValidation.discount.amount}% discount`
+                    : ` $${(couponValidation.discount.amount / 100).toFixed(2)} off`
+                  }
+                </div>
+              )}
+              
+              {couponValidation.error && (
+                <div style={{
+                  marginTop: '12px',
+                  padding: '8px 12px',
+                  background: '#fff2f0',
+                  border: '1px solid #ffccc7',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  color: '#ff4d4f',
+                  fontWeight: '500'
+                }}>
+                  ✗ {couponValidation.error}
+                </div>
+              )}
+            </div>
+
             <Row gutter={[48, 48]} justify="center">
               {plans.map((plan) => (
                 <Col xs={24} sm={12} md={6} key={plan.id}>
@@ -722,19 +911,50 @@ export default function PricingPage() {
                         <Text type="secondary">{plan.description}</Text>
                         
                         <div style={{ margin: '16px 0' }}>
-                          <Statistic
-                            value={getPlanPrice(plan, isAnnual)}
-                            prefix="$"
-                            suffix={plan.price > 0 ? (isAnnual ? '/year' : '/month') : ''}
-                            valueStyle={{ 
-                              fontSize: 36, 
-                              fontWeight: 'bold',
-                              color: plan.isPopular ? '#1890ff' : '#262626'
-                            }}
-                          />
+                          {couponValidation.valid && plan.price > 0 ? (
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                <Statistic
+                                  value={getPlanPrice(plan, isAnnual)}
+                                  prefix="$"
+                                  suffix={plan.price > 0 ? (isAnnual ? '/year' : '/month') : ''}
+                                  valueStyle={{ 
+                                    fontSize: 24, 
+                                    fontWeight: 'normal',
+                                    color: '#999',
+                                    textDecoration: 'line-through'
+                                  }}
+                                />
+                              </div>
+                              <Statistic
+                                value={getDiscountedPrice(getPlanPrice(plan, isAnnual))}
+                                prefix="$"
+                                suffix={plan.price > 0 ? (isAnnual ? '/year' : '/month') : ''}
+                                valueStyle={{ 
+                                  fontSize: 36, 
+                                  fontWeight: 'bold',
+                                  color: '#52c41a'
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <Statistic
+                              value={getPlanPrice(plan, isAnnual)}
+                              prefix="$"
+                              suffix={plan.price > 0 ? (isAnnual ? '/year' : '/month') : ''}
+                              valueStyle={{ 
+                                fontSize: 36, 
+                                fontWeight: 'bold',
+                                color: plan.isPopular ? '#1890ff' : '#262626'
+                              }}
+                            />
+                          )}
                           {isAnnual && plan.price > 0 && (
                             <Text type="secondary">
-                              ${(getPlanPrice(plan, isAnnual) / 12).toFixed(2)}/month billed annually
+                              ${couponValidation.valid 
+                                ? (getDiscountedPrice(getPlanPrice(plan, isAnnual)) / 12).toFixed(2)
+                                : (getPlanPrice(plan, isAnnual) / 12).toFixed(2)
+                              }/month billed annually
                             </Text>
                           )}
                         </div>
