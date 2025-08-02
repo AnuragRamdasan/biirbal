@@ -46,14 +46,14 @@ export const ogImageConfig = {
 
 // Generate OG image URL for specific page
 export function getOgImageUrl(page: keyof typeof ogImageConfig): string {
-  const baseUrl = 'https://biirbal.ai'
+  const baseUrl = 'https://www.biirbal.com'
   const config = ogImageConfig[page] || ogImageConfig.default
   return `${baseUrl}${config.url}`
 }
 
 // Generate complete OG image metadata
 export function getOgImageMeta(page: keyof typeof ogImageConfig) {
-  const baseUrl = 'https://biirbal.ai'
+  const baseUrl = 'https://www.biirbal.com'
   const config = ogImageConfig[page] || ogImageConfig.default
   
   return {

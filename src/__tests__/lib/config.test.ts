@@ -30,7 +30,7 @@ describe('Config utilities', () => {
       delete process.env.NEXTAUTH_URL
       process.env.NODE_ENV = 'production'
       const url = getBaseUrl()
-      expect(url).toBe('https://biirbal.ai')
+      expect(url).toBe('https://www.biirbal.com')
     })
   })
 

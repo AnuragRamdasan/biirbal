@@ -96,9 +96,9 @@ export default function RootLayout({
         <meta name="msapplication-navbutton-color" content="#6366f1" />
         
         {/* International SEO */}
-        <link rel="alternate" hrefLang="en" href="https://biirbal.ai/" />
-        <link rel="alternate" hrefLang="en-US" href="https://biirbal.ai/" />
-        <link rel="alternate" hrefLang="x-default" href="https://biirbal.ai/" />
+        <link rel="alternate" hrefLang="en" href="https://www.biirbal.com/" />
+        <link rel="alternate" hrefLang="en-US" href="https://www.biirbal.com/" />
+        <link rel="alternate" hrefLang="x-default" href="https://www.biirbal.com/" />
       </head>
       <body
         className="antialiased font-sans"

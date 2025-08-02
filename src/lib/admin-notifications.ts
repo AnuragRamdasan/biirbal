@@ -452,7 +452,7 @@ export async function sendAdminNotification(options: AdminNotificationOptions): 
     const { sendEmail } = await import('@/lib/email-service')
     try {
       await sendEmail({
-        to: 'admin@biirbal.ai',
+        to: 'admin@biirbal.com',
         subject: `Admin Notification - ${priority.toUpperCase()}`,
         html: `<p>${message}</p>${metadata ? `<pre>${JSON.stringify(metadata, null, 2)}</pre>` : ''}`
       })
@@ -494,7 +494,7 @@ export async function sendAdminNotification(options: AdminNotificationOptions): 
     try {
       const { sendEmail } = await import('@/lib/email-service')
       await sendEmail({
-        to: 'admin@biirbal.ai',
+        to: 'admin@biirbal.com',
         subject: `Admin Notification - ${priority.toUpperCase()}`,
         html: `<p>${message}</p>${metadata ? `<pre>${JSON.stringify(metadata, null, 2)}</pre>` : ''}`
       })

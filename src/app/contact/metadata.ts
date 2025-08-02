@@ -16,23 +16,23 @@ export const metadata: Metadata = generateMetadata({
     'support ticket',
     'customer service'
   ],
-  canonicalUrl: 'https://biirbal.ai/contact',
-  ogImage: 'https://biirbal.ai/contact-og.png',
+  canonicalUrl: 'https://www.biirbal.com/contact',
+  ogImage: 'https://www.biirbal.com/contact-og.png',
   ogType: 'website'
 })
 
 export const contactStructuredData = {
   organization: generateStructuredData('Organization', {
     name: 'Biirbal',
-    url: 'https://biirbal.ai',
-    logo: 'https://biirbal.ai/logo.png',
+    url: 'https://www.biirbal.com',
+    logo: 'https://www.biirbal.com/logo.png',
     description: 'AI-powered content intelligence for Slack teams',
     contactPoint: [
       {
         '@type': 'ContactPoint',
         telephone: '+1-555-BIIRBAL',
         contactType: 'customer service',
-        email: 'support@biirbal.ai',
+        email: 'support@biirbal.com',
         availableLanguage: ['English'],
         hoursAvailable: {
           '@type': 'OpeningHoursSpecification',
@@ -46,13 +46,13 @@ export const contactStructuredData = {
       {
         '@type': 'ContactPoint',
         contactType: 'technical support',
-        email: 'tech@biirbal.ai',
+        email: 'tech@biirbal.com',
         availableLanguage: ['English']
       },
       {
         '@type': 'ContactPoint',
         contactType: 'billing support',
-        email: 'billing@biirbal.ai',
+        email: 'billing@biirbal.com',
         availableLanguage: ['English']
       }
     ],
@@ -69,7 +69,7 @@ export const contactStructuredData = {
   webpage: generateStructuredData('WebPage', {
     name: 'Contact Biirbal Support',
     description: 'Get in touch with Biirbal support team for help with your AI-powered Slack bot',
-    url: 'https://biirbal.ai/contact',
+    url: 'https://www.biirbal.com/contact',
     breadcrumb: {
       '@type': 'BreadcrumbList',
       itemListElement: [
@@ -77,13 +77,13 @@ export const contactStructuredData = {
           '@type': 'ListItem',
           position: 1,
           name: 'Home',
-          item: 'https://biirbal.ai'
+          item: 'https://www.biirbal.com'
         },
         {
           '@type': 'ListItem',
           position: 2,
           name: 'Contact',
-          item: 'https://biirbal.ai/contact'
+          item: 'https://www.biirbal.com/contact'
         }
       ]
     }

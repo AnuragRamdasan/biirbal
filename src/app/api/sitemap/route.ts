@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
 export async function GET() {
-  const baseUrl = 'https://biirbal.ai'
+  const baseUrl = 'https://www.biirbal.com'
   const currentDate = new Date().toISOString()
   
   // Define all public pages with their SEO properties

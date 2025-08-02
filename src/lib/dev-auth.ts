@@ -9,7 +9,7 @@ export async function getDevUser() {
 
   try {
     const devUser = await prisma.user.findUnique({
-      where: { email: 'dev@biirbal.ai' },
+      where: { email: 'dev@biirbal.com' },
       include: {
         team: {
           include: {

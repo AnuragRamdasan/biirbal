@@ -33,7 +33,7 @@ export function getBaseUrl(): string {
   }
   
   if (isProduction()) {
-    return 'https://biirbal.ai'
+    return 'https://www.biirbal.com'
   }
   
   // Final fallback to the correct domain

@@ -362,7 +362,7 @@ export default function PricingPage() {
               fontWeight: 500
             }}>
               💰 <strong>20% discount available</strong> for non-profits, startups, and open source groups.{' '}
-              <a href="mailto:hello@biirbal.ai?subject=Special Discount Inquiry" style={{ 
+              <a href="mailto:hello@biirbal.com?subject=Special Discount Inquiry" style={{ 
                 color: '#52c41a',
                 textDecoration: 'none',
                 fontWeight: '600'
@@ -1080,12 +1080,12 @@ export default function PricingPage() {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "ItemList",
-            "name": "biirbal.ai Pricing Plans",
-            "description": "Pricing plans for biirbal.ai AI-powered Slack content intelligence",
+            "name": "biirbal.com Pricing Plans",
+            "description": "Pricing plans for biirbal.com AI-powered Slack content intelligence",
             "itemListElement": plans.map((plan, index) => ({
               "@type": "Product",
               "position": index + 1,
-              "name": `biirbal.ai ${plan.name}`,
+              "name": `biirbal.com ${plan.name}`,
               "description": plan.description,
               "offers": {
                 "@type": "Offer",

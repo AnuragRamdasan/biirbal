@@ -3,7 +3,7 @@ import { getBaseUrl } from '@/lib/config'
 
 export const metadata = generateMetadata({
   title: 'Pricing Plans - Choose Your Plan',
-  description: 'Transparent pricing for biirbal.ai. Start with our free trial, then choose from Starter ($9.99), Pro ($29.99), or Enterprise ($99.99) plans. 7-day free trial included.',
+  description: 'Transparent pricing for biirbal.com. Start with our free trial, then choose from Starter ($9.99), Pro ($29.99), or Enterprise ($99.99) plans. 7-day free trial included.',
   keywords: [
     'pricing',
     'plans',

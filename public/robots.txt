@@ -45,9 +45,9 @@ Allow: /
 Crawl-delay: 3
 
 # Sitemap location
-Sitemap: https://biirbal.ai/sitemap.xml
-Sitemap: https://biirbal.ai/sitemap-pages.xml
-Sitemap: https://biirbal.ai/sitemap-blog.xml
+Sitemap: https://www.biirbal.com/sitemap.xml
+Sitemap: https://www.biirbal.com/sitemap-pages.xml
+Sitemap: https://www.biirbal.com/sitemap-blog.xml
 
 # Host preference (canonical domain)
-Host: https://biirbal.ai
+Host: https://www.biirbal.com

@@ -16,8 +16,8 @@ export const metadata: Metadata = generateMetadata({
     'team productivity pricing',
     'slack integration cost'
   ],
-  canonicalUrl: 'https://biirbal.ai/pricing',
-  ogImage: 'https://biirbal.ai/pricing-og.png',
+  canonicalUrl: 'https://www.biirbal.com/pricing',
+  ogImage: 'https://www.biirbal.com/pricing-og.png',
   ogType: 'website'
 })
 

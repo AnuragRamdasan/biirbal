@@ -1475,7 +1475,7 @@ function HomeContent() {
   ]
 
   const socialProof = [
-    { text: '500+ teams trust biirbal.ai', icon: <TeamOutlined /> },
+    { text: '500+ teams trust biirbal.com', icon: <TeamOutlined /> },
     { text: '10,000+ hours saved monthly', icon: <ClockCircleOutlined /> },
     { text: '4.9/5 average rating', icon: <CheckCircleOutlined /> }
   ]
@@ -1601,7 +1601,7 @@ function HomeContent() {
                 {installed && (
                   <Alert
                     message="Installation Successful!"
-                    description="Welcome to biirbal.ai! Your dashboard is loading..."
+                    description="Welcome to biirbal.com! Your dashboard is loading..."
                     type="success"
                     showIcon
                     style={{ marginBottom: 24 }}
@@ -2376,7 +2376,7 @@ function HomeContent() {
           <div style={{ textAlign: 'center', marginTop: 40 }}>
             <Paragraph style={{ color: '#666' }}>
               💰 <strong>20% discount available</strong> for non-profits, startups, and open source groups.{' '}
-              <a href="mailto:hello@biirbal.ai?subject=Special Discount Inquiry">Contact us</a> to learn more.
+              <a href="mailto:hello@biirbal.com?subject=Special Discount Inquiry">Contact us</a> to learn more.
             </Paragraph>
           </div>
         </div>
@@ -2537,7 +2537,7 @@ export default function Home() {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "SoftwareApplication",
-            "name": "biirbal.ai",
+            "name": "biirbal.com",
             "description": "AI-powered audio summaries for Slack teams. Transform shared links into 59-second audio summaries.",
             "applicationCategory": "BusinessApplication",
             "operatingSystem": "Web",

@@ -30,7 +30,7 @@ export default function SEOHead({
   geoData,
   children
 }: SEOHeadProps) {
-  const baseUrl = 'https://biirbal.ai'
+  const baseUrl = 'https://www.biirbal.com'
   const fullTitle = title?.includes('Biirbal') ? title : `${title} | Biirbal`
   const fullOgImage = ogImage?.startsWith('http') ? ogImage : `${baseUrl}${ogImage || '/og-image.png'}`
   const fullCanonicalUrl = canonicalUrl?.startsWith('http') ? canonicalUrl : `${baseUrl}${canonicalUrl || ''}`

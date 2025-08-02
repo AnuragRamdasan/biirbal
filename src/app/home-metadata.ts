@@ -21,16 +21,16 @@ export const metadata: Metadata = generateMetadata({
     'team communication',
     'workplace efficiency'
   ],
-  canonicalUrl: 'https://biirbal.ai/',
-  ogImage: 'https://biirbal.ai/og-image.png',
+  canonicalUrl: 'https://www.biirbal.com/',
+  ogImage: 'https://www.biirbal.com/og-image.png',
   ogType: 'website'
 })
 
 export const homepageStructuredData = {
   organization: generateStructuredData('Organization', {
     name: 'Biirbal',
-    url: 'https://biirbal.ai',
-    logo: 'https://biirbal.ai/logo.png',
+    url: 'https://www.biirbal.com',
+    logo: 'https://www.biirbal.com/logo.png',
     description: 'AI-powered content intelligence for Slack teams providing instant audio summaries',
     foundingDate: '2024',
     sameAs: [
@@ -42,7 +42,7 @@ export const homepageStructuredData = {
       '@type': 'ContactPoint',
       telephone: '+1-555-BIIRBAL',
       contactType: 'customer service',
-      email: 'support@biirbal.ai',
+      email: 'support@biirbal.com',
       availableLanguage: ['English']
     },
     address: {
@@ -57,7 +57,7 @@ export const homepageStructuredData = {
 
   website: generateStructuredData('WebSite', {
     name: 'Biirbal - AI-Powered Slack Content Intelligence',
-    url: 'https://biirbal.ai',
+    url: 'https://www.biirbal.com',
     description: 'Transform Slack links into instant audio summaries with AI-powered content intelligence',
     publisher: {
       '@type': 'Organization',
@@ -68,7 +68,7 @@ export const homepageStructuredData = {
         '@type': 'SearchAction',
         target: {
           '@type': 'EntryPoint',
-          urlTemplate: 'https://biirbal.ai/search?q={search_term_string}'
+          urlTemplate: 'https://www.biirbal.com/search?q={search_term_string}'
         },
         'query-input': 'required name=search_term_string'
       },
@@ -76,9 +76,9 @@ export const homepageStructuredData = {
         '@type': 'SubscribeAction',
         target: {
           '@type': 'EntryPoint',
-          urlTemplate: 'https://biirbal.ai/pricing'
+          urlTemplate: 'https://www.biirbal.com/pricing'
         },
-        expectsAcceptanceOf: 'https://biirbal.ai/terms'
+        expectsAcceptanceOf: 'https://www.biirbal.com/terms'
       }
     ]
   }),
@@ -88,9 +88,9 @@ export const homepageStructuredData = {
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web Browser, Slack',
     description: 'AI-powered Slack bot that transforms shared links into 59-second audio summaries',
-    url: 'https://biirbal.ai',
+    url: 'https://www.biirbal.com',
     downloadUrl: 'https://slack.com/apps/biirbal',
-    screenshot: 'https://biirbal.ai/app-screenshot.png',
+    screenshot: 'https://www.biirbal.com/app-screenshot.png',
     author: {
       '@type': 'Organization',
       name: 'Biirbal'
@@ -146,7 +146,7 @@ export const homepageStructuredData = {
         '@type': 'ListItem',
         position: 1,
         name: 'Home',
-        item: 'https://biirbal.ai'
+        item: 'https://www.biirbal.com'
       }
     ]
   }),

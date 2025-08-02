@@ -22,7 +22,7 @@ export default function PrivacyPage() {
             <SecurityScanOutlined /> Privacy Policy
           </Title>
           <Paragraph style={{ fontSize: 18, color: '#666', maxWidth: 800, margin: '0 auto' }}>
-            This Privacy Policy describes how biirbal.ai collects, uses, and protects your information 
+            This Privacy Policy describes how biirbal.com collects, uses, and protects your information 
             when you use our Slack application for AI-powered audio summaries.
           </Paragraph>
           <Text type="secondary">
@@ -44,12 +44,12 @@ export default function PrivacyPage() {
                   <GlobalOutlined /> Overview
                 </Title>
                 <Paragraph>
-                  biirbal.ai is a Slack application that automatically generates 59-second audio summaries 
+                  biirbal.com is a Slack application that automatically generates 59-second audio summaries 
                   of links shared in your Slack channels. We are committed to protecting your privacy and 
                   being transparent about our data practices.
                 </Paragraph>
                 <Paragraph>
-                  By installing and using biirbal.ai, you consent to the collection and use of information 
+                  By installing and using biirbal.com, you consent to the collection and use of information 
                   as described in this privacy policy.
                 </Paragraph>
               </Card>
@@ -255,7 +255,7 @@ export default function PrivacyPage() {
                   textAlign: 'center'
                 }}>
                   <Text type="secondary">
-                    For our Terms of Service, please visit <a href="/terms">biirbal.ai/terms</a>
+                    For our Terms of Service, please visit <a href="/terms">biirbal.com/terms</a>
                   </Text>
                 </div>
               </Card>

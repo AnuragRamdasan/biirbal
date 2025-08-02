@@ -16,8 +16,8 @@ export const metadata: Metadata = generateMetadata({
     'usage policy',
     'service agreement'
   ],
-  canonicalUrl: 'https://biirbal.ai/terms',
-  ogImage: 'https://biirbal.ai/terms-og.png',
+  canonicalUrl: 'https://www.biirbal.com/terms',
+  ogImage: 'https://www.biirbal.com/terms-og.png',
   ogType: 'website',
   noIndex: false // Legal pages should be indexed for transparency
 })
@@ -26,7 +26,7 @@ export const termsStructuredData = {
   webpage: generateStructuredData('WebPage', {
     name: 'Terms of Service - Biirbal',
     description: 'Legal terms and conditions for using Biirbal AI-powered Slack bot services',
-    url: 'https://biirbal.ai/terms',
+    url: 'https://www.biirbal.com/terms',
     datePublished: '2024-01-01T00:00:00.000Z',
     dateModified: '2025-08-02T00:00:00.000Z',
     author: {
@@ -38,7 +38,7 @@ export const termsStructuredData = {
       name: 'Biirbal',
       logo: {
         '@type': 'ImageObject',
-        url: 'https://biirbal.ai/logo.png'
+        url: 'https://www.biirbal.com/logo.png'
       }
     },
     breadcrumb: {
@@ -48,13 +48,13 @@ export const termsStructuredData = {
           '@type': 'ListItem',
           position: 1,
           name: 'Home',
-          item: 'https://biirbal.ai'
+          item: 'https://www.biirbal.com'
         },
         {
           '@type': 'ListItem',
           position: 2,
           name: 'Terms of Service',
-          item: 'https://biirbal.ai/terms'
+          item: 'https://www.biirbal.com/terms'
         }
       ]
     }
@@ -62,9 +62,9 @@ export const termsStructuredData = {
 
   organization: generateStructuredData('Organization', {
     name: 'Biirbal',
-    url: 'https://biirbal.ai',
-    logo: 'https://biirbal.ai/logo.png',
-    termsOfService: 'https://biirbal.ai/terms',
-    privacyPolicy: 'https://biirbal.ai/privacy'
+    url: 'https://www.biirbal.com',
+    logo: 'https://www.biirbal.com/logo.png',
+    termsOfService: 'https://www.biirbal.com/terms',
+    privacyPolicy: 'https://www.biirbal.com/privacy'
   })
 }

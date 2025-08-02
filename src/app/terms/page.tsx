@@ -40,7 +40,7 @@ export default function TermsPage() {
               <section>
                 <Title level={2}>1. Acceptance of Terms</Title>
                 <Paragraph>
-                  By accessing and using biirbal.ai ("Service"), you accept and agree to be bound by the terms 
+                  By accessing and using biirbal.com ("Service"), you accept and agree to be bound by the terms 
                   and provision of this agreement. If you do not agree to abide by the above, please do not use this service.
                 </Paragraph>
               </section>
@@ -50,7 +50,7 @@ export default function TermsPage() {
               <section>
                 <Title level={2}>2. Description of Service</Title>
                 <Paragraph>
-                  biirbal.ai is a Slack application that automatically generates AI-powered audio summaries of 
+                  biirbal.com is a Slack application that automatically generates AI-powered audio summaries of 
                   links shared in your Slack channels. The service processes shared URLs and creates 59-second 
                   audio summaries to help teams stay informed efficiently.
                 </Paragraph>
@@ -151,7 +151,7 @@ export default function TermsPage() {
                   a license to process and summarize this content to provide our services.
                 </Paragraph>
                 <Paragraph>
-                  <strong>Our Service:</strong> The biirbal.ai service, including our technology, software, 
+                  <strong>Our Service:</strong> The biirbal.com service, including our technology, software, 
                   and generated summaries, are our intellectual property.
                 </Paragraph>
                 <Paragraph>
@@ -201,7 +201,7 @@ export default function TermsPage() {
               <section>
                 <Title level={2}>10. Limitation of Liability</Title>
                 <Paragraph>
-                  TO THE MAXIMUM EXTENT PERMITTED BY LAW, biirbal.ai SHALL NOT BE LIABLE FOR ANY INDIRECT, 
+                  TO THE MAXIMUM EXTENT PERMITTED BY LAW, biirbal.com SHALL NOT BE LIABLE FOR ANY INDIRECT, 
                   INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING FROM YOUR USE OF THE SERVICE.
                 </Paragraph>
                 <Paragraph>
@@ -255,9 +255,9 @@ export default function TermsPage() {
                   For questions about these Terms of Service, please contact us:
                 </Paragraph>
                 <ul style={{ paddingLeft: 20, listStyle: 'none' }}>
-                  <li><strong>Email:</strong> legal@biirbal.ai</li>
-                  <li><strong>Support:</strong> hello@biirbal.ai</li>
-                  <li><strong>Website:</strong> <a href="https://biirbal.ai">biirbal.ai</a></li>
+                  <li><strong>Email:</strong> legal@biirbal.com</li>
+                  <li><strong>Support:</strong> hello@biirbal.com</li>
+                  <li><strong>Website:</strong> <a href="https://www.biirbal.com">biirbal.com</a></li>
                 </ul>
               </section>
 
@@ -269,7 +269,7 @@ export default function TermsPage() {
                 textAlign: 'center'
               }}>
                 <Text type="secondary">
-                  By using biirbal.ai, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.
+                  By using biirbal.com, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.
                 </Text>
               </div>
             </Space>

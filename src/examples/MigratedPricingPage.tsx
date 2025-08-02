@@ -86,7 +86,7 @@ const PricingPageExample = () => {
         <div className="relative z-10">
           <p className="text-lg font-medium">
             💰 <strong>20% discount available</strong> for non-profits and startups.{' '}
-            <a href="mailto:hello@biirbal.ai" className="underline font-semibold">
+            <a href="mailto:hello@biirbal.com" className="underline font-semibold">
               Contact us
             </a>
           </p>

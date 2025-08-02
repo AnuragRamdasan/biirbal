@@ -56,7 +56,7 @@ export default function ContactPage() {
         <div style={{ textAlign: 'center', marginBottom: 60 }}>
           <Title level={1}>Contact Us</Title>
           <Paragraph style={{ fontSize: 18, color: '#666', maxWidth: 600, margin: '0 auto' }}>
-            Have questions about biirbal.ai? Need help with your Slack integration? 
+            Have questions about biirbal.com? Need help with your Slack integration? 
             We're here to help you get the most out of your AI audio summaries.
           </Paragraph>
         </div>
@@ -229,7 +229,7 @@ export default function ContactPage() {
                 </Title>
                 <Space direction="vertical" size="small" style={{ width: '100%' }}>
                   <div>
-                    <Text strong>How do I install biirbal.ai?</Text>
+                    <Text strong>How do I install biirbal.com?</Text>
                     <br />
                     <Text type="secondary">
                       Click "Add to Slack" on our homepage and follow the OAuth flow.

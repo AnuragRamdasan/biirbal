@@ -14,8 +14,8 @@ export const metadata: Metadata = generateMetadata({
     'setup confirmation',
     'slack automation ready'
   ],
-  canonicalUrl: 'https://biirbal.ai/success',
-  ogImage: 'https://biirbal.ai/success-og.png',
+  canonicalUrl: 'https://www.biirbal.com/success',
+  ogImage: 'https://www.biirbal.com/success-og.png',
   ogType: 'website',
   noIndex: true // Don't index success pages
 })
@@ -24,7 +24,7 @@ export const successStructuredData = {
   webpage: generateStructuredData('WebPage', {
     name: 'Setup Success - Biirbal',
     description: 'Confirmation page for successful Biirbal Slack bot installation and setup',
-    url: 'https://biirbal.ai/success',
+    url: 'https://www.biirbal.com/success',
     breadcrumb: {
       '@type': 'BreadcrumbList',
       itemListElement: [
@@ -32,13 +32,13 @@ export const successStructuredData = {
           '@type': 'ListItem',
           position: 1,
           name: 'Home',
-          item: 'https://biirbal.ai'
+          item: 'https://www.biirbal.com'
         },
         {
           '@type': 'ListItem',
           position: 2,
           name: 'Success',
-          item: 'https://biirbal.ai/success'
+          item: 'https://www.biirbal.com/success'
         }
       ]
     }
