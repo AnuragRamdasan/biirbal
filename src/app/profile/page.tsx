@@ -150,15 +150,18 @@ export default function ProfilePage() {
 
   const handleLogout = async () => {
     try {
+      // Clear all local storage items immediately
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('biirbal_')) {
           localStorage.removeItem(key)
         }
       })
-      router.push('/')
+      // Force immediate redirect to landing page
+      window.location.href = '/'
     } catch (error) {
       console.error('Logout error:', error)
-      router.push('/')
+      // Even if there's an error, force redirect
+      window.location.href = '/'
     }
   }
 

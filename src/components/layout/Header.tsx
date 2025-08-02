@@ -30,6 +30,9 @@ export const Header: React.FC<HeaderProps> = ({
 
   const handleLogout = async () => {
     try {
+      // Immediately update authentication state
+      setSlackAuthenticated(false)
+      
       // Clear all local storage items for auth
       localStorage.removeItem('biirbal_visited_dashboard')
       localStorage.removeItem('biirbal_user_id')
@@ -41,12 +44,12 @@ export const Header: React.FC<HeaderProps> = ({
         }
       })
       
-      // Redirect to home page
-      router.push('/')
+      // Force immediate redirect to landing page
+      window.location.href = '/'
     } catch (error) {
       console.error('Logout error:', error)
-      // Even if there's an error, still redirect to home
-      router.push('/')
+      // Even if there's an error, force redirect
+      window.location.href = '/'
     }
   }
   return (
