@@ -126,6 +126,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Store team and user information (persistence errors are logged but do not break flow)
+    let databaseUserId: string | null = null
     try {
       const db = await getDbClient()
 
@@ -177,7 +178,6 @@ export async function GET(request: NextRequest) {
       }
 
       // Store user information if available
-      let databaseUserId: string | null = null
       if (userId && userAccessToken) {
         try {
           const existingUser = await db.user.findUnique({
