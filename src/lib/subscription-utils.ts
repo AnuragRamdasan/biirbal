@@ -145,14 +145,35 @@ export async function canUserConsume(teamId: string, userId: string): Promise<bo
       userLimit: team.subscription.userLimit
     }
     
-    // Early returns for simple cases
-    if (plan.id === 'free' || plan.userLimit === -1) {
+    // For paid plans with unlimited users, allow access
+    if (plan.userLimit === -1) {
       return true
     }
     
-    // Check seat limit for paid plans with user limits
+    // For all plans with user limits (including free), check seat limits
     const userIndex = team.users.findIndex(u => u.id === userId)
-    return userIndex !== -1 && userIndex < plan.userLimit
+    const withinUserLimit = userIndex !== -1 && userIndex < plan.userLimit
+    
+    // Free plans also need to check link limits
+    if (plan.id === 'free') {
+      const currentDate = new Date()
+      const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+      
+      const monthlyLinks = await db.processedLink.count({
+        where: {
+          teamId: team.id,
+          createdAt: {
+            gte: firstDayOfMonth
+          }
+        }
+      })
+      
+      const withinLinkLimit = plan.monthlyLinkLimit === -1 || monthlyLinks < plan.monthlyLinkLimit
+      return withinUserLimit && withinLinkLimit
+    }
+    
+    // For paid plans with user limits, only check user limits
+    return withinUserLimit
     
   } catch (error) {
     console.error('Error checking user consumption access:', error)
