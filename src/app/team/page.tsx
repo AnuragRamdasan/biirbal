@@ -352,27 +352,87 @@ export default function TeamManagement() {
 
   return (
     <Layout currentPage="team">
-      <div style={{ padding: '16px 24px', maxWidth: 1200, margin: '0 auto' }}>
-        {/* Header */}
-        <Card style={{ marginBottom: 24 }}>
+      <div style={{ 
+        padding: '32px 24px', 
+        maxWidth: 1200, 
+        margin: '0 auto',
+        background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
+        minHeight: '100vh'
+      }}>
+        {/* Modern Header */}
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(102, 126, 234, 0.1)',
+          borderRadius: '20px',
+          padding: '24px',
+          marginBottom: '24px',
+          boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          {/* Background Accent */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '4px',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+          }} />
+          
           <Row justify="space-between" align="middle">
             <Col>
               <Space>
-                <TeamOutlined style={{ fontSize: 24, color: '#1890ff' }} />
+                <div style={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  borderRadius: '50%',
+                  width: '48px',
+                  height: '48px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 8px 24px rgba(102, 126, 234, 0.3)'
+                }}>
+                  <TeamOutlined style={{ fontSize: '24px', color: 'white' }} />
+                </div>
                 <div>
-                  <Title level={3} style={{ margin: 0 }}>
+                  <Title level={3} style={{ 
+                    margin: 0,
+                    fontSize: '24px',
+                    fontWeight: 700,
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text'
+                  }}>
                     {teamData.teamInfo?.teamName || 'Team Management'}
                   </Title>
-                  <Text type="secondary">Manage team members and access</Text>
+                  <Text style={{ 
+                    color: '#666', 
+                    fontSize: '16px',
+                    marginTop: '4px',
+                    display: 'block'
+                  }}>
+                    Manage team members and access
+                  </Text>
                 </div>
               </Space>
             </Col>
             <Col>
-              <Space>
+              <Space size="middle">
                 <Button 
                   type="default" 
                   icon={<UserAddOutlined />}
                   onClick={() => setInviteModalVisible(true)}
+                  style={{
+                    height: '40px',
+                    borderRadius: '10px',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    border: '2px solid rgba(102, 126, 234, 0.2)',
+                    color: '#667eea'
+                  }}
                 >
                   Invite Member
                 </Button>
@@ -380,16 +440,56 @@ export default function TeamManagement() {
                   type="primary" 
                   icon={<SettingOutlined />}
                   href="/pricing"
+                  style={{
+                    height: '40px',
+                    borderRadius: '10px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    border: 'none',
+                    boxShadow: '0 8px 24px rgba(102, 126, 234, 0.3)'
+                  }}
                 >
                   Upgrade Plan
                 </Button>
               </Space>
             </Col>
           </Row>
-        </Card>
+        </div>
 
-        {/* Current Plan */}
-        <Card title="Current Plan" style={{ marginBottom: 24 }}>
+        {/* Modern Current Plan */}
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(102, 126, 234, 0.1)',
+          borderRadius: '20px',
+          padding: '24px',
+          marginBottom: '24px',
+          boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          {/* Background Accent */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '4px',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+          }} />
+          
+          <div style={{ marginBottom: '20px' }}>
+            <Title level={4} style={{ 
+              margin: 0,
+              fontSize: '18px',
+              fontWeight: 600,
+              color: '#333'
+            }}>
+              Current Plan
+            </Title>
+          </div>
+          
           <Row gutter={[16, 16]} align="middle">
             <Col xs={24} sm={12}>
               {(() => {
@@ -397,21 +497,47 @@ export default function TeamManagement() {
                 return (
                   <Space direction="vertical" size="small">
                     <div>
-                      <Text strong style={{ fontSize: 18, color: currentPlan.id === 'free' ? '#ff4d4f' : '#1890ff' }}>
+                      <Text strong style={{ 
+                        fontSize: '20px', 
+                        fontWeight: 700,
+                        color: currentPlan.id === 'free' ? '#ff4d4f' : '#1890ff'
+                      }}>
                         {currentPlan.name}
                       </Text>
                       {currentPlan.id !== 'free' && (
-                        <Tag color="blue" style={{ marginLeft: 8 }}>Active</Tag>
+                        <div style={{
+                          background: 'linear-gradient(135deg, #52c41a 0%, #73d13d 100%)',
+                          borderRadius: '50px',
+                          padding: '4px 12px',
+                          display: 'inline-block',
+                          marginLeft: '12px'
+                        }}>
+                          <Text style={{ 
+                            color: 'white', 
+                            fontSize: '12px',
+                            fontWeight: '600'
+                          }}>
+                            Active
+                          </Text>
+                        </div>
                       )}
                     </div>
-                    <Text type="secondary">
+                    <Text style={{ 
+                      color: '#666',
+                      fontSize: '14px',
+                      lineHeight: '1.4'
+                    }}>
                       {currentPlan.id === 'free' 
                         ? '20 links/month • 1 user' 
                         : `Unlimited links • ${currentPlan.userLimit === -1 ? 'Unlimited' : currentPlan.userLimit} users`
                       }
                     </Text>
                     {currentPlan.description && (
-                      <Text type="secondary" style={{ fontSize: 12 }}>
+                      <Text style={{ 
+                        color: '#999',
+                        fontSize: '12px',
+                        lineHeight: '1.4'
+                      }}>
                         {currentPlan.description}
                       </Text>
                     )}
@@ -422,78 +548,237 @@ export default function TeamManagement() {
             <Col xs={24} sm={12} style={{ textAlign: 'right' }}>
               <Space>
                 {teamData.subscription.planId === 'free' ? (
-                  <Button type="primary" href="/pricing">
+                  <Button 
+                    type="primary" 
+                    href="/pricing"
+                    style={{
+                      height: '40px',
+                      borderRadius: '10px',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      border: 'none',
+                      boxShadow: '0 8px 24px rgba(102, 126, 234, 0.3)'
+                    }}
+                  >
                     Upgrade Plan
                   </Button>
                 ) : (
-                  <Button href="/pricing">
+                  <Button 
+                    href="/pricing"
+                    style={{
+                      height: '40px',
+                      borderRadius: '10px',
+                      fontSize: '14px',
+                      fontWeight: 500,
+                      border: '2px solid rgba(102, 126, 234, 0.2)',
+                      color: '#667eea'
+                    }}
+                  >
                     Change Plan
                   </Button>
                 )}
               </Space>
             </Col>
           </Row>
-        </Card>
+        </div>
 
-        {/* Seat Usage */}
-        <Card title="Seat Usage" style={{ marginBottom: 24 }}>
+        {/* Modern Seat Usage */}
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(102, 126, 234, 0.1)',
+          borderRadius: '20px',
+          padding: '24px',
+          marginBottom: '24px',
+          boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          {/* Background Accent */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '4px',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+          }} />
+          
+          <div style={{ marginBottom: '20px' }}>
+            <Title level={4} style={{ 
+              margin: 0,
+              fontSize: '18px',
+              fontWeight: 600,
+              color: '#333'
+            }}>
+              Seat Usage
+            </Title>
+          </div>
+          
           <Row gutter={[16, 16]}>
             <Col xs={24} sm={12} md={8}>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 24, fontWeight: 'bold', color: '#1890ff' }}>
+              <div style={{ 
+                textAlign: 'center',
+                padding: '20px',
+                background: 'rgba(24, 144, 255, 0.05)',
+                borderRadius: '16px',
+                border: '1px solid rgba(24, 144, 255, 0.1)'
+              }}>
+                <div style={{ 
+                  fontSize: '28px', 
+                  fontWeight: '700', 
+                  color: '#1890ff',
+                  marginBottom: '8px'
+                }}>
                   {activeMembers}
                 </div>
-                <Text type="secondary">Active Members</Text>
+                <Text style={{ 
+                  color: '#666',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}>
+                  Active Members
+                </Text>
               </div>
             </Col>
             <Col xs={24} sm={12} md={8}>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 24, fontWeight: 'bold', color: '#52c41a' }}>
+              <div style={{ 
+                textAlign: 'center',
+                padding: '20px',
+                background: 'rgba(82, 196, 26, 0.05)',
+                borderRadius: '16px',
+                border: '1px solid rgba(82, 196, 26, 0.1)'
+              }}>
+                <div style={{ 
+                  fontSize: '28px', 
+                  fontWeight: '700', 
+                  color: '#52c41a',
+                  marginBottom: '8px'
+                }}>
                   {teamData.subscription.userLimit === -1 ? '∞' : teamData.subscription.userLimit}
                 </div>
-                <Text type="secondary">Seat Limit</Text>
+                <Text style={{ 
+                  color: '#666',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}>
+                  Seat Limit
+                </Text>
               </div>
             </Col>
             <Col xs={24} md={8}>
-              <div style={{ textAlign: 'center' }}>
+              <div style={{ 
+                textAlign: 'center',
+                padding: '20px',
+                background: 'rgba(250, 173, 20, 0.05)',
+                borderRadius: '16px',
+                border: '1px solid rgba(250, 173, 20, 0.1)'
+              }}>
                 <Progress 
                   type="circle" 
                   percent={seatUsagePercentage}
                   size={60}
                   status={teamData.subscription.userLimitExceeded ? 'exception' : 'normal'}
+                  strokeColor={teamData.subscription.userLimitExceeded ? '#ff4d4f' : '#faad14'}
                 />
-                <div style={{ marginTop: 8 }}>
-                  <Text type="secondary">Usage</Text>
+                <div style={{ marginTop: '12px' }}>
+                  <Text style={{ 
+                    color: '#666',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                  }}>
+                    Usage
+                  </Text>
                 </div>
               </div>
             </Col>
           </Row>
           
           {teamData.subscription.userLimitExceeded && (
-            <Alert
-              style={{ marginTop: 16 }}
-              message="Seat limit exceeded"
-              description="Some members may have restricted access. Consider upgrading your plan or disabling inactive members."
-              type="warning"
-              showIcon
-              action={
-                <Button size="small" href="/pricing">
+            <div style={{
+              background: 'linear-gradient(135deg, #faad14 0%, #ffc53d 100%)',
+              borderRadius: '16px',
+              padding: '16px 20px',
+              marginTop: '20px',
+              boxShadow: '0 8px 24px rgba(250, 173, 20, 0.15)',
+              border: '1px solid rgba(250, 173, 20, 0.2)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <ExclamationCircleOutlined style={{ color: 'white', fontSize: '16px' }} />
+                  </div>
+                  <div>
+                    <div style={{ color: 'white', fontWeight: 600, fontSize: '16px', marginBottom: '4px' }}>
+                      Seat limit exceeded
+                    </div>
+                    <div style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '14px' }}>
+                      Some members may have restricted access. Consider upgrading your plan or disabling inactive members.
+                    </div>
+                  </div>
+                </div>
+                <Button 
+                  size="small" 
+                  href="/pricing"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    color: 'white',
+                    borderRadius: '8px',
+                    fontWeight: 500
+                  }}
+                >
                   Upgrade
                 </Button>
-              }
-            />
+              </div>
+            </div>
           )}
-        </Card>
+        </div>
 
-        {/* Member List */}
-        <Card 
-          title={
-            <Space>
-              <UserOutlined />
-              Team Members ({teamData.members.length + teamData.pendingInvitations.length})
-            </Space>
-          }
-        >
+        {/* Modern Member List */}
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(102, 126, 234, 0.1)',
+          borderRadius: '20px',
+          padding: '24px',
+          marginBottom: '24px',
+          boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          {/* Background Accent */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '4px',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+          }} />
+          
+          <div style={{ marginBottom: '20px' }}>
+            <Title level={4} style={{ 
+              margin: 0,
+              fontSize: '18px',
+              fontWeight: 600,
+              color: '#333'
+            }}>
+              <Space>
+                <UserOutlined style={{ fontSize: '18px' }} />
+                Team Members ({teamData.members.length + teamData.pendingInvitations.length})
+              </Space>
+            </Title>
+          </div>
           <List
             dataSource={getCombinedMembersList()}
             renderItem={(item, index) => {
@@ -501,12 +786,13 @@ export default function TeamManagement() {
                 return (
                   <List.Item
                     style={{ 
-                      opacity: 0.7,
-                      backgroundColor: '#fafafa',
-                      padding: '16px',
-                      marginBottom: '8px',
-                      borderRadius: '8px',
-                      border: '1px solid #e6f7ff'
+                      opacity: 0.8,
+                      background: 'rgba(24, 144, 255, 0.05)',
+                      padding: '20px',
+                      marginBottom: '12px',
+                      borderRadius: '16px',
+                      border: '1px solid rgba(24, 144, 255, 0.1)',
+                      transition: 'all 0.3s ease'
                     }}
                   >
                     <List.Item.Meta
@@ -549,12 +835,20 @@ export default function TeamManagement() {
                 <List.Item
                   actions={[getActionButtons(member, memberIndex)]}
                   style={{ 
-                    opacity: member.isActive ? 1 : 0.6,
-                    backgroundColor: isAdmin ? '#f6ffed' : 'transparent',
-                    padding: '16px',
-                    marginBottom: '8px',
-                    borderRadius: '8px',
-                    border: isAdmin ? '1px solid #b7eb8f' : '1px solid #f0f0f0'
+                    opacity: member.isActive ? 1 : 0.7,
+                    background: isAdmin 
+                      ? 'rgba(82, 196, 26, 0.05)' 
+                      : 'rgba(255, 255, 255, 0.5)',
+                    padding: '20px',
+                    marginBottom: '12px',
+                    borderRadius: '16px',
+                    border: isAdmin 
+                      ? '1px solid rgba(82, 196, 26, 0.2)' 
+                      : '1px solid rgba(102, 126, 234, 0.1)',
+                    transition: 'all 0.3s ease',
+                    boxShadow: isAdmin 
+                      ? '0 4px 12px rgba(82, 196, 26, 0.1)' 
+                      : '0 2px 8px rgba(0, 0, 0, 0.04)'
                   }}
                 >
                   <List.Item.Meta
@@ -591,26 +885,64 @@ export default function TeamManagement() {
             }}
           />
           
-          <Divider />
+          <Divider style={{ margin: '24px 0' }} />
           
-          <Alert
-            message="Member Management Info"
-            description={
-              <ul style={{ marginBottom: 0, paddingLeft: 16 }}>
-                <li>First member (admin) cannot be disabled or removed</li>
-                <li>Members over the seat limit have restricted access to audio playback</li>
-                <li>Disabled members cannot play audio summaries but can see links</li>
-                <li>Removed members are permanently disabled and lose access</li>
-              </ul>
-            }
-            type="info"
-            showIcon
-          />
-        </Card>
+          <div style={{
+            background: 'rgba(24, 144, 255, 0.05)',
+            borderRadius: '16px',
+            padding: '20px',
+            border: '1px solid rgba(24, 144, 255, 0.1)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+              <div style={{
+                background: 'rgba(24, 144, 255, 0.1)',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <CheckCircleOutlined style={{ color: '#1890ff', fontSize: '16px' }} />
+              </div>
+              <div>
+                <div style={{ 
+                  color: '#1890ff', 
+                  fontWeight: 600, 
+                  fontSize: '16px',
+                  marginBottom: '8px'
+                }}>
+                  Member Management Info
+                </div>
+                <ul style={{ 
+                  margin: 0, 
+                  paddingLeft: '20px',
+                  color: '#666',
+                  fontSize: '14px',
+                  lineHeight: '1.6'
+                }}>
+                  <li>First member (admin) cannot be disabled or removed</li>
+                  <li>Members over the seat limit have restricted access to audio playback</li>
+                  <li>Disabled members cannot play audio summaries but can see links</li>
+                  <li>Removed members are permanently disabled and lose access</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
 
-        {/* Invite Member Modal */}
+        {/* Modern Invite Member Modal */}
         <Modal
-          title="Invite Team Member"
+          title={
+            <div style={{ 
+              fontSize: '20px', 
+              fontWeight: 600,
+              color: '#333'
+            }}>
+              Invite Team Member
+            </div>
+          }
           open={inviteModalVisible}
           onCancel={() => {
             setInviteModalVisible(false)
@@ -618,6 +950,16 @@ export default function TeamManagement() {
           }}
           footer={null}
           width={480}
+          styles={{
+            content: {
+              borderRadius: '20px',
+              padding: '24px'
+            },
+            header: {
+              borderBottom: '1px solid rgba(102, 126, 234, 0.1)',
+              paddingBottom: '16px'
+            }
+          }}
         >
           <Form
             form={inviteForm}
@@ -626,7 +968,15 @@ export default function TeamManagement() {
             style={{ marginTop: 16 }}
           >
             <Form.Item
-              label="Email Address"
+              label={
+                <span style={{ 
+                  fontSize: '14px', 
+                  fontWeight: 600,
+                  color: '#333'
+                }}>
+                  Email Address
+                </span>
+              }
               name="email"
               rules={[
                 { required: true, message: 'Please enter an email address' },
@@ -637,22 +987,44 @@ export default function TeamManagement() {
                 prefix={<MailOutlined />}
                 placeholder="colleague@company.com"
                 size="large"
+                style={{
+                  borderRadius: '10px',
+                  border: '1px solid rgba(102, 126, 234, 0.2)'
+                }}
               />
             </Form.Item>
 
-            <div style={{ marginBottom: 16, padding: 12, background: '#f6f8fa', borderRadius: 6 }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>
+            <div style={{ 
+              marginBottom: 16, 
+              padding: 16, 
+              background: 'rgba(24, 144, 255, 0.05)', 
+              borderRadius: 12,
+              border: '1px solid rgba(24, 144, 255, 0.1)'
+            }}>
+              <Text style={{ 
+                color: '#666',
+                fontSize: '13px',
+                lineHeight: '1.5'
+              }}>
                 An invitation email will be sent with a secure link that expires in 7 days. 
                 The invitee will be able to join your team and access audio summaries.
               </Text>
             </div>
 
             <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
-              <Space>
+              <Space size="middle">
                 <Button 
                   onClick={() => {
                     setInviteModalVisible(false)
                     inviteForm.resetFields()
+                  }}
+                  style={{
+                    height: '40px',
+                    borderRadius: '10px',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    border: '2px solid rgba(102, 126, 234, 0.2)',
+                    color: '#667eea'
                   }}
                 >
                   Cancel
@@ -662,6 +1034,15 @@ export default function TeamManagement() {
                   htmlType="submit"
                   loading={inviteLoading}
                   icon={<UserAddOutlined />}
+                  style={{
+                    height: '40px',
+                    borderRadius: '10px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    border: 'none',
+                    boxShadow: '0 8px 24px rgba(102, 126, 234, 0.3)'
+                  }}
                 >
                   {inviteLoading ? 'Sending Invitation...' : 'Send Invitation'}
                 </Button>

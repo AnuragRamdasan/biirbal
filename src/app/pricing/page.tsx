@@ -239,46 +239,167 @@ export default function PricingPage() {
 
   return (
     <Layout currentPage="pricing">
-      <div style={{ padding: '24px 0' }}>
-        {/* Special Discount Banner */}
-        <div style={{ background: '#001529', color: 'white', padding: '16px 0' }}>
-          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
-            <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 14 }}>
+      <div style={{ 
+        padding: '32px 0',
+        background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
+        minHeight: '100vh'
+      }}>
+        {/* Modern Special Discount Banner */}
+        <div style={{ 
+          background: 'linear-gradient(135deg, #001529 0%, #003a70 100%)',
+          color: 'white', 
+          padding: '20px 0',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          {/* Background Pattern */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.05) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.05) 0%, transparent 50%)',
+            pointerEvents: 'none'
+          }} />
+          
+          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', textAlign: 'center', position: 'relative', zIndex: 1 }}>
+            <Text style={{ 
+              color: 'rgba(255,255,255,0.95)', 
+              fontSize: '16px',
+              fontWeight: 500
+            }}>
               💰 <strong>20% discount available</strong> for non-profits, startups, and open source groups.{' '}
-              <a href="mailto:hello@biirbal.ai?subject=Special Discount Inquiry" style={{ color: '#52c41a' }}>
+              <a href="mailto:hello@biirbal.ai?subject=Special Discount Inquiry" style={{ 
+                color: '#52c41a',
+                textDecoration: 'none',
+                fontWeight: '600'
+              }}>
                 Contact us
               </a> to learn more.
             </Text>
           </div>
         </div>
 
-        {/* Social Proof & Urgency */}
-        <div style={{ padding: '40px 0', background: '#f0f8ff', borderLeft: '4px solid #1890ff' }}>
-          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
-            <Space direction="vertical" size="small">
-              <Text style={{ fontSize: 16, color: '#1890ff', fontWeight: 600 }}>
-                🔥 Join 500+ teams who've already saved 1000+ hours
-              </Text>
-              <Text type="secondary" style={{ fontSize: 14 }}>
+        {/* Modern Social Proof & Urgency */}
+        <div style={{ 
+          padding: '60px 0', 
+          background: 'linear-gradient(135deg, #e6f7ff 0%, #f0f8ff 100%)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          {/* Background Pattern */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'radial-gradient(circle at 20% 80%, rgba(24, 144, 255, 0.05) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(24, 144, 255, 0.05) 0%, transparent 50%)',
+            pointerEvents: 'none'
+          }} />
+          
+          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', textAlign: 'center', position: 'relative', zIndex: 1 }}>
+            <Space direction="vertical" size="large">
+              <div style={{
+                background: 'linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)',
+                borderRadius: '50px',
+                padding: '8px 24px',
+                display: 'inline-block',
+                boxShadow: '0 8px 24px rgba(24, 144, 255, 0.3)'
+              }}>
+                <Text style={{ 
+                  fontSize: '18px', 
+                  color: 'white', 
+                  fontWeight: 600 
+                }}>
+                  🔥 Join 500+ teams who've already saved 1000+ hours
+                </Text>
+              </div>
+              <Text style={{ 
+                color: '#666',
+                fontSize: '16px',
+                maxWidth: '600px',
+                margin: '0 auto'
+              }}>
                 Don't let important content slip through the cracks while your competitors stay ahead
               </Text>
             </Space>
           </div>
         </div>
 
-        {/* Usage Calculator */}
-        <div style={{ padding: '60px 0', background: '#fff' }}>
-          <div style={{ maxWidth: 800, margin: '0 auto', padding: '0 24px' }}>
-            <div style={{ textAlign: 'center', marginBottom: 40 }}>
-              <Title level={3}>Find Your Perfect Plan</Title>
-              <Text type="secondary">Answer a few questions to see which plan fits your team</Text>
+        {/* Modern Usage Calculator */}
+        <div style={{ 
+          padding: '80px 0', 
+          background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          {/* Background Pattern */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.03) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(102, 126, 234, 0.03) 0%, transparent 50%)',
+            pointerEvents: 'none'
+          }} />
+          
+          <div style={{ maxWidth: 800, margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 1 }}>
+            <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+              <Title level={3} style={{ 
+                fontSize: '32px',
+                fontWeight: 700,
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                marginBottom: '16px'
+              }}>
+                Find Your Perfect Plan
+              </Title>
+              <Text style={{ 
+                color: '#666',
+                fontSize: '18px',
+                maxWidth: '500px',
+                margin: '0 auto'
+              }}>
+                Answer a few questions to see which plan fits your team
+              </Text>
             </div>
             
-            <Card style={{ background: '#f8f9fa' }}>
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(102, 126, 234, 0.1)',
+              borderRadius: '24px',
+              padding: '32px',
+              boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              {/* Background Accent */}
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '4px',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+              }} />
+              
               <Space direction="vertical" size="large" style={{ width: '100%' }}>
                 <div>
-                  <Text strong>How many links does your team share per week?</Text>
-                  <div style={{ margin: '16px 0' }}>
+                  <Text strong style={{ 
+                    fontSize: '16px',
+                    color: '#333',
+                    marginBottom: '16px',
+                    display: 'block'
+                  }}>
+                    How many links does your team share per week?
+                  </Text>
+                  <div style={{ margin: '20px 0' }}>
                     <Slider
                       min={1}
                       max={50}
@@ -296,14 +417,31 @@ export default function PricingPage() {
                         25: '25',
                         50: '50+'
                       }}
+                      trackStyle={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+                      handleStyle={{ 
+                        borderColor: '#667eea',
+                        boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+                      }}
                     />
                   </div>
-                  <Text type="secondary">Currently: {linksPerWeek} links/week (~{linksPerWeek * 4} links/month)</Text>
+                  <Text style={{ 
+                    color: '#666',
+                    fontSize: '14px'
+                  }}>
+                    Currently: {linksPerWeek} links/week (~{linksPerWeek * 4} links/month)
+                  </Text>
                 </div>
                 
                 <div>
-                  <Text strong>How many team members need access?</Text>
-                  <div style={{ margin: '16px 0' }}>
+                  <Text strong style={{ 
+                    fontSize: '16px',
+                    color: '#333',
+                    marginBottom: '16px',
+                    display: 'block'
+                  }}>
+                    How many team members need access?
+                  </Text>
+                  <div style={{ margin: '20px 0' }}>
                     <Slider
                       min={1}
                       max={20}
@@ -321,48 +459,106 @@ export default function PricingPage() {
                         10: '10',
                         20: '20+'
                       }}
+                      trackStyle={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+                      handleStyle={{ 
+                        borderColor: '#667eea',
+                        boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+                      }}
                     />
                   </div>
-                  <Text type="secondary">Currently: {teamSize} team members</Text>
+                  <Text style={{ 
+                    color: '#666',
+                    fontSize: '14px'
+                  }}>
+                    Currently: {teamSize} team members
+                  </Text>
                 </div>
                 
-                <div style={{ textAlign: 'center', marginTop: 24, padding: '20px', background: 'white', borderRadius: '8px' }}>
-                                     <Text strong style={{ fontSize: 18, color: '#1890ff' }}>
-                     Recommended Plan: {
-                       teamSize <= 1 ? (linksPerWeek * 4 <= 20 ? 'Free' : 'Starter') :
-                       teamSize <= 10 ? 'Pro' : 
-                       'Business'
-                     }
-                   </Text>
-                   <br />
-                   <Text type="secondary">
-                     {teamSize <= 1 
-                       ? (linksPerWeek * 4 <= 20 ? 'Perfect for getting started!' : 'Great for individual power users')
-                       : teamSize <= 10
-                       ? 'Ideal for growing teams with advanced features'
-                       : 'Best for large organizations needing unlimited seats'
-                     }
-                   </Text>
+                <div style={{ 
+                  textAlign: 'center', 
+                  marginTop: '32px', 
+                  padding: '24px', 
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  borderRadius: '16px',
+                  color: 'white'
+                }}>
+                  <Text strong style={{ 
+                    fontSize: '20px', 
+                    color: 'white',
+                    marginBottom: '8px',
+                    display: 'block'
+                  }}>
+                    Recommended Plan: {
+                      teamSize <= 1 ? (linksPerWeek * 4 <= 20 ? 'Free' : 'Starter') :
+                      teamSize <= 10 ? 'Pro' : 
+                      'Business'
+                    }
+                  </Text>
+                  <Text style={{ 
+                    color: 'rgba(255, 255, 255, 0.9)',
+                    fontSize: '14px'
+                  }}>
+                    {teamSize <= 1 
+                      ? (linksPerWeek * 4 <= 20 ? 'Perfect for getting started!' : 'Great for individual power users')
+                      : teamSize <= 10
+                      ? 'Ideal for growing teams with advanced features'
+                      : 'Best for large organizations needing unlimited seats'
+                    }
+                  </Text>
                 </div>
               </Space>
-            </Card>
+            </div>
           </div>
         </div>
 
-        {/* Pricing Cards */}
-        <div style={{ textAlign: 'center', padding: '60px 0', background: '#f8f9fa' }}>
-          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
-            <Space direction="vertical" size="large" style={{ width: '100%' }}>
-              <Badge style={{ backgroundColor: '#52c41a' }}>
-                <Title level={1} style={{ margin: 0 }}>
+        {/* Modern Pricing Cards */}
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '80px 0', 
+          background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          {/* Background Pattern */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.03) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(102, 126, 234, 0.03) 0%, transparent 50%)',
+            pointerEvents: 'none'
+          }} />
+          
+          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 1 }}>
+            <Space direction="vertical" size="large" style={{ width: '100%', marginBottom: '60px' }}>
+              <div style={{
+                background: 'linear-gradient(135deg, #52c41a 0%, #73d13d 100%)',
+                borderRadius: '50px',
+                padding: '8px 24px',
+                display: 'inline-block',
+                boxShadow: '0 8px 24px rgba(82, 196, 26, 0.3)'
+              }}>
+                <Title level={1} style={{ 
+                  margin: 0,
+                  color: 'white',
+                  fontSize: '36px',
+                  fontWeight: 700
+                }}>
                   <Space>
                     <CrownOutlined />
                     Choose Your Plan
                   </Space>
                 </Title>
-              </Badge>
+              </div>
               
-              <Paragraph style={{ fontSize: 18, color: '#666', maxWidth: 600, margin: '0 auto' }}>
+              <Paragraph style={{ 
+                fontSize: '20px', 
+                color: '#666', 
+                maxWidth: 600, 
+                margin: '0 auto',
+                lineHeight: '1.6'
+              }}>
                 Start with our free trial and scale as your team grows. 
                 All plans include core AI summarization features.
               </Paragraph>
@@ -370,13 +566,46 @@ export default function PricingPage() {
           </div>
         </div>
 
-        <div style={{ padding: '80px 0' }}>
-          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 48px' }}>
+        <div style={{ 
+          padding: '80px 0',
+          background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          {/* Background Pattern */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.02) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(102, 126, 234, 0.02) 0%, transparent 50%)',
+            pointerEvents: 'none'
+          }} />
+          
+          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 48px', position: 'relative', zIndex: 1 }}>
             
-            {/* Monthly/Annual Toggle */}
-            <div style={{ textAlign: 'center', marginBottom: 48 }}>
+            {/* Modern Monthly/Annual Toggle */}
+            <div style={{ 
+              textAlign: 'center', 
+              marginBottom: '60px',
+              padding: '24px',
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(20px)',
+              borderRadius: '20px',
+              border: '1px solid rgba(102, 126, 234, 0.1)',
+              boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
+              maxWidth: '400px',
+              margin: '0 auto 60px auto'
+            }}>
               <Space align="center" size="large">
-                <Text style={{ fontSize: 16, fontWeight: 500 }}>Monthly</Text>
+                <Text style={{ 
+                  fontSize: '16px', 
+                  fontWeight: 500,
+                  color: isAnnual ? '#666' : '#333'
+                }}>
+                  Monthly
+                </Text>
                 <Switch 
                   checked={isAnnual}
                   onChange={(checked) => {
@@ -387,11 +616,28 @@ export default function PricingPage() {
                       links_per_week: linksPerWeek
                     })
                   }}
-                  style={{ backgroundColor: isAnnual ? '#1890ff' : '#d9d9d9' }}
+                  style={{ 
+                    backgroundColor: isAnnual ? '#667eea' : '#d9d9d9'
+                  }}
                 />
-                <Text style={{ fontSize: 16, fontWeight: 500 }}>Annual</Text>
+                <Text style={{ 
+                  fontSize: '16px', 
+                  fontWeight: 500,
+                  color: isAnnual ? '#333' : '#666'
+                }}>
+                  Annual
+                </Text>
                 {isAnnual && (
-                  <Badge count="Get 2 Months Free" style={{ backgroundColor: '#52c41a', marginLeft: 8 }} />
+                  <div style={{
+                    background: 'linear-gradient(135deg, #52c41a 0%, #73d13d 100%)',
+                    borderRadius: '50px',
+                    padding: '4px 12px',
+                    fontSize: '12px',
+                    color: 'white',
+                    fontWeight: '600'
+                  }}>
+                    Get 2 Months Free
+                  </div>
                 )}
               </Space>
             </div>

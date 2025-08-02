@@ -342,57 +342,168 @@ export default function ProfilePage() {
   return (
     <Layout currentPage="profile">
       <div style={{ 
-        padding: isMobile ? '12px 16px' : '16px 24px', 
+        padding: isMobile ? '24px 16px' : '32px 24px', 
         maxWidth: 1400, 
-        margin: '0 auto'
+        margin: '0 auto',
+        background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
+        minHeight: '100vh'
       }}>
-        {/* Compact Header */}
-        <Card size="small" style={{ marginBottom: 16 }}>
+        {/* Modern Header */}
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(102, 126, 234, 0.1)',
+          borderRadius: '20px',
+          padding: '24px',
+          marginBottom: '24px',
+          boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          {/* Background Accent */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '4px',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+          }} />
+          
           <Row justify="space-between" align="middle">
             <Col>
-              <Title level={3} style={{ margin: 0, fontSize: 18 }}>
-                <Space size="small">
-                  <UserOutlined />
-                  Team Profile
-                </Space>
-              </Title>
+              <Space>
+                <div style={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  borderRadius: '50%',
+                  width: '48px',
+                  height: '48px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 8px 24px rgba(102, 126, 234, 0.3)'
+                }}>
+                  <UserOutlined style={{ fontSize: '24px', color: 'white' }} />
+                </div>
+                <div>
+                  <Title level={3} style={{ 
+                    margin: 0,
+                    fontSize: '24px',
+                    fontWeight: 700,
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text'
+                  }}>
+                    Team Profile
+                  </Title>
+                  <Text style={{ 
+                    color: '#666', 
+                    fontSize: '16px',
+                    marginTop: '4px',
+                    display: 'block'
+                  }}>
+                    Manage your team settings and view statistics
+                  </Text>
+                </div>
+              </Space>
             </Col>
             <Col>
               <Button 
-                type="primary" 
-                danger 
-                size="small"
+                type="default" 
+                size="large"
                 icon={<LogoutOutlined />} 
                 onClick={handleLogout}
+                style={{
+                  height: '40px',
+                  borderRadius: '10px',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  border: '2px solid rgba(255, 77, 79, 0.2)',
+                  color: '#ff4d4f',
+                  background: 'rgba(255, 77, 79, 0.05)',
+                  transition: 'all 0.3s ease',
+                  padding: '0 20px'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 77, 79, 0.1)'
+                  e.currentTarget.style.borderColor = 'rgba(255, 77, 79, 0.3)'
+                  e.currentTarget.style.transform = 'translateY(-1px)'
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 77, 79, 0.2)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 77, 79, 0.05)'
+                  e.currentTarget.style.borderColor = 'rgba(255, 77, 79, 0.2)'
+                  e.currentTarget.style.transform = 'translateY(0)'
+                  e.currentTarget.style.boxShadow = 'none'
+                }}
               >
                 Logout
               </Button>
             </Col>
           </Row>
-        </Card>
+        </div>
 
         <Row gutter={[16, 16]} style={{ marginBottom: 0 }}>
-          {/* Current User & Team Info */}
+          {/* Modern Current User & Team Info */}
           <Col xs={24} md={12}>
-            <Card size="small" style={{ height: '100%' }}>
-              <div style={{ marginBottom: 12 }}>
-                <Text strong style={{ fontSize: 14 }}>Current User & Team</Text>
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(102, 126, 234, 0.1)',
+              borderRadius: '20px',
+              padding: '24px',
+              height: '100%',
+              boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              {/* Background Accent */}
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '4px',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+              }} />
+              
+              <div style={{ marginBottom: '20px' }}>
+                <Text strong style={{ 
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  color: '#333'
+                }}>
+                  Current User & Team
+                </Text>
               </div>
               
               {teamData.currentUser && (
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16', marginBottom: '12px' }}>
                     <Avatar 
-                      size={40} 
+                      size={48} 
                       src={teamData.currentUser.profile?.image_48}
                       icon={<UserOutlined />}
+                      style={{
+                        border: '2px solid rgba(102, 126, 234, 0.2)',
+                        boxShadow: '0 4px 12px rgba(102, 126, 234, 0.2)'
+                      }}
                     />
                     <div>
-                      <div style={{ fontSize: 14, fontWeight: 500 }}>
+                      <div style={{ 
+                        fontSize: '16px', 
+                        fontWeight: 600,
+                        color: '#333',
+                        marginBottom: '4px'
+                      }}>
                         {teamData.currentUser.profile?.display_name || teamData.currentUser.name}
                       </div>
                       {teamData.currentUser.profile?.title && (
-                        <Text type="secondary" style={{ fontSize: 11 }}>
+                        <Text style={{ 
+                          color: '#666',
+                          fontSize: '13px'
+                        }}>
                           {teamData.currentUser.profile.title}
                         </Text>
                       )}
@@ -401,56 +512,140 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              <Descriptions size="small" column={1} colon={false}>
-                <Descriptions.Item 
-                  label={<Text style={{ fontSize: 11 }}>Team</Text>}
-                >
-                  <Text strong style={{ fontSize: 12 }}>{teamData.team?.teamName}</Text>
-                  <Badge 
-                    status={teamData.team?.isActive ? 'success' : 'error'} 
-                    text={teamData.team?.isActive ? 'Active' : 'Inactive'}
-                    style={{ marginLeft: 8, fontSize: 10 }}
-                  />
-                </Descriptions.Item>
-                <Descriptions.Item 
-                  label={<Text style={{ fontSize: 11 }}>Team ID</Text>}
-                >
-                  <Text code style={{ fontSize: 10 }}>{teamData.team?.slackTeamId}</Text>
-                </Descriptions.Item>
-                <Descriptions.Item 
-                  label={<Text style={{ fontSize: 11 }}>Member Since</Text>}
-                >
-                  <Text style={{ fontSize: 12 }}>{formatDate(teamData.team?.createdAt || '')}</Text>
-                </Descriptions.Item>
-              </Descriptions>
-            </Card>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ 
+                    fontSize: '13px',
+                    color: '#666',
+                    fontWeight: 500
+                  }}>
+                    Team
+                  </Text>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Text strong style={{ fontSize: '14px', color: '#333' }}>
+                      {teamData.team?.teamName}
+                    </Text>
+                    <div style={{
+                      background: teamData.team?.isActive 
+                        ? 'linear-gradient(135deg, #52c41a 0%, #73d13d 100%)'
+                        : 'linear-gradient(135deg, #ff4d4f 0%, #ff7875 100%)',
+                      borderRadius: '50px',
+                      padding: '2px 8px',
+                      fontSize: '10px',
+                      color: 'white',
+                      fontWeight: '600'
+                    }}>
+                      {teamData.team?.isActive ? 'Active' : 'Inactive'}
+                    </div>
+                  </div>
+                </div>
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ 
+                    fontSize: '13px',
+                    color: '#666',
+                    fontWeight: 500
+                  }}>
+                    Team ID
+                  </Text>
+                  <Text code style={{ 
+                    fontSize: '12px',
+                    background: 'rgba(102, 126, 234, 0.1)',
+                    padding: '4px 8px',
+                    borderRadius: '6px',
+                    color: '#667eea'
+                  }}>
+                    {teamData.team?.slackTeamId}
+                  </Text>
+                </div>
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ 
+                    fontSize: '13px',
+                    color: '#666',
+                    fontWeight: 500
+                  }}>
+                    Member Since
+                  </Text>
+                  <Text style={{ 
+                    fontSize: '13px',
+                    color: '#333'
+                  }}>
+                    {formatDate(teamData.team?.createdAt || '')}
+                  </Text>
+                </div>
+              </div>
+            </div>
           </Col>
 
-          {/* Subscription & Usage */}
+          {/* Modern Subscription & Usage */}
           <Col xs={24} md={12}>
-            <Card size="small" style={{ height: '100%' }}>
-              <div style={{ marginBottom: 12 }}>
-                <Text strong style={{ fontSize: 14 }}>Subscription & Usage</Text>
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(102, 126, 234, 0.1)',
+              borderRadius: '20px',
+              padding: '24px',
+              height: '100%',
+              boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              {/* Background Accent */}
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '4px',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+              }} />
+              
+              <div style={{ marginBottom: '20px' }}>
+                <Text strong style={{ 
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  color: '#333'
+                }}>
+                  Subscription & Usage
+                </Text>
               </div>
               
               {teamData.subscription && (
-                <div style={{ marginBottom: 12 }}>
+                <div style={{ marginBottom: '20px' }}>
                   {/* Current Plan */}
-                  <div style={{ marginBottom: 12 }}>
+                  <div style={{ marginBottom: '16px' }}>
                     {(() => {
                       const currentPlan = Object.values(PRICING_PLANS).find(p => p.id === teamData.subscription?.planId) || PRICING_PLANS.FREE
                       return (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                          <Text strong style={{ fontSize: 14, color: currentPlan.id === 'free' ? '#ff4d4f' : '#1890ff' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                          <Text strong style={{ 
+                            fontSize: '16px', 
+                            fontWeight: 700,
+                            color: currentPlan.id === 'free' ? '#ff4d4f' : '#1890ff'
+                          }}>
                             {currentPlan.name}
                           </Text>
-                          <Tag color={currentPlan.id === 'free' ? 'red' : 'blue'} style={{ fontSize: 10 }}>
+                          <div style={{
+                            background: currentPlan.id === 'free' 
+                              ? 'linear-gradient(135deg, #ff4d4f 0%, #ff7875 100%)'
+                              : 'linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)',
+                            borderRadius: '50px',
+                            padding: '4px 12px',
+                            fontSize: '11px',
+                            color: 'white',
+                            fontWeight: '600'
+                          }}>
                             {currentPlan.id === 'free' ? 'Free' : 'Paid'}
-                          </Tag>
+                          </div>
                         </div>
                       )
                     })()}
-                    <Text type="secondary" style={{ fontSize: 11 }}>
+                    <Text style={{ 
+                      color: '#666',
+                      fontSize: '13px',
+                      lineHeight: '1.4'
+                    }}>
                       {teamData.subscription.planId === 'free' 
                         ? '20 links/month • 1 user' 
                         : 'Unlimited links • Multiple users'
@@ -458,11 +653,25 @@ export default function ProfilePage() {
                     </Text>
                   </div>
                   
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                    <Tag color={getStatusColor(teamData.subscription.status)}>
-                      <CrownOutlined /> {teamData.subscription.status}
-                    </Tag>
-                    <Text style={{ fontSize: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                    <div style={{
+                      background: `linear-gradient(135deg, ${getStatusColor(teamData.subscription.status)} 0%, ${getStatusColor(teamData.subscription.status)}80 100%)`,
+                      borderRadius: '50px',
+                      padding: '4px 12px',
+                      fontSize: '11px',
+                      color: 'white',
+                      fontWeight: '600',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
+                      <CrownOutlined style={{ fontSize: '10px' }} />
+                      {teamData.subscription.status}
+                    </div>
+                    <Text style={{ 
+                      fontSize: '13px',
+                      color: '#666'
+                    }}>
                       {teamData.subscription.monthlyLinkLimit === -1 ? 'Unlimited' : `${teamData.subscription.monthlyLinkLimit}`} links/month
                     </Text>
                   </div>
@@ -471,115 +680,308 @@ export default function ProfilePage() {
                     size="small"
                     status={usagePercentage > 90 ? 'exception' : usagePercentage > 70 ? 'active' : 'success'}
                     format={() => `${teamData.usage?.monthlyUsage}/${teamData.subscription?.monthlyLinkLimit === -1 ? '∞' : teamData.subscription?.monthlyLinkLimit}`}
+                    strokeColor={usagePercentage > 90 ? '#ff4d4f' : usagePercentage > 70 ? '#faad14' : '#52c41a'}
                   />
                 </div>
               )}
 
-              <Row gutter={8}>
+              <Row gutter={12}>
                 <Col span={8} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 16, fontWeight: 'bold', color: '#1890ff' }}>
+                  <div style={{ 
+                    fontSize: '20px', 
+                    fontWeight: '700', 
+                    color: '#1890ff',
+                    marginBottom: '4px'
+                  }}>
                     {teamData.team?.totalLinks || 0}
                   </div>
-                  <Text type="secondary" style={{ fontSize: 10 }}>Total Links</Text>
+                  <Text style={{ 
+                    color: '#666',
+                    fontSize: '12px',
+                    fontWeight: '500'
+                  }}>
+                    Total Links
+                  </Text>
                 </Col>
                 <Col span={8} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 16, fontWeight: 'bold', color: '#722ed1' }}>
+                  <div style={{ 
+                    fontSize: '20px', 
+                    fontWeight: '700', 
+                    color: '#722ed1',
+                    marginBottom: '4px'
+                  }}>
                     {teamData.usage?.totalListens || 0}
                   </div>
-                  <Text type="secondary" style={{ fontSize: 10 }}>Total Listens</Text>
+                  <Text style={{ 
+                    color: '#666',
+                    fontSize: '12px',
+                    fontWeight: '500'
+                  }}>
+                    Total Listens
+                  </Text>
                 </Col>
                 <Col span={8} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 16, fontWeight: 'bold', color: '#52c41a' }}>
+                  <div style={{ 
+                    fontSize: '20px', 
+                    fontWeight: '700', 
+                    color: '#52c41a',
+                    marginBottom: '4px'
+                  }}>
                     {teamData.usage?.monthlyUsage || 0}
                   </div>
-                  <Text type="secondary" style={{ fontSize: 10 }}>This Month</Text>
+                  <Text style={{ 
+                    color: '#666',
+                    fontSize: '12px',
+                    fontWeight: '500'
+                  }}>
+                    This Month
+                  </Text>
                 </Col>
               </Row>
-            </Card>
+            </div>
           </Col>
 
-          {/* User Stats */}
+          {/* Modern User Stats */}
           {teamData.userListenStats && (
             <Col xs={24}>
-              <Card size="small">
-                <div style={{ marginBottom: 12 }}>
-                  <Text strong style={{ fontSize: 14 }}>Your Listen Statistics</Text>
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.9)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(102, 126, 234, 0.1)',
+                borderRadius: '20px',
+                padding: '24px',
+                boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                {/* Background Accent */}
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: '4px',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                }} />
+                
+                <div style={{ marginBottom: '20px' }}>
+                  <Text strong style={{ 
+                    fontSize: '16px',
+                    fontWeight: 600,
+                    color: '#333'
+                  }}>
+                    Your Listen Statistics
+                  </Text>
                 </div>
                 <Row gutter={16}>
                   <Col xs={6}>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 18, fontWeight: 'bold', color: '#52c41a' }}>
+                    <div style={{ 
+                      textAlign: 'center',
+                      padding: '16px',
+                      background: 'rgba(82, 196, 26, 0.05)',
+                      borderRadius: '16px',
+                      border: '1px solid rgba(82, 196, 26, 0.1)'
+                    }}>
+                      <div style={{ 
+                        fontSize: '24px', 
+                        fontWeight: '700', 
+                        color: '#52c41a',
+                        marginBottom: '8px'
+                      }}>
                         {teamData.userListenStats.totalListens}
                       </div>
-                      <Text type="secondary" style={{ fontSize: 10 }}>Total Listens</Text>
+                      <Text style={{ 
+                        color: '#666',
+                        fontSize: '12px',
+                        fontWeight: '500'
+                      }}>
+                        Total Listens
+                      </Text>
                     </div>
                   </Col>
                   <Col xs={6}>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 18, fontWeight: 'bold', color: '#1890ff' }}>
+                    <div style={{ 
+                      textAlign: 'center',
+                      padding: '16px',
+                      background: 'rgba(24, 144, 255, 0.05)',
+                      borderRadius: '16px',
+                      border: '1px solid rgba(24, 144, 255, 0.1)'
+                    }}>
+                      <div style={{ 
+                        fontSize: '24px', 
+                        fontWeight: '700', 
+                        color: '#1890ff',
+                        marginBottom: '8px'
+                      }}>
                         {teamData.userListenStats.monthlyListens}
                       </div>
-                      <Text type="secondary" style={{ fontSize: 10 }}>Monthly Listens</Text>
+                      <Text style={{ 
+                        color: '#666',
+                        fontSize: '12px',
+                        fontWeight: '500'
+                      }}>
+                        Monthly Listens
+                      </Text>
                     </div>
                   </Col>
                   <Col xs={6}>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 18, fontWeight: 'bold', color: '#722ed1' }}>
+                    <div style={{ 
+                      textAlign: 'center',
+                      padding: '16px',
+                      background: 'rgba(114, 46, 209, 0.05)',
+                      borderRadius: '16px',
+                      border: '1px solid rgba(114, 46, 209, 0.1)'
+                    }}>
+                      <div style={{ 
+                        fontSize: '24px', 
+                        fontWeight: '700', 
+                        color: '#722ed1',
+                        marginBottom: '8px'
+                      }}>
                         {teamData.userListenStats.completedListens}
                       </div>
-                      <Text type="secondary" style={{ fontSize: 10 }}>Completed</Text>
+                      <Text style={{ 
+                        color: '#666',
+                        fontSize: '12px',
+                        fontWeight: '500'
+                      }}>
+                        Completed
+                      </Text>
                     </div>
                   </Col>
                   <Col xs={6}>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 18, fontWeight: 'bold', color: '#fa8c16' }}>
+                    <div style={{ 
+                      textAlign: 'center',
+                      padding: '16px',
+                      background: 'rgba(250, 140, 22, 0.05)',
+                      borderRadius: '16px',
+                      border: '1px solid rgba(250, 140, 22, 0.1)'
+                    }}>
+                      <div style={{ 
+                        fontSize: '24px', 
+                        fontWeight: '700', 
+                        color: '#fa8c16',
+                        marginBottom: '8px'
+                      }}>
                         {teamData.userListenStats.minutesListened}
                       </div>
-                      <Text type="secondary" style={{ fontSize: 10 }}>Minutes</Text>
+                      <Text style={{ 
+                        color: '#666',
+                        fontSize: '12px',
+                        fontWeight: '500'
+                      }}>
+                        Minutes
+                      </Text>
                     </div>
                   </Col>
                 </Row>
-              </Card>
+              </div>
             </Col>
           )}
 
-          {/* Team Settings */}
+          {/* Modern Team Settings */}
           <Col xs={24}>
-            <Card size="small">
-              <div style={{ marginBottom: 12 }}>
-                <Text strong style={{ fontSize: 14 }}>
-                  <SettingOutlined /> Team Settings
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(102, 126, 234, 0.1)',
+              borderRadius: '20px',
+              padding: '24px',
+              boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              {/* Background Accent */}
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '4px',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+              }} />
+              
+              <div style={{ marginBottom: '20px' }}>
+                <Text strong style={{ 
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  color: '#333'
+                }}>
+                  <SettingOutlined style={{ marginRight: '8px' }} />
+                  Team Settings
                 </Text>
               </div>
               
-              <div style={{ padding: '8px 0' }}>
+              <div style={{ 
+                padding: '16px',
+                background: 'rgba(24, 144, 255, 0.05)',
+                borderRadius: '16px',
+                border: '1px solid rgba(24, 144, 255, 0.1)'
+              }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <MessageOutlined style={{ color: '#1890ff' }} />
-                      <Text strong style={{ fontSize: 13 }}>Send Summaries as Direct Messages</Text>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                      <MessageOutlined style={{ 
+                        color: '#1890ff',
+                        fontSize: '16px'
+                      }} />
+                      <Text strong style={{ 
+                        fontSize: '14px',
+                        color: '#333'
+                      }}>
+                        Send Summaries as Direct Messages
+                      </Text>
                     </div>
-                    <Text type="secondary" style={{ fontSize: 11 }}>
+                    <Text style={{ 
+                      color: '#666',
+                      fontSize: '13px',
+                      lineHeight: '1.4',
+                      marginLeft: '28px'
+                    }}>
                       When enabled, audio summary links will be sent as DMs to team members instead of channel replies
                     </Text>
                   </div>
                   <Switch
                     checked={teamData.team.sendSummaryAsDM}
                     onChange={handleDMPreferenceChange}
-                    size="small"
+                    size="default"
                   />
                 </div>
               </div>
-            </Card>
+            </div>
           </Col>
 
-          {/* Team Members Table */}
+          {/* Modern Team Members Table */}
           {teamData.teamMembers && teamData.teamMembers.length > 0 && (
             <Col xs={24}>
-              <Card size="small">
-                <div style={{ marginBottom: 12 }}>
-                  <Text strong style={{ fontSize: 14 }}>
-                    <TeamOutlined /> Team Members ({teamData.teamMembers.length})
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.9)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(102, 126, 234, 0.1)',
+                borderRadius: '20px',
+                padding: '24px',
+                boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                {/* Background Accent */}
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: '4px',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                }} />
+                
+                <div style={{ marginBottom: '20px' }}>
+                  <Text strong style={{ 
+                    fontSize: '16px',
+                    fontWeight: 600,
+                    color: '#333'
+                  }}>
+                    <TeamOutlined style={{ marginRight: '8px' }} />
+                    Team Members ({teamData.teamMembers.length})
                   </Text>
                 </div>
                 <Table
@@ -590,19 +992,32 @@ export default function ProfilePage() {
                   pagination={false}
                   showHeader={true}
                   scroll={{ x: 600 }}
+                  style={{
+                    background: 'transparent'
+                  }}
                 />
-              </Card>
+              </div>
             </Col>
           )}
 
-          {/* Compact Actions */}
+          {/* Modern Actions */}
           <Col xs={24}>
-            <div style={{ textAlign: 'center' }}>
+            <div style={{ textAlign: 'center', marginTop: '24px' }}>
               <Link href="/pricing">
                 <Button 
                   type="primary" 
                   icon={<ArrowUpOutlined />}
-                  size="small"
+                  size="large"
+                  style={{
+                    height: '48px',
+                    borderRadius: '12px',
+                    fontSize: '16px',
+                    fontWeight: 600,
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    border: 'none',
+                    boxShadow: '0 8px 24px rgba(102, 126, 234, 0.3)',
+                    padding: '0 32px'
+                  }}
                 >
                   Upgrade Plan
                 </Button>

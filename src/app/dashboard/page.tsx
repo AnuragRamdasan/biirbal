@@ -770,135 +770,326 @@ export default function Dashboard() {
   return (
     <Layout currentPage="dashboard">
       <div style={{ 
-        padding: isMobile ? '12px 16px' : '16px 24px', 
+        padding: isMobile ? '24px 16px' : '32px 24px', 
         maxWidth: 1400, 
-        margin: '0 auto'
+        margin: '0 auto',
+        background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
+        minHeight: '100vh'
       }}>
         {/* Exception Team Banner */}
         {isExceptionTeam && (
-          <Alert
-            message="Complimentary Access"
-            description="🎉 You're using Biirbal with complimentary access! No usage limits apply to your team."
-            type="success"
-            showIcon
-            style={{ marginBottom: 16 }}
-          />
+          <div style={{
+            background: 'linear-gradient(135deg, #52c41a 0%, #73d13d 100%)',
+            borderRadius: '16px',
+            padding: '16px 20px',
+            marginBottom: '24px',
+            boxShadow: '0 8px 24px rgba(82, 196, 26, 0.15)',
+            border: '1px solid rgba(82, 196, 26, 0.2)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <CheckCircleOutlined style={{ color: 'white', fontSize: '16px' }} />
+              </div>
+              <div>
+                <div style={{ color: 'white', fontWeight: 600, fontSize: '16px', marginBottom: '4px' }}>
+                  Complimentary Access
+                </div>
+                <div style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '14px' }}>
+                  🎉 You're using Biirbal with complimentary access! No usage limits apply to your team.
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Usage Warning */}
         {usageWarning && !isExceptionTeam && (
-          <Alert
-            message="Usage Warning"
-            description={usageWarning}
-            type="warning"
-            showIcon
-            closable
-            style={{ marginBottom: 16 }}
-            action={
-              <Button size="small" href="/pricing">
+          <div style={{
+            background: 'linear-gradient(135deg, #faad14 0%, #ffc53d 100%)',
+            borderRadius: '16px',
+            padding: '16px 20px',
+            marginBottom: '24px',
+            boxShadow: '0 8px 24px rgba(250, 173, 20, 0.15)',
+            border: '1px solid rgba(250, 173, 20, 0.2)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <ExclamationCircleOutlined style={{ color: 'white', fontSize: '16px' }} />
+                </div>
+                <div>
+                  <div style={{ color: 'white', fontWeight: 600, fontSize: '16px', marginBottom: '4px' }}>
+                    Usage Warning
+                  </div>
+                  <div style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '14px' }}>
+                    {usageWarning}
+                  </div>
+                </div>
+              </div>
+              <Button 
+                size="small" 
+                href="/pricing"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  color: 'white',
+                  borderRadius: '8px',
+                  fontWeight: 500
+                }}
+              >
                 Upgrade Plan
               </Button>
-            }
-          />
+            </div>
+          </div>
         )}
 
         {/* User Access Restricted Alert */}
         {!userCanConsume && !isExceptionTeam && (
-          <Alert
-            message="Access Restricted"
-            description="Your access to audio playback has been disabled because the team has exceeded its seat limit. Contact your admin to upgrade the plan or manage team members."
-            type="error"
-            showIcon
-            style={{ marginBottom: 16 }}
-            action={
+          <div style={{
+            background: 'linear-gradient(135deg, #ff4d4f 0%, #ff7875 100%)',
+            borderRadius: '16px',
+            padding: '16px 20px',
+            marginBottom: '24px',
+            boxShadow: '0 8px 24px rgba(255, 77, 79, 0.15)',
+            border: '1px solid rgba(255, 77, 79, 0.2)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <ExclamationCircleOutlined style={{ color: 'white', fontSize: '16px' }} />
+                </div>
+                <div>
+                  <div style={{ color: 'white', fontWeight: 600, fontSize: '16px', marginBottom: '4px' }}>
+                    Access Restricted
+                  </div>
+                  <div style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '14px' }}>
+                    Your access to audio playback has been disabled because the team has exceeded its seat limit. Contact your admin to upgrade the plan or manage team members.
+                  </div>
+                </div>
+              </div>
               <Space>
-                <Button size="small" href="/team">
+                <Button 
+                  size="small" 
+                  href="/team"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    color: 'white',
+                    borderRadius: '8px',
+                    fontWeight: 500
+                  }}
+                >
                   Manage Team
                 </Button>
-                <Button size="small" href="/pricing" type="primary">
+                <Button 
+                  size="small" 
+                  href="/pricing" 
+                  type="primary"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.9)',
+                    border: 'none',
+                    color: '#ff4d4f',
+                    borderRadius: '8px',
+                    fontWeight: 600
+                  }}
+                >
                   View Plans
                 </Button>
               </Space>
-            }
-          />
+            </div>
+          </div>
         )}
 
         {/* Link Limit Exceeded Alert */}
         {linkLimitExceeded && !isExceptionTeam && userCanConsume && (
-          <Alert
-            message="Playback Restricted"
-            description="You've exceeded your monthly link limit. Audio playback is disabled. Links will continue to be processed and posted to Slack."
-            type="error"
-            showIcon
-            style={{ marginBottom: 16 }}
-            action={
-              <Button size="small" href="/pricing" type="primary">
+          <div style={{
+            background: 'linear-gradient(135deg, #ff4d4f 0%, #ff7875 100%)',
+            borderRadius: '16px',
+            padding: '16px 20px',
+            marginBottom: '24px',
+            boxShadow: '0 8px 24px rgba(255, 77, 79, 0.15)',
+            border: '1px solid rgba(255, 77, 79, 0.2)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <ExclamationCircleOutlined style={{ color: 'white', fontSize: '16px' }} />
+                </div>
+                <div>
+                  <div style={{ color: 'white', fontWeight: 600, fontSize: '16px', marginBottom: '4px' }}>
+                    Playback Restricted
+                  </div>
+                  <div style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '14px' }}>
+                    You've exceeded your monthly link limit. Audio playback is disabled. Links will continue to be processed and posted to Slack.
+                  </div>
+                </div>
+              </div>
+              <Button 
+                size="small" 
+                href="/pricing" 
+                type="primary"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.9)',
+                  border: 'none',
+                  color: '#ff4d4f',
+                  borderRadius: '8px',
+                  fontWeight: 600
+                }}
+              >
                 Upgrade Now
               </Button>
-            }
-          />
+            </div>
+          </div>
         )}
 
-        {/* Compact Header */}
-        <Card size="small" style={{ marginBottom: 16 }}>
+        {/* Modern Header */}
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(102, 126, 234, 0.1)',
+          borderRadius: '20px',
+          padding: '24px',
+          marginBottom: '24px',
+          boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          {/* Background Accent */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '4px',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+          }} />
+          
           <Row justify="space-between" align="middle">
             <Col>
-              <Title level={3} style={{ margin: 0, fontSize: 18 }}>
+              <Title level={3} style={{ 
+                margin: 0, 
+                fontSize: '24px',
+                fontWeight: 700,
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}>
                 <Space size="small">
-                  <SoundOutlined />
+                  <SoundOutlined style={{ fontSize: '24px' }} />
                   Audio Summaries
                 </Space>
               </Title>
             </Col>
             <Col xs={24} sm={24} md={16} lg={18}>
-              <Row gutter={[8, 8]} align="middle">
+              <Row gutter={[16, 16]} align="middle">
                 <Col xs={6} sm={4}>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 16, fontWeight: 'bold', color: '#1890ff' }}>
+                    <div style={{ 
+                      fontSize: '20px', 
+                      fontWeight: '700', 
+                      color: '#1890ff',
+                      marginBottom: '4px'
+                    }}>
                       {stats?.totalLinks ?? links.length}
                     </div>
-                    <Text type="secondary" style={{ fontSize: 10 }}>Total</Text>
+                    <Text style={{ fontSize: '12px', color: '#666' }}>Total</Text>
                   </div>
                 </Col>
                 <Col xs={6} sm={4}>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 16, fontWeight: 'bold', color: '#722ed1' }}>
+                    <div style={{ 
+                      fontSize: '20px', 
+                      fontWeight: '700', 
+                      color: '#722ed1',
+                      marginBottom: '4px'
+                    }}>
                       {stats?.totalListens ?? links.reduce((total, link) => total + getListenCount(link), 0)}
                     </div>
-                    <Text type="secondary" style={{ fontSize: 10 }}>Listens</Text>
+                    <Text style={{ fontSize: '12px', color: '#666' }}>Listens</Text>
                   </div>
                 </Col>
                 <Col xs={6} sm={4}>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 16, fontWeight: 'bold', color: '#52c41a' }}>
+                    <div style={{ 
+                      fontSize: '20px', 
+                      fontWeight: '700', 
+                      color: '#52c41a',
+                      marginBottom: '4px'
+                    }}>
                       {stats?.totalMinutesCurated ?? 0}
                     </div>
-                    <Text type="secondary" style={{ fontSize: 10 }}>Min Curated</Text>
+                    <Text style={{ fontSize: '12px', color: '#666' }}>Min Curated</Text>
                   </div>
                 </Col>
                 <Col xs={6} sm={4}>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 16, fontWeight: 'bold', color: '#fa8c16' }}>
+                    <div style={{ 
+                      fontSize: '20px', 
+                      fontWeight: '700', 
+                      color: '#fa8c16',
+                      marginBottom: '4px'
+                    }}>
                       {stats?.totalMinutesListened ?? 0}
                     </div>
-                    <Text type="secondary" style={{ fontSize: 10 }}>Min Listened</Text>
+                    <Text style={{ fontSize: '12px', color: '#666' }}>Min Listened</Text>
                   </div>
                 </Col>
               </Row>
             </Col>
           </Row>
-        </Card>
+        </div>
 
-        {/* Filter Controls Row */}
-        <Card size="small" style={{ marginBottom: 16 }}>
+        {/* Modern Filter Controls */}
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(102, 126, 234, 0.1)',
+          borderRadius: '16px',
+          padding: '20px',
+          marginBottom: '24px',
+          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.06)'
+        }}>
           <Row justify="end">
             <Col>
               <Space size="large">
                 {/* Source Filter */}
                 <Space size="small">
-                  <Text style={{ fontSize: 14, fontWeight: 500 }}>Filter:</Text>
+                  <Text style={{ fontSize: '14px', fontWeight: 600, color: '#333' }}>Filter:</Text>
                   <Select
-                    size="small"
+                    size="middle"
                     value={sourceFilter}
                     onChange={(value) => {
                       setSourceFilter(value)
@@ -906,7 +1097,10 @@ export default function Dashboard() {
                         source_filter: value 
                       })
                     }}
-                    style={{ width: 160 }}
+                    style={{ 
+                      width: 180,
+                      borderRadius: '8px'
+                    }}
                     options={[
                       { value: 'all', label: '🔗 All Sources' },
                       ...getChannelOptions().map(channel => ({
@@ -919,9 +1113,9 @@ export default function Dashboard() {
                 
                 {/* Show Archived Toggle */}
                 <Space size="small">
-                  <Text style={{ fontSize: 14, fontWeight: 500 }}>Show Archived:</Text>
+                  <Text style={{ fontSize: '14px', fontWeight: 600, color: '#333' }}>Show Archived:</Text>
                   <Switch
-                    size="small"
+                    size="default"
                     checked={showListened}
                     onChange={(checked) => {
                       setShowListened(checked)
@@ -936,36 +1130,58 @@ export default function Dashboard() {
               </Space>
             </Col>
           </Row>
-        </Card>
+        </div>
 
-        {/* Card-based Layout */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* Modern Card-based Layout */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {filteredLinks.length === 0 ? (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={
-                <span style={{ fontSize: 12 }}>
-                  {showListened 
-                    ? "No audio summaries available yet."
-                    : "No unlistened links. Toggle 'Show All' to see all links including listened ones."
-                  }
-                </span>
-              }
-              style={{ padding: '20px 0' }}
-            />
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(102, 126, 234, 0.1)',
+              borderRadius: '20px',
+              padding: '60px 24px',
+              textAlign: 'center',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.06)'
+            }}>
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={
+                  <span style={{ 
+                    fontSize: '16px',
+                    color: '#666',
+                    marginTop: '16px'
+                  }}>
+                    {showListened 
+                      ? "No audio summaries available yet."
+                      : "No unlistened links. Toggle 'Show All' to see all links including listened ones."
+                    }
+                  </span>
+                }
+                style={{ padding: '20px 0' }}
+              />
+            </div>
           ) : (
             filteredLinks.map((record) => (
-              <Card 
+              <div 
                 key={record.id}
-                size="small" 
-                style={{ 
-                  border: currentlyPlaying === record.id ? '2px solid #1890ff' : '1px solid #f0f0f0',
-                  borderRadius: 8,
-                  opacity: hasUserListened(record) ? 0.7 : 1,
-                  transition: 'all 0.2s ease',
-                  cursor: 'pointer'
+                style={{
+                  background: 'rgba(255, 255, 255, 0.9)',
+                  backdropFilter: 'blur(20px)',
+                  border: currentlyPlaying === record.id 
+                    ? '2px solid #1890ff' 
+                    : '1px solid rgba(102, 126, 234, 0.1)',
+                  borderRadius: '20px',
+                  padding: '24px',
+                  opacity: hasUserListened(record) ? 0.8 : 1,
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer',
+                  boxShadow: currentlyPlaying === record.id
+                    ? '0 12px 40px rgba(24, 144, 255, 0.2)'
+                    : '0 8px 24px rgba(0, 0, 0, 0.06)',
+                  position: 'relative',
+                  overflow: 'hidden'
                 }}
-                bodyStyle={{ padding: '16px' }}
                 onClick={async () => {
                   if (record.processingStatus === 'COMPLETED' && record.audioFileUrl) {
                     // Check access restrictions and loading state
@@ -980,6 +1196,17 @@ export default function Dashboard() {
                   }
                 }}
               >
+                {/* Background Accent for Playing State */}
+                {currentlyPlaying === record.id && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: '4px',
+                    background: 'linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)'
+                  }} />
+                )}
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
                   {/* Left Column - Image and Info */}
                   <div style={{ flex: 1, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
@@ -1380,7 +1607,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                 )}
-              </Card>
+              </div>
             ))
           )}
         </div>
