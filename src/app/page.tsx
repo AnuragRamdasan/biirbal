@@ -2419,7 +2419,8 @@ function HomeContent() {
               marginLeft: 'auto',
               marginRight: 'auto'
             }}>
-              Join 500+ teams who've saved 10,000+ hours by listening instead of reading.
+              Get to zero reading backlog and transform your team's information consumption with AI-powered audio summaries. 
+              Save hours every week and never feel overwhelmed by your reading list again.
             </Paragraph>
 
             <Space size="large" style={{ marginBottom: '48px' }}>
