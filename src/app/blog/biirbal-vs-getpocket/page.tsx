@@ -1,33 +1,98 @@
 "use client";
 import Layout from '@/components/layout/Layout';
-import { Typography, Divider } from 'antd'
+import { Typography, Divider, Space, Tag } from 'antd'
+import Image from 'next/image'
+import { CalendarOutlined, ClockCircleOutlined, UserOutlined } from '@ant-design/icons'
 
 const { Title, Paragraph, Text } = Typography
 
 export default function ComparisonPage() {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Biirbal vs GetPocket: Which Tool Fits Your Workflow?",
+    "description": "A comprehensive comparison of Biirbal and GetPocket to help you choose the best content management solution.",
+    "image": "https://www.biirbal.com/blog/thumbnails/biirbal-getpocket.svg",
+    "datePublished": "2025-04-02T00:00:00.000Z",
+    "dateModified": "2025-04-02T00:00:00.000Z",
+    "author": {
+      "@type": "Organization",
+      "name": "Biirbal Team",
+      "url": "https://www.biirbal.com"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Biirbal",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://www.biirbal.com/logo.png"
+      }
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": "https://www.biirbal.com/blog/biirbal-vs-getpocket"
+    },
+    "keywords": ["biirbal", "getpocket", "content management", "ai summaries", "slack integration", "productivity tools"],
+    "articleSection": "Technology Comparison",
+    "wordCount": 800
+  }
+
   return (
     <Layout currentPage="blog" showHeader>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
       {/* Hero Section */}
-      <section className="bg-white dark:bg-gray-800">
-        <div className="max-w-3xl mx-auto px-6 py-12 text-center">
-          <img
-            src="/blog/thumbnails/biirbal-getpocket.svg"
-            alt="Biirbal vs GetPocket"
-            className="mx-auto mb-6"
-            width={400}
-            height={225}
-          />
-          <Title className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">
+      <section className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800">
+        <div className="max-w-4xl mx-auto px-6 py-16 text-center">
+          <div className="mb-8">
+            <Space wrap>
+              <Tag color="blue">Productivity</Tag>
+              <Tag color="purple">AI Tools</Tag>
+              <Tag color="green">Comparison</Tag>
+            </Space>
+          </div>
+          
+          <div className="relative mb-8 max-w-2xl mx-auto">
+            <Image
+              src="/blog/thumbnails/biirbal-getpocket.svg"
+              alt="Biirbal vs GetPocket comparison illustration"
+              width={600}
+              height={300}
+              className="rounded-lg shadow-lg"
+              priority
+            />
+          </div>
+          
+          <Title level={1} className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 mb-6 leading-tight">
             Biirbal vs GetPocket: Which Tool Fits Your Workflow?
           </Title>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            April 2, 2025 · Biirbal Team
-          </p>
+          
+          <Paragraph className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
+            A comprehensive comparison of two powerful content management solutions to help you choose the right tool for your productivity workflow.
+          </Paragraph>
+          
+          <div className="flex flex-wrap justify-center items-center gap-6 text-sm text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-2">
+              <CalendarOutlined />
+              <span>April 2, 2025</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <UserOutlined />
+              <span>Biirbal Team</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <ClockCircleOutlined />
+              <span>5 min read</span>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Content Section */}
-      <section className="prose prose-slate dark:prose-invert max-w-3xl mx-auto px-6 py-12">
+      <section className="bg-white dark:bg-gray-800">
+        <article className="prose prose-lg prose-slate dark:prose-invert max-w-4xl mx-auto px-6 py-16 prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-12 prose-h2:mb-6 prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-4 prose-p:leading-relaxed prose-p:mb-6 prose-table:text-sm">
         <Paragraph>
           In today's world of information overload, saving, organizing, and consuming content efficiently is critical. Two popular
           solutions in the "save-for-later" and content-intelligence space are <Text strong>GetPocket</Text> and <Text strong>Biirbal</Text>.
@@ -140,6 +205,29 @@ export default function ComparisonPage() {
           Biirbal is purpose-built for that workflow. Choose based on whether you prefer reading or listening—and whether your context is personal
           or team‑centric.
         </Paragraph>
+
+        {/* Call to Action Section */}
+        <div className="mt-16 p-8 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-600 rounded-xl text-center">
+          <Title level={3} className="mb-4">Ready to Transform Your Content Workflow?</Title>
+          <Paragraph className="text-lg mb-6">
+            Experience the power of AI-driven audio summaries with Biirbal's intelligent Slack integration.
+          </Paragraph>
+          <Space size="large">
+            <a 
+              href="https://www.biirbal.com" 
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200"
+            >
+              Try Biirbal Free
+            </a>
+            <a 
+              href="/blog" 
+              className="border border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200"
+            >
+              Read More Articles
+            </a>
+          </Space>
+        </div>
+        </article>
       </section>
     </Layout>
   )
