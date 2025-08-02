@@ -175,9 +175,11 @@ export async function GET(request: NextRequest) {
     let userListenStats = null
     if (userId) {
       try {
-        const user = await prisma.user.findUnique({
-          where: { slackUserId: userId },
+        // Try to find user by database ID first, then by slackUserId for backward compatibility
+        let user = await prisma.user.findUnique({
+          where: { id: userId },
           select: {
+            id: true,
             slackUserId: true,
             name: true,
             displayName: true,
@@ -191,9 +193,29 @@ export async function GET(request: NextRequest) {
           }
         })
         
+        // If not found by database ID and userId looks like a Slack ID, try slackUserId
+        if (!user && userId.startsWith('U')) {
+          user = await prisma.user.findUnique({
+            where: { slackUserId: userId },
+            select: {
+              id: true,
+              slackUserId: true,
+              name: true,
+              displayName: true,
+              realName: true,
+              email: true,
+              profileImage24: true,
+              profileImage32: true,
+              profileImage48: true,
+              title: true,
+              teamId: true
+            }
+          })
+        }
+        
         if (user && user.teamId === team.id) {
           currentUser = {
-            id: user.slackUserId,
+            id: user.id, // Use database user ID
             name: user.name || user.realName || 'Unknown User',
             email: user.email,
             profile: {
@@ -206,11 +228,11 @@ export async function GET(request: NextRequest) {
             }
           }
 
-          // Get user-specific listen statistics
+          // Get user-specific listen statistics using database user ID
           const [userTotalListens, userMonthlyListens, userCompletedListens, userListenDurations] = await Promise.all([
             prisma.audioListen.count({
               where: {
-                slackUserId: userId,
+                userId: user.id,
                 processedLink: {
                   teamId: team.id
                 }
@@ -218,7 +240,7 @@ export async function GET(request: NextRequest) {
             }),
             prisma.audioListen.count({
               where: {
-                slackUserId: userId,
+                userId: user.id,
                 processedLink: {
                   teamId: team.id
                 },
@@ -229,7 +251,7 @@ export async function GET(request: NextRequest) {
             }),
             prisma.audioListen.count({
               where: {
-                slackUserId: userId,
+                userId: user.id,
                 processedLink: {
                   teamId: team.id
                 },
@@ -238,7 +260,7 @@ export async function GET(request: NextRequest) {
             }),
             prisma.audioListen.findMany({
               where: {
-                slackUserId: userId,
+                userId: user.id,
                 processedLink: {
                   teamId: team.id
                 }
