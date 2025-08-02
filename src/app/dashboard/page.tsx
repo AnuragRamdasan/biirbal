@@ -229,10 +229,12 @@ export default function Dashboard() {
       setLinks(data.links)
       
       // Check usage stats and warnings
-      await checkUsageWarnings(teamId, userId)
+      await checkUsageWarnings(userId)
       
-      // Track dashboard visit with analytics
-      analytics.trackDashboard(teamId, userId || undefined)
+      // Track dashboard visit with analytics (userId only - teamId will be retrieved from analytics)
+      if (userId) {
+        analytics.trackFeature('dashboard_visit', { user_id: userId })
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
@@ -248,13 +250,15 @@ export default function Dashboard() {
     }
   }
 
-  const checkUsageWarnings = async (teamId: string, userId: string | null) => {
+  const checkUsageWarnings = async (userId: string | null) => {
     try {
-      // Include userId in the request for user-specific access control
-      const params = new URLSearchParams({ teamId })
-      if (userId) {
-        params.append('userId', userId)
+      if (!userId) {
+        console.warn('No userId provided for usage check')
+        return
       }
+      
+      // Include userId in the request for user-specific access control
+      const params = new URLSearchParams({ userId })
       
       const response = await fetch(`/api/dashboard/usage?${params.toString()}`)
       if (response.ok) {
@@ -266,7 +270,6 @@ export default function Dashboard() {
         
         // Set analytics user properties
         analytics.setUser({
-          team_id: teamId,
           user_id: localStorage.getItem('biirbal_user_id') || undefined,
           plan_type: data.plan?.id || 'free',
           team_size: data.currentUsers || 1,
