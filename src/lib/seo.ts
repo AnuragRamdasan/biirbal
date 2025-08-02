@@ -309,3 +309,208 @@ export function generateCanonicalUrl(path: string): string {
   
   return `${baseUrl}${normalizedPath}`
 }
+
+// Geographic SEO optimization
+export function generateGeoTags(config: {
+  country?: string
+  region?: string
+  city?: string
+  coordinates?: { lat: number; lng: number }
+  placename?: string
+}): Record<string, string> {
+  const geoTags: Record<string, string> = {}
+  
+  if (config.country) {
+    geoTags['geo.country'] = config.country
+  }
+  
+  if (config.region) {
+    geoTags['geo.region'] = config.region
+  }
+  
+  if (config.city) {
+    geoTags['geo.city'] = config.city
+  }
+  
+  if (config.coordinates) {
+    geoTags['geo.position'] = `${config.coordinates.lat};${config.coordinates.lng}`
+    geoTags['ICBM'] = `${config.coordinates.lat}, ${config.coordinates.lng}`
+  }
+  
+  if (config.placename) {
+    geoTags['geo.placename'] = config.placename
+  }
+  
+  return geoTags
+}
+
+// Enhanced hreflang generation for international SEO
+export function generateHreflangTags(config: {
+  currentLocale: string
+  alternateLocales: Array<{ locale: string; url: string }>
+  defaultLocale?: string
+}): Array<{ hreflang: string; href: string }> {
+  const hreflangTags = []
+  
+  // Add alternate locales
+  for (const alt of config.alternateLocales) {
+    hreflangTags.push({
+      hreflang: alt.locale,
+      href: alt.url
+    })
+  }
+  
+  // Add x-default if specified
+  if (config.defaultLocale) {
+    const defaultUrl = config.alternateLocales.find(alt => alt.locale === config.defaultLocale)?.url
+    if (defaultUrl) {
+      hreflangTags.push({
+        hreflang: 'x-default',
+        href: defaultUrl
+      })
+    }
+  }
+  
+  return hreflangTags
+}
+
+// Performance optimization metadata
+export function generatePerformanceHints(): Record<string, string> {
+  return {
+    'dns-prefetch': 'https://fonts.googleapis.com',
+    'preconnect': 'https://fonts.gstatic.com',
+    'prefetch': '/pricing',
+    'preload': '/logo.png'
+  }
+}
+
+// Security headers for SEO
+export function generateSecurityHeaders(): Record<string, string> {
+  return {
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'X-XSS-Protection': '1; mode=block',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'geolocation=(), microphone=(), camera=()'
+  }
+}
+
+// Generate rich snippets for different content types
+export function generateRichSnippets(type: 'business' | 'software' | 'faq' | 'review', data: any) {
+  const baseStructure = {
+    '@context': 'https://schema.org',
+    '@type': type
+  }
+  
+  switch (type) {
+    case 'business':
+      return {
+        ...baseStructure,
+        '@type': 'Organization',
+        name: data.name || 'Biirbal',
+        url: data.url || baseUrl,
+        logo: data.logo || `${baseUrl}/logo.png`,
+        contactPoint: {
+          '@type': 'ContactPoint',
+          telephone: data.phone || '+1-555-BIIRBAL',
+          contactType: 'customer service'
+        },
+        address: {
+          '@type': 'PostalAddress',
+          streetAddress: data.streetAddress || '123 Innovation Drive',
+          addressLocality: data.city || 'San Francisco',
+          addressRegion: data.region || 'CA',
+          postalCode: data.postalCode || '94105',
+          addressCountry: data.country || 'US'
+        }
+      }
+      
+    case 'software':
+      return {
+        ...baseStructure,
+        '@type': 'SoftwareApplication',
+        name: data.name || 'Biirbal',
+        applicationCategory: 'BusinessApplication',
+        operatingSystem: data.os || 'Web Browser',
+        offers: data.offers || [],
+        aggregateRating: data.rating || {
+          '@type': 'AggregateRating',
+          ratingValue: '4.9',
+          ratingCount: '250'
+        }
+      }
+      
+    case 'faq':
+      return {
+        ...baseStructure,
+        '@type': 'FAQPage',
+        mainEntity: data.questions || []
+      }
+      
+    case 'review':
+      return {
+        ...baseStructure,
+        '@type': 'Review',
+        reviewRating: {
+          '@type': 'Rating',
+          ratingValue: data.rating || 5,
+          bestRating: 5
+        },
+        author: {
+          '@type': 'Person',
+          name: data.author || 'Customer'
+        },
+        reviewBody: data.body || 'Great product!'
+      }
+      
+    default:
+      return baseStructure
+  }
+}
+
+// Local business SEO optimization
+export function generateLocalBusinessData(config: {
+  name: string
+  address: {
+    street: string
+    city: string
+    state: string
+    zip: string
+    country: string
+  }
+  phone: string
+  hours?: Array<{ day: string; open: string; close: string }>
+  priceRange?: string
+  services?: string[]
+}) {
+  return generateStructuredData('LocalBusiness', {
+    name: config.name,
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: config.address.street,
+      addressLocality: config.address.city,
+      addressRegion: config.address.state,
+      postalCode: config.address.zip,
+      addressCountry: config.address.country
+    },
+    telephone: config.phone,
+    priceRange: config.priceRange || '$$',
+    openingHoursSpecification: config.hours?.map(hour => ({
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: hour.day,
+      opens: hour.open,
+      closes: hour.close
+    })) || [],
+    hasOfferCatalog: {
+      '@type': 'OfferCatalog',
+      name: 'Services',
+      itemListElement: config.services?.map((service, index) => ({
+        '@type': 'Offer',
+        itemOffered: {
+          '@type': 'Service',
+          name: service
+        }
+      })) || []
+    }
+  })
+}

@@ -50,9 +50,55 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         
+        {/* Geographic SEO */}
+        <meta name="geo.country" content="US" />
+        <meta name="geo.region" content="US-CA" />
+        <meta name="geo.city" content="San Francisco" />
+        <meta name="geo.placename" content="San Francisco, California" />
+        <meta name="geo.position" content="37.7749;-122.4194" />
+        <meta name="ICBM" content="37.7749, -122.4194" />
+        
+        {/* Language and Regional */}
+        <meta name="language" content="English" />
+        <meta name="content-language" content="en-US" />
+        <meta name="distribution" content="global" />
+        <meta name="audience" content="all" />
+        <meta name="target" content="all" />
+        
+        {/* Mobile and Responsive */}
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-touch-fullscreen" content="yes" />
+        
+        {/* Search Engine Optimization */}
+        <meta name="revisit-after" content="1 day" />
+        <meta name="rating" content="general" />
+        <meta name="classification" content="business" />
+        <meta name="category" content="Business Software" />
+        <meta name="coverage" content="worldwide" />
+        <meta name="googlebot" content="index,follow,snippet,archive" />
+        <meta name="bingbot" content="index,follow" />
+        <meta name="slurp" content="index,follow" />
+        
         {/* Performance & Security */}
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="referrer" content="strict-origin-when-cross-origin" />
+        <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
+        <meta httpEquiv="X-Frame-Options" content="DENY" />
+        <meta httpEquiv="X-XSS-Protection" content="1; mode=block" />
+        <meta httpEquiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=()" />
+        
+        {/* Rich Snippets Support */}
+        <meta name="application-name" content="Biirbal" />
+        <meta name="msapplication-tooltip" content="AI-Powered Slack Content Intelligence" />
+        <meta name="msapplication-starturl" content="/" />
+        <meta name="msapplication-navbutton-color" content="#6366f1" />
+        
+        {/* International SEO */}
+        <link rel="alternate" hrefLang="en" href="https://biirbal.ai/" />
+        <link rel="alternate" hrefLang="en-US" href="https://biirbal.ai/" />
+        <link rel="alternate" hrefLang="x-default" href="https://biirbal.ai/" />
       </head>
       <body
         className="antialiased font-sans"
@@ -124,6 +170,13 @@ export default function RootLayout({
                 `}
               </Script>
             )}
+
+            {/* ZapDigits Analytics */}
+            <Script
+              src="https://track.zapdigits.com/analytics.js"
+              data-site-id="9"
+              strategy="afterInteractive"
+            />
           </>
         )}
       </body>

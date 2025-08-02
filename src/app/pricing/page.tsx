@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { getPlanPrice } from '@/lib/stripe'
 import Script from 'next/script'
+import Head from 'next/head'
 import { 
   Row, 
   Col, 
