@@ -32,6 +32,7 @@ import {
 } from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
 import { PRICING_PLANS } from '@/lib/stripe'
+import ProtectedRoute from '@/components/auth/ProtectedRoute'
 
 const { Title, Text } = Typography
 
@@ -340,7 +341,8 @@ export default function ProfilePage() {
   ]
 
   return (
-    <Layout currentPage="profile">
+    <ProtectedRoute>
+      <Layout currentPage="profile">
       <div style={{ 
         padding: isMobile ? '24px 16px' : '32px 24px', 
         maxWidth: 1400, 
@@ -1026,6 +1028,7 @@ export default function ProfilePage() {
           </Col>
         </Row>
       </div>
-    </Layout>
+      </Layout>
+    </ProtectedRoute>
   )
 }

@@ -37,6 +37,7 @@ import {
 import Layout from '@/components/layout/Layout'
 import { useAnalytics } from '@/hooks/useAnalytics'
 import { PRICING_PLANS } from '@/lib/stripe'
+import ProtectedRoute from '@/components/auth/ProtectedRoute'
 
 const { Title, Text } = Typography
 
@@ -352,7 +353,8 @@ export default function TeamManagement() {
     : Math.round((activeMembers / teamData.subscription.userLimit) * 100)
 
   return (
-    <Layout currentPage="team">
+    <ProtectedRoute>
+      <Layout currentPage="team">
       <div style={{ 
         padding: '32px 24px', 
         maxWidth: 1200, 
@@ -1052,6 +1054,7 @@ export default function TeamManagement() {
           </Form>
         </Modal>
       </div>
-    </Layout>
+      </Layout>
+    </ProtectedRoute>
   )
 }

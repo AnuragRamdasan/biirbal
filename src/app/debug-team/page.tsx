@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Card, Button, Typography, Space, Alert, Descriptions } from 'antd'
 import Layout from '@/components/layout/Layout'
+import ProtectedRoute from '@/components/auth/ProtectedRoute'
 
 const { Title, Text, Paragraph } = Typography
 
@@ -53,7 +54,8 @@ export default function DebugTeamPage() {
   }
 
   return (
-    <Layout currentPage="debug">
+    <ProtectedRoute>
+      <Layout currentPage="debug">
       <div style={{ padding: '24px', maxWidth: 1200, margin: '0 auto' }}>
         <Title level={2}>Team Debug Information</Title>
         <Paragraph>
@@ -164,6 +166,7 @@ export default function DebugTeamPage() {
           </Card>
         </Space>
       </div>
-    </Layout>
+      </Layout>
+    </ProtectedRoute>
   )
 }

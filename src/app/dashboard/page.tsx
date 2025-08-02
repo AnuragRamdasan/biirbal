@@ -56,6 +56,7 @@ import {
 } from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
 import { useAnalytics } from '@/hooks/useAnalytics'
+import ProtectedRoute from '@/components/auth/ProtectedRoute'
 
 const { Title, Text } = Typography
 
@@ -773,7 +774,8 @@ export default function Dashboard() {
   }
 
   return (
-    <Layout currentPage="dashboard">
+    <ProtectedRoute>
+      <Layout currentPage="dashboard">
       <div style={{ 
         padding: isMobile ? '24px 16px' : '32px 24px', 
         maxWidth: 1400, 
@@ -1718,6 +1720,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-    </Layout>
+      </Layout>
+    </ProtectedRoute>
   )
 }

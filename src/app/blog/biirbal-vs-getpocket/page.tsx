@@ -1,12 +1,11 @@
 "use client";
-import Layout from '@/components/layout/Layout'
 import { Typography, Divider } from 'antd'
 
 const { Title, Paragraph, Text } = Typography
 
 export default function ComparisonPage() {
   return (
-    <Layout currentPage="blog" showHeader>
+    <div>
       {/* Hero Section */}
       <section className="bg-white dark:bg-gray-800">
         <div className="max-w-3xl mx-auto px-6 py-12 text-center">
@@ -27,12 +26,12 @@ export default function ComparisonPage() {
       </section>
 
       {/* Content Section */}
-      <section className="prose prose-slate dark:prose-invert max-w-3xl mx-auto px-6">
+      <section className="prose prose-slate dark:prose-invert max-w-3xl mx-auto px-6 py-12">
         <Paragraph>
-          In today’s world of information overload, saving, organizing, and consuming content efficiently is critical. Two popular
-          solutions in the “save-for-later” and content-intelligence space are <Text strong>GetPocket</Text> and <Text strong>Biirbal</Text>.
+          In today's world of information overload, saving, organizing, and consuming content efficiently is critical. Two popular
+          solutions in the "save-for-later" and content-intelligence space are <Text strong>GetPocket</Text> and <Text strong>Biirbal</Text>.
           While Pocket focuses on bookmarking and offline reading, Biirbal takes a deep dive into AI-powered audio summaries and Slack integrations.
-          In this post, we’ll compare their core features, pricing, and ideal use-cases to help you decide which tool best suits your needs.
+          In this post, we'll compare their core features, pricing, and ideal use-cases to help you decide which tool best suits your needs.
         </Paragraph>
 
         <Title level={2}>1. Core Philosophy & Primary Use Cases</Title>
@@ -141,6 +140,6 @@ export default function ComparisonPage() {
           or team‑centric.
         </Paragraph>
       </section>
-    </Layout>
+    </div>
   )
 }
