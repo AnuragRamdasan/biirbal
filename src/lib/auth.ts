@@ -2,11 +2,20 @@ import { NextAuthOptions } from "next-auth"
 import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import GoogleProvider from "next-auth/providers/google"
 import EmailProvider from "next-auth/providers/email"
-import { prisma } from "@/lib/prisma"
+import { PrismaClient } from "@prisma/client"
 import { emailService } from "@/lib/email-service"
 
+// Create a dedicated Prisma client for NextAuth
+const prismaForAuth = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL
+    }
+  }
+})
+
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  adapter: PrismaAdapter(prismaForAuth),
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -101,14 +110,14 @@ export const authOptions: NextAuthOptions = {
       if (user.email && !user.id.startsWith('slack_')) {
         try {
           // Check if user already has a team
-          const existingUser = await prisma.user.findUnique({
+          const existingUser = await prismaForAuth.user.findUnique({
             where: { email: user.email },
             include: { team: true },
           })
 
           // If user exists but has no team, or if new user, create a team
           if (!existingUser?.team) {
-            const team = await prisma.team.create({
+            const team = await prismaForAuth.team.create({
               data: {
                 teamName: `${user.name || user.email?.split('@')[0]}'s Team`,
                 isActive: true,
@@ -116,7 +125,7 @@ export const authOptions: NextAuthOptions = {
             })
 
             // Update or create user with team association
-            await prisma.user.upsert({
+            await prismaForAuth.user.upsert({
               where: { email: user.email },
               update: {
                 teamId: team.id,
@@ -134,7 +143,7 @@ export const authOptions: NextAuthOptions = {
             })
 
             // Create default subscription for the team
-            await prisma.subscription.create({
+            await prismaForAuth.subscription.create({
               data: {
                 teamId: team.id,
                 status: 'TRIAL',
@@ -157,7 +166,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = user.id
         
         // Fetch user's team information
-        const dbUser = await prisma.user.findUnique({
+        const dbUser = await prismaForAuth.user.findUnique({
           where: { id: user.id },
           include: { 
             team: {
