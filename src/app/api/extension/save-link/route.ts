@@ -1,21 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDbClient } from '@/lib/db'
 import { queueClient } from '@/lib/queue/client'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
   try {
+    // Check authentication first
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
+
     const { url, title, teamId, source = 'chrome-extension' } = await request.json()
 
     if (!url) {
       return NextResponse.json(
         { error: 'URL is required' },
-        { status: 400 }
-      )
-    }
-
-    if (!teamId) {
-      return NextResponse.json(
-        { error: 'Team ID is required' },
         { status: 400 }
       )
     }
@@ -32,18 +36,55 @@ export async function POST(request: NextRequest) {
 
     const db = await getDbClient()
     
-    // Find the team by slackTeamId to get the database team ID
-    const team = await db.team.findUnique({
-      where: { slackTeamId: teamId },
-      select: { 
-        id: true, 
-        accessToken: true,
-        channels: {
-          select: { id: true },
-          take: 1 // Get any channel for this team
+    // Get user's team - if teamId is provided, use it, otherwise use user's default team
+    let team;
+    if (teamId) {
+      // Find team by ID or slackTeamId and verify user has access
+      team = await db.team.findFirst({
+        where: {
+          AND: [
+            {
+              OR: [
+                { id: teamId },
+                { slackTeamId: teamId }
+              ]
+            },
+            {
+              users: {
+                some: { id: session.user.id }
+              }
+            }
+          ]
+        },
+        select: { 
+          id: true, 
+          accessToken: true,
+          slackTeamId: true,
+          channels: {
+            select: { id: true },
+            take: 1
+          }
         }
-      }
-    })
+      })
+    } else {
+      // Use user's default team
+      team = await db.user.findUnique({
+        where: { id: session.user.id },
+        select: {
+          team: {
+            select: {
+              id: true,
+              accessToken: true,
+              slackTeamId: true,
+              channels: {
+                select: { id: true },
+                take: 1
+              }
+            }
+          }
+        }
+      }).then(user => user?.team)
+    }
     
     if (!team) {
       return NextResponse.json(
@@ -52,15 +93,38 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (team.channels.length === 0) {
+    // For web-only teams (no Slack integration), we need to handle the lack of channels differently
+    let channelId = null;
+    if (team.channels.length > 0) {
+      channelId = team.channels[0].id
+    } else if (!team.slackTeamId) {
+      // This is a web-only team, create a virtual channel if needed
+      const virtualChannel = await db.channel.findFirst({
+        where: { 
+          teamId: team.id,
+          slackChannelId: null 
+        }
+      })
+      
+      if (!virtualChannel) {
+        const newChannel = await db.channel.create({
+          data: {
+            slackChannelId: `web_${team.id}`,
+            channelName: 'Web Links',
+            teamId: team.id,
+            isActive: true
+          }
+        })
+        channelId = newChannel.id
+      } else {
+        channelId = virtualChannel.id
+      }
+    } else {
       return NextResponse.json(
         { error: 'No channels found for team' },
         { status: 400 }
       )
     }
-
-    // Use the first available channel
-    const channelId = team.channels[0].id
 
     // Generate a unique messageTs for extension submissions
     const messageTs = `ext_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
@@ -107,7 +171,7 @@ export async function POST(request: NextRequest) {
         messageTs,
         channelId,
         teamId: team.id,
-        accessToken: team.accessToken,
+        accessToken: team.accessToken || null,
         source
       })
     } catch (queueError) {

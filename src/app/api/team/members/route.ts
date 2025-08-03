@@ -1,24 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDbClient } from '@/lib/db'
 import { getTeamUsageStats } from '@/lib/subscription-utils'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const userId = searchParams.get('userId')
   
   try {
+    let actualUserId = userId;
+    
+    // If no userId provided, try to get it from session (for extension)
     if (!userId) {
-      return NextResponse.json(
-        { error: 'userId is required' },
-        { status: 400 }
-      )
+      const session = await getServerSession(authOptions)
+      if (session?.user?.id) {
+        actualUserId = session.user.id
+      } else {
+        return NextResponse.json(
+          { error: 'Authentication required' },
+          { status: 401 }
+        )
+      }
     }
 
     const db = await getDbClient()
     
     // Get user's team info first
     const user = await db.user.findUnique({
-      where: { id: userId },
+      where: { id: actualUserId },
       select: {
         id: true,
         teamId: true,
@@ -87,8 +97,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get usage stats for seat information
-    const usageStats = await getTeamUsageStats(team.slackTeamId)
+    // Get usage stats for seat information (use team ID for web-only teams)
+    const usageStats = await getTeamUsageStats(team.slackTeamId || team.id)
 
     return NextResponse.json({
       members: team.users,
