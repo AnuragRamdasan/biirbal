@@ -102,48 +102,41 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account, profile, email }) {
-      // Auto-create team for non-Slack users on first sign in
+    async signIn({ user, account, profile }) {
+      console.log(`🔐 Sign in attempt: ${user.email} via ${account?.provider}`)
+      
+      // Always allow sign in - we handle account linking elsewhere
+      return true
+    },
+    async linkAccount({ user, account, profile }) {
+      console.log(`🔗 Account linking: ${account.provider} for ${user.email}`)
+      
+      // Auto-create team for new users
       if (user.email) {
         try {
-          // Check if user already has a team
           const existingUser = await prisma.user.findUnique({
             where: { email: user.email },
             include: { team: true },
           })
 
-          // If user exists but has no team, or if new user, create a team
+          // Only create team if user doesn't have one
           if (!existingUser?.team) {
-            // Generate a unique identifier for web-only teams
+            console.log(`🏢 Creating team for new user: ${user.email}`)
             const webTeamId = `web_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
             
             const team = await prisma.team.create({
               data: {
-                slackTeamId: webTeamId, // Use generated ID for web teams
+                slackTeamId: webTeamId,
                 teamName: `${user.name || user.email?.split('@')[0]}'s Team`,
                 isActive: true,
               },
             })
 
-            // Update or create user with team association
-            await prisma.user.upsert({
-              where: { email: user.email },
-              update: {
-                teamId: team.id,
-                name: user.name,
-                email: user.email,
-                emailVerified: new Date(),
-              },
-              create: {
-                email: user.email,
-                name: user.name,
-                teamId: team.id,
-                emailVerified: new Date(),
-                isActive: true,
-              },
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { teamId: team.id },
             })
 
-            // Create default subscription for the team
             await prisma.subscription.create({
               data: {
                 teamId: team.id,
@@ -155,12 +148,10 @@ export const authOptions: NextAuthOptions = {
             })
           }
         } catch (error) {
-          console.error('Error creating team for new user:', error)
-          // Don't block sign-in if team creation fails
+          console.error('❌ Error creating team for new user:', error)
         }
       }
-
-      // Always allow sign in - enable automatic account linking
+      
       return true
     },
     async session({ session, user }) {
