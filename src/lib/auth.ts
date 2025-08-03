@@ -11,6 +11,8 @@ console.log('🔧 Setting up NextAuth with unified database client...')
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   debug: process.env.NODE_ENV === 'development',
+  // Allow users to sign in with different providers using the same email
+  allowDangerousEmailAccountLinking: true,
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -100,8 +102,8 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account, profile }) {
-      // Auto-create team for non-Slack users
+    async signIn({ user, account, profile, email }) {
+      // Auto-create team for non-Slack users on first sign in
       if (user.email) {
         try {
           // Check if user already has a team
@@ -158,6 +160,7 @@ export const authOptions: NextAuthOptions = {
         }
       }
 
+      // Always allow sign in - enable automatic account linking
       return true
     },
     async session({ session, user }) {
