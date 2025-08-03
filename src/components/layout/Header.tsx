@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useSession, signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
 
@@ -17,35 +18,15 @@ export const Header: React.FC<HeaderProps> = ({
   showNavigation = true,
   currentPage 
 }) => {
-  const [slackAuthenticated, setSlackAuthenticated] = useState(false)
   const router = useRouter()
+  const { data: session, status } = useSession()
 
-  useEffect(() => {
-    // Check if user is authenticated by looking for user ID in localStorage
-    const userId = localStorage.getItem('biirbal_user_id')
-    setSlackAuthenticated(!!userId)
-  }, [])
-
-  const isAuthenticated = slackAuthenticated
+  const isAuthenticated = !!session?.user
 
   const handleLogout = async () => {
     try {
-      // Immediately update authentication state
-      setSlackAuthenticated(false)
-      
-      // Clear all local storage items for auth
-      localStorage.removeItem('biirbal_visited_dashboard')
-      localStorage.removeItem('biirbal_user_id')
-      
-      // Clear any other app-specific storage
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('biirbal_')) {
-          localStorage.removeItem(key)
-        }
-      })
-      
-      // Force immediate redirect to landing page
-      window.location.href = '/'
+      // Use NextAuth signOut
+      await signOut({ callbackUrl: '/' })
     } catch (error) {
       console.error('Logout error:', error)
       // Even if there's an error, force redirect

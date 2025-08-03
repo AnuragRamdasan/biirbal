@@ -110,11 +110,10 @@ export default function ProfilePage() {
   const { data: session } = useSession()
 
   useEffect(() => {
-    // Only fetch data when we have either a NextAuth session or Slack user ID
-    const slackUserId = localStorage.getItem('biirbal_user_id')
-    const nextAuthUserId = session?.user?.id
+    // Only fetch data when we have a NextAuth session
+    const userId = session?.user?.id
     
-    if (nextAuthUserId || slackUserId) {
+    if (userId) {
       fetchProfileData()
     }
     
@@ -128,11 +127,8 @@ export default function ProfilePage() {
 
   const fetchProfileData = async () => {
     try {
-      // Get user ID from either NextAuth session or localStorage (Slack OAuth)
-      const slackUserId = localStorage.getItem('biirbal_user_id')
-      const nextAuthUserId = session?.user?.id
-      
-      const userId = nextAuthUserId || slackUserId
+      // Get user ID from NextAuth session
+      const userId = session?.user?.id
       
       if (!userId) {
         setError('No user found. Please log in first.')
@@ -203,11 +199,8 @@ export default function ProfilePage() {
 
   const handleDMPreferenceChange = async (checked: boolean) => {
     try {
-      // Get user ID from either NextAuth session or localStorage (Slack OAuth)
-      const slackUserId = localStorage.getItem('biirbal_user_id')
-      const nextAuthUserId = session?.user?.id
-      
-      const userId = nextAuthUserId || slackUserId
+      // Get user ID from NextAuth session
+      const userId = session?.user?.id
       
       if (!userId) {
         throw new Error('User ID not found')

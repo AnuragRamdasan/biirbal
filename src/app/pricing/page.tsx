@@ -84,11 +84,8 @@ export default function PricingPage() {
   useEffect(() => {
     const fetchCurrentPlan = async () => {
       try {
-        // Get user ID from either NextAuth session or localStorage (Slack OAuth)
-        const slackUserId = localStorage.getItem('biirbal_user_id')
-        const nextAuthUserId = session?.user?.id
-        
-        const userId = nextAuthUserId || slackUserId
+        // Get user ID from NextAuth session
+        const userId = session?.user?.id
         
         if (!userId) return
         

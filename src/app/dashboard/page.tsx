@@ -133,11 +133,10 @@ export default function Dashboard() {
   })
 
   useEffect(() => {
-    // Only fetch data when we have either a NextAuth session or Slack user ID
-    const slackUserId = localStorage.getItem('biirbal_user_id')
-    const nextAuthUserId = session?.user?.id
+    // Only fetch data when we have a NextAuth session
+    const userId = session?.user?.id
     
-    if (nextAuthUserId || slackUserId) {
+    if (userId) {
       fetchData()
       
       // Set up auto-refresh every 30 seconds
@@ -219,11 +218,8 @@ export default function Dashboard() {
 
   const fetchLinks = async () => {
     try {
-      // Get user ID from either NextAuth session or localStorage (Slack OAuth)
-      const slackUserId = localStorage.getItem('biirbal_user_id')
-      const nextAuthUserId = session?.user?.id
-      
-      const userId = nextAuthUserId || slackUserId
+      // Get user ID from NextAuth session
+      const userId = session?.user?.id
       
       if (!userId) {
         throw new Error('No user found. Please log in again.')
@@ -314,11 +310,8 @@ export default function Dashboard() {
 
   const fetchStats = async () => {
     try {
-      // Get user ID from either NextAuth session or localStorage (Slack OAuth)
-      const slackUserId = localStorage.getItem('biirbal_user_id')
-      const nextAuthUserId = session?.user?.id
-      
-      const userId = nextAuthUserId || slackUserId
+      // Get user ID from NextAuth session
+      const userId = session?.user?.id
       
       if (!userId) {
         return
@@ -340,11 +333,8 @@ export default function Dashboard() {
 
   const trackListen = async (linkId: string): Promise<{ listen: any } | null> => {
     try {
-      // Get user ID from either NextAuth session or localStorage (Slack OAuth)
-      const slackUserId = localStorage.getItem('biirbal_user_id')
-      const nextAuthUserId = session?.user?.id
-      
-      const userId = nextAuthUserId || slackUserId
+      // Get user ID from NextAuth session
+      const userId = session?.user?.id
       
       const requestBody = { 
         linkId: linkId,

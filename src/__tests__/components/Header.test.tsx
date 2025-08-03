@@ -12,6 +12,15 @@ jest.mock('next/navigation', () => ({
   useRouter: jest.fn()
 }))
 
+// Mock NextAuth
+jest.mock('next-auth/react', () => ({
+  useSession: jest.fn(() => ({
+    data: null,
+    status: 'unauthenticated'
+  })),
+  signOut: jest.fn()
+}))
+
 // Mock Next.js Link
 jest.mock('next/link', () => {
   return ({ children, href, className, ...props }: any) => (

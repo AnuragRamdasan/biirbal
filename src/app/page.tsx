@@ -1,6 +1,7 @@
 'use client'
 
 import { useSearchParams, useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { useEffect, useState, useRef, Suspense } from 'react'
 import Script from 'next/script'
 import { 
@@ -52,7 +53,6 @@ import {
   DownOutlined,
 } from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
-import { getOAuthRedirectUri } from '@/lib/config'
 import { useAnalytics } from '@/hooks/useAnalytics'
 
 const { Title, Text, Paragraph } = Typography
@@ -118,6 +118,7 @@ interface AudioListen {
 function HomeContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const { data: session, status } = useSession()
   
   // Home page state
   const [installed, setInstalled] = useState(false)
@@ -168,38 +169,29 @@ function HomeContent() {
     trackTimeOnPage: true
   })
 
-  // Simple authentication check
+  // Authentication check using NextAuth
   useEffect(() => {
-    // Handle OAuth installation success
-    if (searchParams.get('installed') === 'true') {
-      setInstalled(true)
-      setShowDashboard(true)
-      const userId = searchParams.get('userId')
-      if (userId) {
-        localStorage.setItem('biirbal_user_id', userId)
-        localStorage.setItem('biirbal_slack_user', 'true')
-        localStorage.setItem('biirbal_visited_dashboard', 'true')
-      }
+    // Don't proceed if session is still loading
+    if (status === 'loading') {
       return
     }
 
-    // Handle OAuth errors
+    // Handle OAuth errors (still needed for any auth errors)
     if (searchParams.get('error')) {
-      setError(searchParams.get('error') || 'Installation failed')
+      setError(searchParams.get('error') || 'Authentication failed')
       return
     }
 
-    // Check if user is authenticated - simple check
-    const hasUserId = localStorage.getItem('biirbal_user_id')
-    if (hasUserId) {
+    // Check if user is authenticated via NextAuth
+    if (session?.user) {
       setShowDashboard(true)
-      localStorage.setItem('biirbal_visited_dashboard', 'true')
+      setInstalled(true) // Show success state for authenticated users
     }
-  }, [searchParams])
+  }, [searchParams, session, status])
 
   // Dashboard data fetching with loading state control
   const fetchData = async (isInitialLoad = false) => {
-    if (!showDashboard) return
+    if (!showDashboard || !session?.user) return
     
     try {
       // Only show loading spinner on initial load
@@ -208,7 +200,7 @@ function HomeContent() {
         setInitialLoading(true)
       }
       
-      const userId = localStorage.getItem('biirbal_user_id') // Database user ID
+      const userId = session.user.id
       
       if (!userId) {
         setShowDashboard(false)
@@ -276,7 +268,7 @@ function HomeContent() {
   // Dashboard helper functions
   const trackListen = async (linkId: string) => {
     try {
-      const userId = localStorage.getItem('biirbal_user_id') // Database user ID
+      const userId = session?.user?.id
       
       const requestBody = {
         linkId,
@@ -693,7 +685,7 @@ function HomeContent() {
     })
 
     // Get current user ID for filtering completed links
-    const currentUserId = typeof window !== 'undefined' ? localStorage.getItem('biirbal_user_id') : null // Database user ID
+    const currentUserId = session?.user?.id
     
     // Helper function to check if current user has completed this link
     const hasUserCompleted = (link: any) => {
@@ -1437,12 +1429,8 @@ function HomeContent() {
     )
   }
 
-  // Force custom domain for OAuth redirect
-  const getRedirectUri = () => {
-    return getOAuthRedirectUri()
-  }
-
-  const slackInstallUrl = `https://slack.com/oauth/v2/authorize?client_id=${process.env.NEXT_PUBLIC_SLACK_CLIENT_ID}&scope=app_mentions:read,channels:history,channels:read,chat:write,files:write,groups:history,groups:read,im:history,im:read,mpim:history,mpim:read&user_scope=users:read&redirect_uri=${encodeURIComponent(getRedirectUri())}`
+  // Use NextAuth signin page for authentication
+  const authSigninUrl = '/auth/signin'
 
   // If user is authenticated, show dashboard
   if (showDashboard && !error) {
@@ -1614,7 +1602,7 @@ function HomeContent() {
                     type="primary" 
                     size="large" 
                     icon={<SlackOutlined />}
-                    href={slackInstallUrl}
+                    href={authSigninUrl}
                     style={{ 
                       background: 'linear-gradient(135deg, #4A154B 0%, #6B4E71 100%)',
                       border: 'none',
@@ -2125,7 +2113,7 @@ function HomeContent() {
                 <Button 
                   type="default" 
                   size="large" 
-                  href={slackInstallUrl} 
+                  href={authSigninUrl} 
                   style={{ 
                     width: '100%',
                     height: '48px',
@@ -2196,7 +2184,7 @@ function HomeContent() {
                 <Button 
                   type="primary" 
                   size="large" 
-                  href={slackInstallUrl} 
+                  href={authSigninUrl} 
                   style={{ 
                     width: '100%',
                     height: '48px',
@@ -2283,7 +2271,7 @@ function HomeContent() {
                 <Button 
                   type="primary" 
                   size="large" 
-                  href={slackInstallUrl} 
+                  href={authSigninUrl} 
                   style={{ 
                     width: '100%',
                     height: '48px',
@@ -2354,7 +2342,7 @@ function HomeContent() {
                 <Button 
                   type="primary" 
                   size="large" 
-                  href={slackInstallUrl} 
+                  href={authSigninUrl} 
                   style={{ 
                     width: '100%',
                     height: '48px',
@@ -2428,7 +2416,7 @@ function HomeContent() {
                 type="primary" 
                 size="large" 
                 icon={<SlackOutlined />}
-                href={slackInstallUrl}
+                href={authSigninUrl}
                 style={{ 
                   background: 'linear-gradient(135deg, #4A154B 0%, #6B4E71 100%)',
                   border: 'none',

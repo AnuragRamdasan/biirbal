@@ -22,19 +22,13 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
       return
     }
 
-    // Check authentication from both NextAuth and localStorage (Slack OAuth)
-    const slackUserId = localStorage.getItem('biirbal_user_id')
-    const hasNextAuthSession = !!session?.user
-    const hasSlackAuth = !!slackUserId
-
-    const authenticated = hasNextAuthSession || hasSlackAuth
+    // Only use NextAuth sessions for authentication
+    const authenticated = !!session?.user
 
     console.log('🔐 Authentication check:', {
-      hasNextAuthSession,
-      hasSlackAuth,
       authenticated,
       sessionUser: session?.user?.email,
-      slackUserId
+      sessionUserId: session?.user?.id
     })
 
     setIsAuthenticated(authenticated)

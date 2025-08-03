@@ -37,14 +37,16 @@ function SignInContent() {
     }
   }
 
-  const getRedirectUri = () => {
-    if (typeof window !== 'undefined') {
-      return `${window.location.origin}/api/slack/oauth`
+  const handleSlackSignIn = async () => {
+    setLoading(true)
+    try {
+      await signIn('slack', { callbackUrl })
+    } catch (error) {
+      console.error('Slack sign-in error:', error)
+    } finally {
+      setLoading(false)
     }
-    return `${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.biirbal.com'}/api/slack/oauth`
   }
-
-  const slackInstallUrl = `https://slack.com/oauth/v2/authorize?client_id=${process.env.NEXT_PUBLIC_SLACK_CLIENT_ID}&scope=app_mentions:read,channels:history,channels:read,chat:write,files:write,groups:history,groups:read,im:history,im:read,mpim:history,mpim:read&user_scope=users:read&redirect_uri=${encodeURIComponent(getRedirectUri())}`
 
   const handleEmailSignIn = async (values: { email: string }) => {
     setLoading(true)
@@ -340,7 +342,8 @@ function SignInContent() {
             type="default"
             size="large"
             icon={<SlackOutlined />}
-            href={slackInstallUrl}
+            loading={loading}
+            onClick={handleSlackSignIn}
             block
             style={{ 
               background: 'linear-gradient(135deg, #4A154B 0%, #350d40 100%)',
@@ -356,12 +359,16 @@ function SignInContent() {
               transition: 'all 0.3s ease'
             }}
             onMouseOver={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)'
-              e.currentTarget.style.boxShadow = '0 12px 32px rgba(74, 21, 75, 0.4)'
+              if (!loading) {
+                e.currentTarget.style.transform = 'translateY(-2px)'
+                e.currentTarget.style.boxShadow = '0 12px 32px rgba(74, 21, 75, 0.4)'
+              }
             }}
             onMouseOut={(e) => {
-              e.currentTarget.style.transform = 'translateY(0px)'
-              e.currentTarget.style.boxShadow = '0 8px 24px rgba(74, 21, 75, 0.3)'
+              if (!loading) {
+                e.currentTarget.style.transform = 'translateY(0px)'
+                e.currentTarget.style.boxShadow = '0 8px 24px rgba(74, 21, 75, 0.3)'
+              }
             }}
           >
             Continue with Slack

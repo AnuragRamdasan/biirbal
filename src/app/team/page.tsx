@@ -122,22 +122,18 @@ export default function TeamManagement() {
   }
 
   useEffect(() => {
-    // Only fetch data when we have either a NextAuth session or Slack user ID
-    const slackUserId = localStorage.getItem('biirbal_user_id')
-    const nextAuthUserId = session?.user?.id
+    // Only fetch data when we have a NextAuth session
+    const userId = session?.user?.id
     
-    if (nextAuthUserId || slackUserId) {
+    if (userId) {
       fetchTeamData()
     }
   }, [session])
 
   const fetchTeamData = async () => {
     try {
-      // Get user ID from either NextAuth session or localStorage (Slack OAuth)
-      const slackUserId = localStorage.getItem('biirbal_user_id')
-      const nextAuthUserId = session?.user?.id
-      
-      const userId = nextAuthUserId || slackUserId
+      // Get user ID from NextAuth session
+      const userId = session?.user?.id
       
       if (!userId) {
         throw new Error('No user found. Please log in again.')
@@ -171,11 +167,8 @@ export default function TeamManagement() {
       const uniqueId = member.slackUserId || member.id // For loading state
       
       setActionLoading(uniqueId)
-      // Get user ID from either NextAuth session or localStorage (Slack OAuth)
-      const slackUserId = localStorage.getItem('biirbal_user_id')
-      const nextAuthUserId = session?.user?.id
-      
-      const currentUserId = nextAuthUserId || slackUserId
+      // Get user ID from NextAuth session
+      const currentUserId = session?.user?.id
       // Note: currentUserId is either slackUserId (for Slack OAuth users) or database id (for invited users)
       
       const response = await fetch('/api/team/remove', {
@@ -217,11 +210,8 @@ export default function TeamManagement() {
   const handleInviteUser = async (values: { email: string }) => {
     try {
       setInviteLoading(true)
-      // Get user ID from either NextAuth session or localStorage (Slack OAuth)
-      const slackUserId = localStorage.getItem('biirbal_user_id')
-      const nextAuthUserId = session?.user?.id
-      
-      const currentUserId = nextAuthUserId || slackUserId
+      // Get user ID from NextAuth session
+      const currentUserId = session?.user?.id
       
       const response = await fetch('/api/team/invite', {
         method: 'POST',
