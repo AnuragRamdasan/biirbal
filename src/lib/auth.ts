@@ -9,10 +9,8 @@ import { prisma } from "@/lib/db"
 console.log('🔧 Setting up NextAuth with unified database client...')
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  // Remove adapter to use JWT strategy - no email linking restrictions
   debug: process.env.NODE_ENV === 'development',
-  // Allow users to sign in with different providers using the same email
-  allowDangerousEmailAccountLinking: true,
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -105,23 +103,59 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account, profile }) {
       console.log(`🔐 Sign in attempt: ${user.email} via ${account?.provider}`)
       
-      // Always allow sign in - we handle account linking elsewhere
-      return true
-    },
-    async linkAccount({ user, account, profile }) {
-      console.log(`🔗 Account linking: ${account.provider} for ${user.email}`)
-      
-      // Auto-create team for new users
+      // Handle user and team creation with JWT strategy
       if (user.email) {
         try {
-          const existingUser = await prisma.user.findUnique({
+          // Check if user already exists
+          let existingUser = await prisma.user.findUnique({
             where: { email: user.email },
             include: { team: true },
           })
 
-          // Only create team if user doesn't have one
-          if (!existingUser?.team) {
-            console.log(`🏢 Creating team for new user: ${user.email}`)
+          // Create user if doesn't exist
+          if (!existingUser) {
+            console.log(`👤 Creating new user: ${user.email}`)
+            
+            // Generate a unique identifier for web-only teams
+            const webTeamId = `web_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+            
+            // Create team first
+            const team = await prisma.team.create({
+              data: {
+                slackTeamId: webTeamId,
+                teamName: `${user.name || user.email?.split('@')[0]}'s Team`,
+                isActive: true,
+              },
+            })
+
+            // Create user with team
+            existingUser = await prisma.user.create({
+              data: {
+                email: user.email,
+                name: user.name,
+                image: user.image,
+                teamId: team.id,
+                emailVerified: new Date(),
+                isActive: true,
+              },
+              include: { team: true },
+            })
+
+            // Create default subscription
+            await prisma.subscription.create({
+              data: {
+                teamId: team.id,
+                status: 'TRIAL',
+                planId: 'free',
+                monthlyLinkLimit: 20,
+                userLimit: 1,
+              },
+            })
+            
+            console.log(`🏢 Created team and user for: ${user.email}`)
+          } else if (!existingUser.team) {
+            // User exists but has no team, create one
+            console.log(`🏢 Creating team for existing user: ${user.email}`)
             const webTeamId = `web_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
             
             const team = await prisma.team.create({
@@ -133,7 +167,7 @@ export const authOptions: NextAuthOptions = {
             })
 
             await prisma.user.update({
-              where: { id: user.id },
+              where: { id: existingUser.id },
               data: { teamId: team.id },
             })
 
@@ -148,34 +182,49 @@ export const authOptions: NextAuthOptions = {
             })
           }
         } catch (error) {
-          console.error('❌ Error creating team for new user:', error)
+          console.error('❌ Error in signIn callback:', error)
+          // Don't block sign-in if there are errors
         }
       }
       
       return true
     },
-    async session({ session, user }) {
-      if (session.user && user) {
-        session.user.id = user.id
+    async jwt({ token, user, account, profile }) {
+      // Add user info to JWT token
+      if (user) {
+        token.id = user.id
+        token.email = user.email
+        token.name = user.name
+        token.image = user.image
+      }
+      
+      return token
+    },
+    async session({ session, token }) {
+      // Add user info from JWT to session
+      if (token && session.user) {
+        session.user.id = token.id as string
         
-        // Fetch user's team information
-        const dbUser = await prisma.user.findUnique({
-          where: { id: user.id },
-          include: { 
-            team: {
-              include: {
-                subscription: true,
+        // Fetch user's team information using email from token
+        if (token.email) {
+          const dbUser = await prisma.user.findUnique({
+            where: { email: token.email as string },
+            include: { 
+              team: {
+                include: {
+                  subscription: true,
+                }
               }
-            }
-          },
-        })
+            },
+          })
 
-        if (dbUser?.team) {
-          session.user.teamId = dbUser.team.id
-          session.user.team = {
-            id: dbUser.team.id,
-            name: dbUser.team.teamName,
-            subscription: dbUser.team.subscription,
+          if (dbUser?.team) {
+            session.user.teamId = dbUser.team.id
+            session.user.team = {
+              id: dbUser.team.id,
+              name: dbUser.team.teamName,
+              subscription: dbUser.team.subscription,
+            }
           }
         }
       }
@@ -188,7 +237,7 @@ export const authOptions: NextAuthOptions = {
     error: '/auth/error',
   },
   session: {
-    strategy: "database",
+    strategy: "jwt",
   },
   secret: process.env.NEXTAUTH_SECRET,
 }
