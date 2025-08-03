@@ -3,6 +3,7 @@ import "./globals.css";
 import "antd/dist/reset.css";
 import { generateMetadata, jsonLd } from '@/lib/seo';
 import Script from 'next/script';
+import SessionProvider from '@/components/SessionProvider';
 
 export const metadata: Metadata = generateMetadata();
 
@@ -103,7 +104,9 @@ export default function RootLayout({
       <body
         className="antialiased font-sans"
       >
-        {children}
+        <SessionProvider>
+          {children}
+        </SessionProvider>
         
         {/* Analytics Scripts */}
         {process.env.NODE_ENV === 'production' && (

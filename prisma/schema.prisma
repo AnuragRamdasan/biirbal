@@ -11,9 +11,9 @@ datasource db {
 
 model Team {
   id             String          @id @default(cuid())
-  slackTeamId    String          @unique
+  slackTeamId    String?         @unique
   teamName       String?
-  accessToken    String
+  accessToken    String?
   botUserId      String?
   isActive       Boolean         @default(true)
   sendSummaryAsDM Boolean        @default(false)

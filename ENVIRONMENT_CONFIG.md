@@ -10,6 +10,9 @@ This document outlines all the environment variables needed for the complete SEO
 NEXTAUTH_URL=https://www.biirbal.com
 NEXT_PUBLIC_BASE_URL=https://www.biirbal.com
 
+# NextAuth Secret (generate with: openssl rand -base64 32)
+NEXTAUTH_SECRET=your_nextauth_secret_key
+
 # Node Environment
 NODE_ENV=production
 ```
@@ -19,6 +22,18 @@ NODE_ENV=production
 # PostgreSQL Database
 DATABASE_URL="postgresql://username:password@host:port/database_name"
 DATABASE_UNPOOLED_URL="postgresql://username:password@host:port/database_name"
+```
+
+### **Authentication**
+```bash
+# Google OAuth (for NextAuth)
+GOOGLE_CLIENT_ID=your_google_oauth_client_id
+GOOGLE_CLIENT_SECRET=your_google_oauth_client_secret
+
+# Email Service (Brevo)
+BREVO_API_KEY=your_brevo_api_key
+FROM_EMAIL=noreply@biirbal.com
+FROM_NAME="Biirbal Team"
 ```
 
 ### **Slack Integration**
