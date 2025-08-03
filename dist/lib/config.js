@@ -35,7 +35,7 @@ function getBaseUrl() {
         return 'http://localhost:3000';
     }
     if (isProduction()) {
-        return 'https://biirbal.ai';
+        return 'https://www.biirbal.com';
     }
     // Final fallback to the correct domain
     return 'https://www.biirbal.com';
