@@ -5,17 +5,39 @@ import EmailProvider from "next-auth/providers/email"
 import { PrismaClient } from "@prisma/client"
 import { emailService } from "@/lib/email-service"
 
-// Create a dedicated Prisma client for NextAuth
-const prismaForAuth = new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL
-    }
+// Global variable to prevent multiple Prisma instances
+const globalForAuth = globalThis as unknown as {
+  prismaAuth: PrismaClient | undefined
+}
+
+// Create a dedicated Prisma client for NextAuth with proper initialization
+function createPrismaForAuth(): PrismaClient {
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL is required for NextAuth')
   }
-})
+  
+  console.log('🔗 Creating Prisma client for NextAuth')
+  
+  return new PrismaClient({
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL
+      }
+    },
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error']
+  })
+}
+
+// Get or create the Prisma client for NextAuth
+function getPrismaForAuth(): PrismaClient {
+  if (!globalForAuth.prismaAuth) {
+    globalForAuth.prismaAuth = createPrismaForAuth()
+  }
+  return globalForAuth.prismaAuth
+}
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prismaForAuth),
+  adapter: PrismaAdapter(getPrismaForAuth()),
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -110,14 +132,14 @@ export const authOptions: NextAuthOptions = {
       if (user.email && !user.id.startsWith('slack_')) {
         try {
           // Check if user already has a team
-          const existingUser = await prismaForAuth.user.findUnique({
+          const existingUser = await getPrismaForAuth().user.findUnique({
             where: { email: user.email },
             include: { team: true },
           })
 
           // If user exists but has no team, or if new user, create a team
           if (!existingUser?.team) {
-            const team = await prismaForAuth.team.create({
+            const team = await getPrismaForAuth().team.create({
               data: {
                 teamName: `${user.name || user.email?.split('@')[0]}'s Team`,
                 isActive: true,
@@ -125,7 +147,7 @@ export const authOptions: NextAuthOptions = {
             })
 
             // Update or create user with team association
-            await prismaForAuth.user.upsert({
+            await getPrismaForAuth().user.upsert({
               where: { email: user.email },
               update: {
                 teamId: team.id,
@@ -143,7 +165,7 @@ export const authOptions: NextAuthOptions = {
             })
 
             // Create default subscription for the team
-            await prismaForAuth.subscription.create({
+            await getPrismaForAuth().subscription.create({
               data: {
                 teamId: team.id,
                 status: 'TRIAL',
@@ -166,7 +188,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = user.id
         
         // Fetch user's team information
-        const dbUser = await prismaForAuth.user.findUnique({
+        const dbUser = await getPrismaForAuth().user.findUnique({
           where: { id: user.id },
           include: { 
             team: {
