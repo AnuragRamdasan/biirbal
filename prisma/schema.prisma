@@ -36,6 +36,7 @@ model User {
   displayName      String?
   realName         String?
   email            String?       @unique
+  image            String?       // NextAuth profile image
   profileImage24   String?
   profileImage32   String?
   profileImage48   String?

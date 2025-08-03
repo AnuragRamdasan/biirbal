@@ -112,8 +112,12 @@ export const authOptions: NextAuthOptions = {
 
           // If user exists but has no team, or if new user, create a team
           if (!existingUser?.team) {
+            // Generate a unique identifier for web-only teams
+            const webTeamId = `web_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+            
             const team = await prisma.team.create({
               data: {
+                slackTeamId: webTeamId, // Use generated ID for web teams
                 teamName: `${user.name || user.email?.split('@')[0]}'s Team`,
                 isActive: true,
               },
