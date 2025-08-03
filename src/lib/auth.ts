@@ -121,7 +121,7 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account, profile }) {
       console.log(`🔐 Sign in attempt: ${user.email} via ${account?.provider}`)
       
-      // Always allow sign-in - let NextAuth handle account linking
+      // Always allow sign-in - team creation will be handled in session callback
       return true
     },
     
@@ -184,7 +184,51 @@ export const authOptions: NextAuthOptions = {
           },
         })
 
-        if (dbUser?.team) {
+        // Create team if user doesn't have one (for all NextAuth providers)
+        if (dbUser && !dbUser.team) {
+          console.log(`🏢 Creating web team for NextAuth user: ${session.user.email}`)
+          try {
+            const webTeamId = `web_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+            
+            const team = await prisma.team.create({
+              data: {
+                slackTeamId: webTeamId,
+                teamName: `${session.user.name || session.user.email?.split('@')[0]}'s Team`,
+                isActive: true,
+              },
+            })
+
+            await prisma.subscription.create({
+              data: {
+                teamId: team.id,
+                status: 'TRIAL',
+                planId: 'free',
+                monthlyLinkLimit: 20,
+                userLimit: 1,
+              },
+            })
+
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { teamId: team.id },
+            })
+
+            // Update session with new team info
+            session.user.teamId = team.id
+            session.user.team = {
+              id: team.id,
+              name: team.teamName,
+              subscription: {
+                status: 'TRIAL',
+                planId: 'free',
+                monthlyLinkLimit: 20,
+                userLimit: 1,
+              },
+            }
+          } catch (error) {
+            console.error('❌ Error creating web team in session:', error)
+          }
+        } else if (dbUser?.team) {
           session.user.teamId = dbUser.team.id
           session.user.team = {
             id: dbUser.team.id,
