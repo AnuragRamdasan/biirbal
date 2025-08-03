@@ -1,14 +1,16 @@
 import { NextAuthOptions } from "next-auth"
+import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import GoogleProvider from "next-auth/providers/google"
 import EmailProvider from "next-auth/providers/email"
-import { PrismaClient } from "@prisma/client"
 import { emailService } from "@/lib/email-service"
+import { prisma } from "@/lib/db"
 
-// Simple Prisma client for manual user/team management
-const authPrisma = new PrismaClient()
+// Use the unified database client for NextAuth
+console.log('🔧 Setting up NextAuth with unified database client...')
 
 export const authOptions: NextAuthOptions = {
-  // Remove adapter to use JWT strategy instead of database sessions
+  adapter: PrismaAdapter(prisma),
+  debug: process.env.NODE_ENV === 'development',
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -103,14 +105,14 @@ export const authOptions: NextAuthOptions = {
       if (user.email) {
         try {
           // Check if user already has a team
-          const existingUser = await authPrisma.user.findUnique({
+          const existingUser = await prisma.user.findUnique({
             where: { email: user.email },
             include: { team: true },
           })
 
           // If user exists but has no team, or if new user, create a team
           if (!existingUser?.team) {
-            const team = await authPrisma.team.create({
+            const team = await prisma.team.create({
               data: {
                 teamName: `${user.name || user.email?.split('@')[0]}'s Team`,
                 isActive: true,
@@ -118,7 +120,7 @@ export const authOptions: NextAuthOptions = {
             })
 
             // Update or create user with team association
-            await authPrisma.user.upsert({
+            await prisma.user.upsert({
               where: { email: user.email },
               update: {
                 teamId: team.id,
@@ -136,7 +138,7 @@ export const authOptions: NextAuthOptions = {
             })
 
             // Create default subscription for the team
-            await authPrisma.subscription.create({
+            await prisma.subscription.create({
               data: {
                 teamId: team.id,
                 status: 'TRIAL',
@@ -154,30 +156,28 @@ export const authOptions: NextAuthOptions = {
 
       return true
     },
-    async session({ session, token }) {
-      if (session.user && token.sub) {
-        session.user.id = token.sub
+    async session({ session, user }) {
+      if (session.user && user) {
+        session.user.id = user.id
         
-        // Fetch user's team information using email from token
-        if (token.email) {
-          const dbUser = await authPrisma.user.findUnique({
-            where: { email: token.email as string },
-            include: { 
-              team: {
-                include: {
-                  subscription: true,
-                }
+        // Fetch user's team information
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          include: { 
+            team: {
+              include: {
+                subscription: true,
               }
-            },
-          })
-
-          if (dbUser?.team) {
-            session.user.teamId = dbUser.team.id
-            session.user.team = {
-              id: dbUser.team.id,
-              name: dbUser.team.teamName,
-              subscription: dbUser.team.subscription,
             }
+          },
+        })
+
+        if (dbUser?.team) {
+          session.user.teamId = dbUser.team.id
+          session.user.team = {
+            id: dbUser.team.id,
+            name: dbUser.team.teamName,
+            subscription: dbUser.team.subscription,
           }
         }
       }
@@ -190,7 +190,7 @@ export const authOptions: NextAuthOptions = {
     error: '/auth/error',
   },
   session: {
-    strategy: "jwt",
+    strategy: "database",
   },
   secret: process.env.NEXTAUTH_SECRET,
 }
