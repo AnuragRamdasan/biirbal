@@ -1,15 +1,14 @@
 import { NextAuthOptions } from "next-auth"
-import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import GoogleProvider from "next-auth/providers/google"
 import EmailProvider from "next-auth/providers/email"
 import { PrismaClient } from "@prisma/client"
 import { emailService } from "@/lib/email-service"
 
-// Simple, direct Prisma client for NextAuth - no fancy patterns
+// Simple Prisma client for manual user/team management
 const authPrisma = new PrismaClient()
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(authPrisma),
+  // Remove adapter to use JWT strategy instead of database sessions
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -101,7 +100,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account, profile }) {
       // Auto-create team for non-Slack users
-      if (user.email && !user.id.startsWith('slack_')) {
+      if (user.email) {
         try {
           // Check if user already has a team
           const existingUser = await authPrisma.user.findUnique({
@@ -155,28 +154,30 @@ export const authOptions: NextAuthOptions = {
 
       return true
     },
-    async session({ session, user }) {
-      if (session.user && user) {
-        session.user.id = user.id
+    async session({ session, token }) {
+      if (session.user && token.sub) {
+        session.user.id = token.sub
         
-        // Fetch user's team information
-        const dbUser = await authPrisma.user.findUnique({
-          where: { id: user.id },
-          include: { 
-            team: {
-              include: {
-                subscription: true,
+        // Fetch user's team information using email from token
+        if (token.email) {
+          const dbUser = await authPrisma.user.findUnique({
+            where: { email: token.email as string },
+            include: { 
+              team: {
+                include: {
+                  subscription: true,
+                }
               }
-            }
-          },
-        })
+            },
+          })
 
-        if (dbUser?.team) {
-          session.user.teamId = dbUser.team.id
-          session.user.team = {
-            id: dbUser.team.id,
-            name: dbUser.team.teamName,
-            subscription: dbUser.team.subscription,
+          if (dbUser?.team) {
+            session.user.teamId = dbUser.team.id
+            session.user.team = {
+              id: dbUser.team.id,
+              name: dbUser.team.teamName,
+              subscription: dbUser.team.subscription,
+            }
           }
         }
       }
@@ -189,7 +190,7 @@ export const authOptions: NextAuthOptions = {
     error: '/auth/error',
   },
   session: {
-    strategy: "database",
+    strategy: "jwt",
   },
   secret: process.env.NEXTAUTH_SECRET,
 }
