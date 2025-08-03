@@ -1,6 +1,6 @@
 'use client'
 
-import { signIn, getSession } from 'next-auth/react'
+import { signIn, getSession, getProviders } from 'next-auth/react'
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, Typography, Button, Space, Input, Form, Alert, Divider, Row, Col } from 'antd'
@@ -12,6 +12,7 @@ function SignInContent() {
   const [loading, setLoading] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
   const [email, setEmail] = useState('')
+  const [providers, setProviders] = useState<any>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/'
@@ -23,6 +24,11 @@ function SignInContent() {
       if (session) {
         router.push(callbackUrl)
       }
+    })
+    
+    // Load available providers
+    getProviders().then((providers) => {
+      setProviders(providers)
     })
   }, [callbackUrl, router])
 
@@ -338,41 +344,43 @@ function SignInContent() {
             Continue with Google
           </Button>
 
-          <Button
-            type="default"
-            size="large"
-            icon={<SlackOutlined />}
-            loading={loading}
-            onClick={handleSlackSignIn}
-            block
-            style={{ 
-              background: 'linear-gradient(135deg, #4A154B 0%, #350d40 100%)',
-              borderColor: 'transparent', 
-              color: 'white',
-              marginTop: '12px',
-              fontWeight: 600,
-              height: '56px',
-              fontSize: '16px',
-              boxShadow: '0 8px 24px rgba(74, 21, 75, 0.3)',
-              border: 'none',
-              borderRadius: '12px',
-              transition: 'all 0.3s ease'
-            }}
-            onMouseOver={(e) => {
-              if (!loading) {
-                e.currentTarget.style.transform = 'translateY(-2px)'
-                e.currentTarget.style.boxShadow = '0 12px 32px rgba(74, 21, 75, 0.4)'
-              }
-            }}
-            onMouseOut={(e) => {
-              if (!loading) {
-                e.currentTarget.style.transform = 'translateY(0px)'
-                e.currentTarget.style.boxShadow = '0 8px 24px rgba(74, 21, 75, 0.3)'
-              }
-            }}
-          >
-            Continue with Slack
-          </Button>
+          {providers?.slack && (
+            <Button
+              type="default"
+              size="large"
+              icon={<SlackOutlined />}
+              loading={loading}
+              onClick={handleSlackSignIn}
+              block
+              style={{ 
+                background: 'linear-gradient(135deg, #4A154B 0%, #350d40 100%)',
+                borderColor: 'transparent', 
+                color: 'white',
+                marginTop: '12px',
+                fontWeight: 600,
+                height: '56px',
+                fontSize: '16px',
+                boxShadow: '0 8px 24px rgba(74, 21, 75, 0.3)',
+                border: 'none',
+                borderRadius: '12px',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseOver={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.transform = 'translateY(-2px)'
+                  e.currentTarget.style.boxShadow = '0 12px 32px rgba(74, 21, 75, 0.4)'
+                }
+              }}
+              onMouseOut={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.transform = 'translateY(0px)'
+                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(74, 21, 75, 0.3)'
+                }
+              }}
+            >
+              Continue with Slack
+            </Button>
+          )}
 
           <Divider style={{ 
             borderColor: '#e8e8e8',

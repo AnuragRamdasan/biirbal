@@ -200,7 +200,7 @@ function HomeContent() {
         setInitialLoading(true)
       }
       
-      const userId = session.user.id
+      const userId = session.user.dbUserId || session.user.id
       
       if (!userId) {
         setShowDashboard(false)
@@ -268,7 +268,7 @@ function HomeContent() {
   // Dashboard helper functions
   const trackListen = async (linkId: string) => {
     try {
-      const userId = session?.user?.id
+      const userId = session?.user?.dbUserId || session?.user?.id
       
       const requestBody = {
         linkId,
@@ -685,13 +685,13 @@ function HomeContent() {
     })
 
     // Get current user ID for filtering completed links
-    const currentUserId = session?.user?.id
+    const currentUserId = session?.user?.dbUserId || session?.user?.id
     
     // Helper function to check if current user has completed this link
     const hasUserCompleted = (link: any) => {
       if (!currentUserId) return false
       return link.listens?.some((listen: any) => 
-        listen.slackUserId === currentUserId && listen.completed
+        listen.userId === currentUserId && listen.completed
       )
     }
     

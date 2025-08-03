@@ -37,7 +37,11 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
-    {
+    // Only include Slack provider if real credentials are configured (not dummy values)
+    ...(process.env.SLACK_CLIENT_ID && 
+        process.env.SLACK_CLIENT_SECRET && 
+        process.env.SLACK_CLIENT_ID !== 'dummy_client_id' &&
+        process.env.SLACK_CLIENT_SECRET !== 'dummy_client_secret' ? [{
       id: "slack",
       name: "Slack",
       type: "oauth",
@@ -102,7 +106,7 @@ export const authOptions: NextAuthOptions = {
           image: profile.image,
         }
       },
-    },
+    }] : []),
     EmailProvider({
       from: process.env.FROM_EMAIL || 'noreply@biirbal.com',
       sendVerificationRequest: async ({ identifier: email, url }) => {
@@ -445,6 +449,7 @@ export const authOptions: NextAuthOptions = {
 
             // Update session with new team info
             session.user.teamId = team.id
+            session.user.dbUserId = user.id // Include database user ID
             session.user.team = {
               id: team.id,
               name: team.teamName,
@@ -466,10 +471,12 @@ export const authOptions: NextAuthOptions = {
             subscription: dbUser.team.subscription,
           }
           
-          // For Slack users, also include the database user ID for API compatibility
+          // Include the database user ID for all users for API compatibility
+          session.user.dbUserId = dbUser.id
+          
+          // For Slack users, also include the Slack user ID
           if (dbUser.slackUserId) {
             session.user.slackUserId = dbUser.slackUserId
-            session.user.dbUserId = dbUser.id
           }
         }
       }
