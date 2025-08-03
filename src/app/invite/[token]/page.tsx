@@ -63,18 +63,10 @@ export default function InvitePage({ params }: { params: { token: string } }) {
       const data = await response.json()
 
       if (response.ok) {
-        setSuccess(true)
-        // Store user info in localStorage for authentication
-        if (data.user) {
-          localStorage.setItem('biirbal_user_id', data.user.id)
-          localStorage.setItem('biirbal_user_email', data.user.email)
-          localStorage.setItem('biirbal_team_name', data.user.teamName)
-          localStorage.setItem('biirbal_slack_user', 'false') // Mark as non-Slack user
-        }
-        
+        setSuccess(true)        
         // Redirect after a short delay
         setTimeout(() => {
-          router.push(data.redirectUrl || '/dashboard')
+          router.push(data.redirectUrl || '/')
         }, 2000)
       } else {
         setError(data.error || 'Failed to accept invitation')

@@ -18,7 +18,6 @@ export default function robots(): MetadataRoute.Robots {
           '/blog/*',
         ],
         disallow: [
-          '/dashboard*',
           '/team*',
           '/profile*',
           '/invite/*',
@@ -43,7 +42,6 @@ export default function robots(): MetadataRoute.Robots {
           '/blog/*',
         ],
         disallow: [
-          '/dashboard*',
           '/team*',
           '/profile*',
           '/invite/*',
@@ -66,7 +64,6 @@ export default function robots(): MetadataRoute.Robots {
           '/blog/*',
         ],
         disallow: [
-          '/dashboard*',
           '/team*',
           '/profile*',
           '/invite/*',
@@ -89,7 +86,6 @@ export default function robots(): MetadataRoute.Robots {
           '/blog/*',
         ],
         disallow: [
-          '/dashboard*',
           '/team*',
           '/profile*',
           '/invite/*',

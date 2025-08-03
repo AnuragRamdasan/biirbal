@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
         teamId: invitation.team.id, // Database team ID
         teamName: invitation.team.teamName
       },
-      redirectUrl: '/dashboard'
+      redirectUrl: '/'
     })
 
   } catch (error) {

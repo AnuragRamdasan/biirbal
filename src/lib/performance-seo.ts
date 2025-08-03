@@ -24,8 +24,7 @@ export const performanceConfig = {
   // Page prefetching for likely navigation
   prefetch: [
     '/pricing',
-    '/contact',
-    '/dashboard'
+    '/contact'
   ],
   
   // Critical CSS

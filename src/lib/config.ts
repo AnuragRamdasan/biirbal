@@ -52,5 +52,5 @@ export function getOAuthRedirectUri(): string {
  */
 export function getDashboardUrl(linkId?: string): string {
   const baseUrl = getBaseUrl()
-  return linkId ? `${baseUrl}/dashboard#${linkId}` : `${baseUrl}/dashboard`
+  return linkId ? `${baseUrl}/#${linkId}` : `${baseUrl}/`
 }
