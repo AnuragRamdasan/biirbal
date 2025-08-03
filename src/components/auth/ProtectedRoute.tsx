@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { Spin } from 'antd'
 
 interface ProtectedRouteProps {
@@ -13,20 +14,37 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
   const pathname = usePathname()
+  const { data: session, status } = useSession()
 
   useEffect(() => {
-    // Check if user is authenticated via localStorage
-    const userId = localStorage.getItem('biirbal_user_id')
-    const authenticated = !!userId
+    // Check if NextAuth session is loading
+    if (status === 'loading') {
+      return
+    }
+
+    // Check authentication from both NextAuth and localStorage (Slack OAuth)
+    const slackUserId = localStorage.getItem('biirbal_user_id')
+    const hasNextAuthSession = !!session?.user
+    const hasSlackAuth = !!slackUserId
+
+    const authenticated = hasNextAuthSession || hasSlackAuth
+
+    console.log('🔐 Authentication check:', {
+      hasNextAuthSession,
+      hasSlackAuth,
+      authenticated,
+      sessionUser: session?.user?.email,
+      slackUserId
+    })
 
     setIsAuthenticated(authenticated)
     setIsLoading(false)
 
     // If not authenticated, redirect immediately
     if (!authenticated) {
-      router.replace('/')
+      router.replace('/auth/signin')
     }
-  }, [router, pathname])
+  }, [session, status, router, pathname])
 
   // Show loading spinner while checking authentication
   if (isLoading) {

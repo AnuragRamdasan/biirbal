@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+import { useSession } from 'next-auth/react'
 
 // Add CSS animation for slide down effect
 const slideDownKeyframes = `
@@ -100,6 +101,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { data: session } = useSession()
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null)
   const [showListened, setShowListened] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
@@ -131,12 +133,18 @@ export default function Dashboard() {
   })
 
   useEffect(() => {
-    fetchData()
+    // Only fetch data when we have either a NextAuth session or Slack user ID
+    const slackUserId = localStorage.getItem('biirbal_user_id')
+    const nextAuthUserId = session?.user?.id
     
-    // Set up auto-refresh every 30 seconds
-    refreshInterval.current = setInterval(() => {
+    if (nextAuthUserId || slackUserId) {
       fetchData()
-    }, 30000) // 30 seconds
+      
+      // Set up auto-refresh every 30 seconds
+      refreshInterval.current = setInterval(() => {
+        fetchData()
+      }, 30000) // 30 seconds
+    }
     
     // Check if mobile
     const checkIfMobile = () => setIsMobile(window.innerWidth <= 768)
@@ -167,7 +175,7 @@ export default function Dashboard() {
         clearInterval(refreshInterval.current)
       }
     }
-  }, [])
+  }, [session])
 
   // Reset source filter if the selected option is no longer available
   useEffect(() => {
@@ -211,12 +219,21 @@ export default function Dashboard() {
 
   const fetchLinks = async () => {
     try {
-      // Get user ID from localStorage
-      const userId = localStorage.getItem('biirbal_user_id')
+      // Get user ID from either NextAuth session or localStorage (Slack OAuth)
+      const slackUserId = localStorage.getItem('biirbal_user_id')
+      const nextAuthUserId = session?.user?.id
+      
+      const userId = nextAuthUserId || slackUserId
       
       if (!userId) {
         throw new Error('No user found. Please log in again.')
       }
+
+      console.log('🔍 Fetching links for user:', {
+        userId,
+        authMethod: nextAuthUserId ? 'NextAuth' : 'Slack OAuth',
+        sessionEmail: session?.user?.email
+      })
 
       // Build URL with query parameters
       const params = new URLSearchParams({
@@ -271,9 +288,9 @@ export default function Dashboard() {
         setIsExceptionTeam(data.isExceptionTeam || false)
         setUserCanConsume(data.userCanConsume !== false) // Default to true if not provided
         
-        // Set analytics user properties
+        // Set analytics user properties - use the actual userId regardless of auth method
         analytics.setUser({
-          user_id: localStorage.getItem('biirbal_user_id') || undefined,
+          user_id: userId,
           plan_type: data.plan?.id || 'free',
           team_size: data.currentUsers || 1,
           monthly_usage: data.currentLinks || 0,
@@ -297,7 +314,11 @@ export default function Dashboard() {
 
   const fetchStats = async () => {
     try {
-      const userId = localStorage.getItem('biirbal_user_id')
+      // Get user ID from either NextAuth session or localStorage (Slack OAuth)
+      const slackUserId = localStorage.getItem('biirbal_user_id')
+      const nextAuthUserId = session?.user?.id
+      
+      const userId = nextAuthUserId || slackUserId
       
       if (!userId) {
         return
@@ -319,8 +340,11 @@ export default function Dashboard() {
 
   const trackListen = async (linkId: string): Promise<{ listen: any } | null> => {
     try {
-      // Get the current user ID from localStorage
-      const userId = localStorage.getItem('biirbal_user_id')
+      // Get user ID from either NextAuth session or localStorage (Slack OAuth)
+      const slackUserId = localStorage.getItem('biirbal_user_id')
+      const nextAuthUserId = session?.user?.id
+      
+      const userId = nextAuthUserId || slackUserId
       
       const requestBody = { 
         linkId: linkId,

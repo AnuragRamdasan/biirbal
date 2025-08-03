@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import { getPlanPrice } from '@/lib/stripe'
 import Script from 'next/script'
 import Head from 'next/head'
@@ -71,6 +72,7 @@ export default function PricingPage() {
     discount?: { type: string, amount: number, name?: string }
     error?: string
   }>({ valid: false, loading: false })
+  const { data: session } = useSession()
   
   // Initialize analytics
   const analytics = useAnalytics({
@@ -82,7 +84,12 @@ export default function PricingPage() {
   useEffect(() => {
     const fetchCurrentPlan = async () => {
       try {
-        const userId = localStorage.getItem('biirbal_user_id')
+        // Get user ID from either NextAuth session or localStorage (Slack OAuth)
+        const slackUserId = localStorage.getItem('biirbal_user_id')
+        const nextAuthUserId = session?.user?.id
+        
+        const userId = nextAuthUserId || slackUserId
+        
         if (!userId) return
         
         const response = await fetch(`/api/dashboard/usage?userId=${userId}`)
@@ -96,7 +103,7 @@ export default function PricingPage() {
     }
     
     fetchCurrentPlan()
-  }, [])
+  }, [session])
 
   // Track pricing page visit
   useEffect(() => {
@@ -169,13 +176,16 @@ export default function PricingPage() {
     })
     
     try {
-      // Get user ID from localStorage
-      const userId = localStorage.getItem('biirbal_user_id')
+      // Get user ID from either NextAuth session or localStorage (Slack OAuth)
+      const slackUserId = localStorage.getItem('biirbal_user_id')
+      const nextAuthUserId = session?.user?.id
+      
+      const userId = nextAuthUserId || slackUserId
       
       if (!userId) {
         analytics.trackFeature('checkout_blocked_no_user', { plan_id: planId })
         alert('Please log in first to access subscription plans.')
-        window.location.href = '/'
+        window.location.href = '/auth/signin'
         return
       }
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
 import { 
   Card, 
@@ -106,9 +107,16 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null)
   const [isMobile, setIsMobile] = useState(false)
   const router = useRouter()
+  const { data: session } = useSession()
 
   useEffect(() => {
-    fetchProfileData()
+    // Only fetch data when we have either a NextAuth session or Slack user ID
+    const slackUserId = localStorage.getItem('biirbal_user_id')
+    const nextAuthUserId = session?.user?.id
+    
+    if (nextAuthUserId || slackUserId) {
+      fetchProfileData()
+    }
     
     // Check if mobile
     const checkIfMobile = () => setIsMobile(window.innerWidth <= 768)
@@ -116,18 +124,23 @@ export default function ProfilePage() {
     window.addEventListener('resize', checkIfMobile)
     
     return () => window.removeEventListener('resize', checkIfMobile)
-  }, [])
+  }, [session])
 
   const fetchProfileData = async () => {
     try {
-      const storedUserId = localStorage.getItem('biirbal_user_id')
-      if (!storedUserId) {
+      // Get user ID from either NextAuth session or localStorage (Slack OAuth)
+      const slackUserId = localStorage.getItem('biirbal_user_id')
+      const nextAuthUserId = session?.user?.id
+      
+      const userId = nextAuthUserId || slackUserId
+      
+      if (!userId) {
         setError('No user found. Please log in first.')
         setLoading(false)
         return
       }
       
-      let url = `/api/profile?userId=${storedUserId}`
+      let url = `/api/profile?userId=${userId}`
       
       const response = await fetch(url)
       if (!response.ok) {
@@ -146,12 +159,18 @@ export default function ProfilePage() {
 
   const handleLogout = async () => {
     try {
-      // Clear all local storage items immediately
+      // Handle NextAuth logout if user is signed in via NextAuth
+      if (session) {
+        await signOut({ redirect: false })
+      }
+      
+      // Clear all local storage items for Slack OAuth users
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('biirbal_')) {
           localStorage.removeItem(key)
         }
       })
+      
       // Force immediate redirect to landing page
       window.location.href = '/'
     } catch (error) {
@@ -184,7 +203,12 @@ export default function ProfilePage() {
 
   const handleDMPreferenceChange = async (checked: boolean) => {
     try {
-      const userId = localStorage.getItem('biirbal_user_id')
+      // Get user ID from either NextAuth session or localStorage (Slack OAuth)
+      const slackUserId = localStorage.getItem('biirbal_user_id')
+      const nextAuthUserId = session?.user?.id
+      
+      const userId = nextAuthUserId || slackUserId
+      
       if (!userId) {
         throw new Error('User ID not found')
       }

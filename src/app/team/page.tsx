@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSession } from 'next-auth/react'
 import { 
   Card, 
   Row, 
@@ -89,6 +90,7 @@ export default function TeamManagement() {
   const [inviteModalVisible, setInviteModalVisible] = useState(false)
   const [inviteLoading, setInviteLoading] = useState(false)
   const [inviteForm] = Form.useForm()
+  const { data: session } = useSession()
   
   // Initialize analytics
   const analytics = useAnalytics({
@@ -120,12 +122,23 @@ export default function TeamManagement() {
   }
 
   useEffect(() => {
-    fetchTeamData()
-  }, [])
+    // Only fetch data when we have either a NextAuth session or Slack user ID
+    const slackUserId = localStorage.getItem('biirbal_user_id')
+    const nextAuthUserId = session?.user?.id
+    
+    if (nextAuthUserId || slackUserId) {
+      fetchTeamData()
+    }
+  }, [session])
 
   const fetchTeamData = async () => {
     try {
-      const userId = localStorage.getItem('biirbal_user_id')
+      // Get user ID from either NextAuth session or localStorage (Slack OAuth)
+      const slackUserId = localStorage.getItem('biirbal_user_id')
+      const nextAuthUserId = session?.user?.id
+      
+      const userId = nextAuthUserId || slackUserId
+      
       if (!userId) {
         throw new Error('No user found. Please log in again.')
       }
@@ -158,7 +171,11 @@ export default function TeamManagement() {
       const uniqueId = member.slackUserId || member.id // For loading state
       
       setActionLoading(uniqueId)
-      const currentUserId = localStorage.getItem('biirbal_user_id')
+      // Get user ID from either NextAuth session or localStorage (Slack OAuth)
+      const slackUserId = localStorage.getItem('biirbal_user_id')
+      const nextAuthUserId = session?.user?.id
+      
+      const currentUserId = nextAuthUserId || slackUserId
       // Note: currentUserId is either slackUserId (for Slack OAuth users) or database id (for invited users)
       
       const response = await fetch('/api/team/remove', {
@@ -200,7 +217,11 @@ export default function TeamManagement() {
   const handleInviteUser = async (values: { email: string }) => {
     try {
       setInviteLoading(true)
-      const currentUserId = localStorage.getItem('biirbal_user_id')
+      // Get user ID from either NextAuth session or localStorage (Slack OAuth)
+      const slackUserId = localStorage.getItem('biirbal_user_id')
+      const nextAuthUserId = session?.user?.id
+      
+      const currentUserId = nextAuthUserId || slackUserId
       
       const response = await fetch('/api/team/invite', {
         method: 'POST',
