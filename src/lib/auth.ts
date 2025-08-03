@@ -5,17 +5,70 @@ import EmailProvider from "next-auth/providers/email"
 import { emailService } from "@/lib/email-service"
 import { prisma } from "@/lib/db"
 
+// Custom Slack provider for NextAuth
+const SlackProvider = {
+  id: "slack",
+  name: "Slack",
+  type: "oauth" as const,
+  authorization: {
+    url: "https://slack.com/oauth/v2/authorize",
+    params: {
+      scope: "identity.basic,identity.email,identity.team,identity.avatar",
+      user_scope: "identity.basic,identity.email,identity.team,identity.avatar",
+    },
+  },
+  token: "https://slack.com/api/oauth.v2.access",
+  userinfo: {
+    url: "https://slack.com/api/users.identity",
+    async request({ tokens, provider }) {
+      const profile = await fetch("https://slack.com/api/users.identity", {
+        headers: {
+          Authorization: `Bearer ${tokens.access_token}`,
+        },
+      }).then(async (res) => await res.json())
+
+      return {
+        id: profile.user?.id,
+        name: profile.user?.name,
+        email: profile.user?.email,
+        image: profile.user?.image_192,
+        // Include Slack-specific data
+        slackUserId: profile.user?.id,
+        teamId: profile.team?.id,
+        teamName: profile.team?.name,
+      }
+    },
+  },
+  profile(profile) {
+    return {
+      id: profile.id,
+      name: profile.name,
+      email: profile.email,
+      image: profile.image,
+      // Slack-specific fields
+      slackUserId: profile.slackUserId,
+      teamId: profile.teamId,
+      teamName: profile.teamName,
+    }
+  },
+  clientId: process.env.SLACK_CLIENT_ID,
+  clientSecret: process.env.SLACK_CLIENT_SECRET,
+}
+
 // Use the unified database client for NextAuth
 console.log('🔧 Setting up NextAuth with unified database client...')
 
 export const authOptions: NextAuthOptions = {
-  // Remove adapter to use JWT strategy - no email linking restrictions
+  adapter: PrismaAdapter(prisma),
   debug: process.env.NODE_ENV === 'development',
+  // Allow users to sign in with different providers using the same email
+  allowDangerousEmailAccountLinking: true,
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
+    SlackProvider as any,
     EmailProvider({
       from: process.env.FROM_EMAIL || 'noreply@biirbal.com',
       sendVerificationRequest: async ({ identifier: email, url }) => {
@@ -103,128 +156,101 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account, profile }) {
       console.log(`🔐 Sign in attempt: ${user.email} via ${account?.provider}`)
       
-      // Handle user and team creation with JWT strategy
-      if (user.email) {
+      // Handle different providers
+      if (account?.provider === 'slack') {
+        // Handle Slack OAuth - create/update Slack team
+        console.log(`🔗 Slack OAuth for team: ${(profile as any)?.teamName}`)
         try {
-          // Check if user already exists
-          let existingUser = await prisma.user.findUnique({
-            where: { email: user.email },
-            include: { team: true },
+          // Find or create Slack team
+          let team = await prisma.team.findUnique({
+            where: { slackTeamId: (profile as any)?.teamId },
           })
 
-          // Create user if doesn't exist
-          if (!existingUser) {
-            console.log(`👤 Creating new user: ${user.email}`)
-            
-            // Generate a unique identifier for web-only teams
-            const webTeamId = `web_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-            
-            // Create team first
-            const team = await prisma.team.create({
+          if (!team) {
+            team = await prisma.team.create({
               data: {
-                slackTeamId: webTeamId,
-                teamName: `${user.name || user.email?.split('@')[0]}'s Team`,
+                slackTeamId: (profile as any)?.teamId,
+                teamName: (profile as any)?.teamName || 'Slack Team',
                 isActive: true,
               },
             })
 
-            // Create user with team
-            existingUser = await prisma.user.create({
-              data: {
-                email: user.email,
-                name: user.name,
-                image: user.image,
-                teamId: team.id,
-                emailVerified: new Date(),
-                isActive: true,
-              },
-              include: { team: true },
-            })
-
-            // Create default subscription
+            // Create default subscription for new Slack team
             await prisma.subscription.create({
               data: {
                 teamId: team.id,
                 status: 'TRIAL',
                 planId: 'free',
                 monthlyLinkLimit: 20,
-                userLimit: 1,
-              },
-            })
-            
-            console.log(`🏢 Created team and user for: ${user.email}`)
-          } else if (!existingUser.team) {
-            // User exists but has no team, create one
-            console.log(`🏢 Creating team for existing user: ${user.email}`)
-            const webTeamId = `web_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-            
-            const team = await prisma.team.create({
-              data: {
-                slackTeamId: webTeamId,
-                teamName: `${user.name || user.email?.split('@')[0]}'s Team`,
-                isActive: true,
-              },
-            })
-
-            await prisma.user.update({
-              where: { id: existingUser.id },
-              data: { teamId: team.id },
-            })
-
-            await prisma.subscription.create({
-              data: {
-                teamId: team.id,
-                status: 'TRIAL',
-                planId: 'free',
-                monthlyLinkLimit: 20,
-                userLimit: 1,
+                userLimit: 5, // Slack teams get higher user limit
               },
             })
           }
         } catch (error) {
-          console.error('❌ Error in signIn callback:', error)
-          // Don't block sign-in if there are errors
+          console.error('❌ Error handling Slack team:', error)
+        }
+      } else {
+        // Handle Google/Email OAuth - create web-only team if needed
+        if (user.email) {
+          try {
+            const existingUser = await prisma.user.findUnique({
+              where: { email: user.email },
+              include: { team: true },
+            })
+
+            // Only create team for users without one
+            if (!existingUser?.team) {
+              console.log(`🏢 Creating web team for: ${user.email}`)
+              const webTeamId = `web_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+              
+              const team = await prisma.team.create({
+                data: {
+                  slackTeamId: webTeamId,
+                  teamName: `${user.name || user.email?.split('@')[0]}'s Team`,
+                  isActive: true,
+                },
+              })
+
+              await prisma.subscription.create({
+                data: {
+                  teamId: team.id,
+                  status: 'TRIAL',
+                  planId: 'free',
+                  monthlyLinkLimit: 20,
+                  userLimit: 1,
+                },
+              })
+            }
+          } catch (error) {
+            console.error('❌ Error creating web team:', error)
+          }
         }
       }
       
       return true
     },
-    async jwt({ token, user, account, profile }) {
-      // Add user info to JWT token
-      if (user) {
-        token.id = user.id
-        token.email = user.email
-        token.name = user.name
-        token.image = user.image
-      }
-      
-      return token
-    },
-    async session({ session, token }) {
-      // Add user info from JWT to session
-      if (token && session.user) {
-        session.user.id = token.id as string
+    async session({ session, user }) {
+      if (session.user && user) {
+        session.user.id = user.id
         
-        // Fetch user's team information using email from token
-        if (token.email) {
-          const dbUser = await prisma.user.findUnique({
-            where: { email: token.email as string },
-            include: { 
-              team: {
-                include: {
-                  subscription: true,
-                }
+        // Fetch user's team information
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          include: { 
+            team: {
+              include: {
+                subscription: true,
               }
-            },
-          })
-
-          if (dbUser?.team) {
-            session.user.teamId = dbUser.team.id
-            session.user.team = {
-              id: dbUser.team.id,
-              name: dbUser.team.teamName,
-              subscription: dbUser.team.subscription,
             }
+          },
+        })
+
+        if (dbUser?.team) {
+          session.user.teamId = dbUser.team.id
+          session.user.team = {
+            id: dbUser.team.id,
+            name: dbUser.team.teamName,
+            subscription: dbUser.team.subscription,
           }
         }
       }
@@ -237,7 +263,7 @@ export const authOptions: NextAuthOptions = {
     error: '/auth/error',
   },
   session: {
-    strategy: "jwt",
+    strategy: "database",
   },
   secret: process.env.NEXTAUTH_SECRET,
 }

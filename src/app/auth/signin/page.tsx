@@ -37,6 +37,17 @@ function SignInContent() {
     }
   }
 
+  const handleSlackSignIn = async () => {
+    setLoading(true)
+    try {
+      await signIn('slack', { callbackUrl })
+    } catch (error) {
+      console.error('Slack sign-in error:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleEmailSignIn = async (values: { email: string }) => {
     setLoading(true)
     try {
@@ -125,6 +136,22 @@ function SignInContent() {
             block
           >
             Continue with Google
+          </Button>
+
+          <Button
+            type="default"
+            size="large"
+            loading={loading}
+            onClick={handleSlackSignIn}
+            block
+            style={{ 
+              backgroundColor: '#4A154B', 
+              borderColor: '#4A154B', 
+              color: 'white',
+              marginTop: '8px'
+            }}
+          >
+            🔗 Continue with Slack
           </Button>
 
           <Divider>Or</Divider>
