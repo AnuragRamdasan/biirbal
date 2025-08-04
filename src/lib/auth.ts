@@ -27,6 +27,41 @@ customAdapter.getUserByEmail = async (email: string) => {
   }
 }
 
+// Override linkAccount to handle Slack OAuth response properly
+const originalLinkAccount = customAdapter.linkAccount!
+customAdapter.linkAccount = async (account) => {
+  console.log('🔗 LinkAccount called with:', { provider: account.provider, type: account.type })
+  
+  // For Slack, only save the standard OAuth fields to avoid Prisma validation errors
+  if (account.provider === 'slack') {
+    const cleanAccount = {
+      userId: account.userId,
+      type: account.type,
+      provider: account.provider,
+      providerAccountId: account.providerAccountId,
+      // Only include standard OAuth fields that exist in Account schema
+      access_token: account.access_token,
+      refresh_token: account.refresh_token || null,
+      expires_at: account.expires_at || null,
+      token_type: account.token_type || 'bearer',
+      scope: account.scope || null,
+      id_token: account.id_token || null,
+      session_state: account.session_state || null,
+    }
+    
+    console.log('🔗 Saving cleaned Slack account data:', {
+      provider: cleanAccount.provider,
+      userId: cleanAccount.userId,
+      hasAccessToken: !!cleanAccount.access_token
+    })
+    
+    return await originalLinkAccount(cleanAccount)
+  }
+  
+  // For other providers, use original behavior
+  return await originalLinkAccount(account)
+}
+
 export const authOptions: NextAuthOptions = {
   adapter: customAdapter,
   debug: process.env.NODE_ENV === 'development',

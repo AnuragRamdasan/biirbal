@@ -1,7 +1,6 @@
 import React from 'react'
 import Header from './Header'
 import { cn } from '@/lib/utils'
-import DevAuthStatus from '@/components/dev/DevAuthStatus'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -18,7 +17,6 @@ export const Layout: React.FC<LayoutProps> = ({
 }) => {
   return (
     <div className={cn('min-h-screen bg-gradient-to-br from-white to-gray-50', className)}>
-      <DevAuthStatus />
       {showHeader && <Header currentPage={currentPage} />}
       <main className="flex-1">
         {children}

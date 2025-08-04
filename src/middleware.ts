@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 export function middleware(req: NextRequest) {
-  // Allow all routes since we're using localStorage auth (client-side only)
+  // Allow all routes since authentication is handled by NextAuth
   return NextResponse.next()
 }
 

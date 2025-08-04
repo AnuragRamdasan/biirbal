@@ -1,13 +1,11 @@
 import React from 'react'
 import { cn } from '@/lib/utils'
 import Header from './Header'
-import DevAuthStatus from '@/components/dev/DevAuthStatus'
 
 interface BiirbalLayoutProps {
   children: React.ReactNode
   currentPage?: 'home' | 'dashboard' | 'profile' | 'pricing' | 'team' | 'contact' | 'privacy' | 'terms'
   showHeader?: boolean
-  showDevAuth?: boolean
   variant?: 'default' | 'wide' | 'narrow'
   className?: string
 }
@@ -17,7 +15,6 @@ export const BiirbalLayout: React.FC<BiirbalLayoutProps> = ({
   children,
   currentPage,
   showHeader = true,
-  showDevAuth = true,
   variant = 'default',
   className
 }) => {
@@ -38,8 +35,6 @@ export const BiirbalLayout: React.FC<BiirbalLayoutProps> = ({
         fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
       }}
     >
-      {/* Development Authentication Status */}
-      {showDevAuth && process.env.NODE_ENV === 'development' && <DevAuthStatus />}
       
       {/* Header */}
       {showHeader && <Header currentPage={currentPage} />}

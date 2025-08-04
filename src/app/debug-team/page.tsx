@@ -2,26 +2,28 @@
 
 import { useEffect, useState } from 'react'
 import { Card, Button, Typography, Space, Alert, Descriptions } from 'antd'
+import { useSession } from 'next-auth/react'
 import Layout from '@/components/layout/Layout'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 
 const { Title, Text, Paragraph } = Typography
 
 export default function DebugTeamPage() {
+  const { data: session } = useSession()
   const [userId, setUserId] = useState<string | null>(null)
   const [teamData, setTeamData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Get user ID from localStorage
-    const storedUserId = localStorage.getItem('biirbal_user_id')
-    setUserId(storedUserId)
+    // Get user ID from NextAuth session
+    const sessionUserId = session?.user?.dbUserId || session?.user?.id
+    setUserId(sessionUserId || null)
     
-    if (storedUserId) {
-      checkUserTeam(storedUserId)
+    if (sessionUserId) {
+      checkUserTeam(sessionUserId)
     }
-  }, [])
+  }, [session])
 
   const checkUserTeam = async (userIdToCheck: string) => {
     setLoading(true)
@@ -63,19 +65,19 @@ export default function DebugTeamPage() {
         </Paragraph>
 
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
-          {/* User ID from localStorage */}
+          {/* User ID from session */}
           <Card>
-            <Title level={4}>User ID from localStorage</Title>
+            <Title level={4}>User ID from NextAuth Session</Title>
             {userId ? (
               <Alert
                 type="info"
                 message={`User ID: ${userId}`}
-                description="This is the user ID stored in your browser's localStorage"
+                description="This is the user ID from your authenticated session"
               />
             ) : (
               <Alert
                 type="warning"
-                message="No user ID found in localStorage"
+                message="No user ID found in session"
                 description="You may need to log in first"
               />
             )}

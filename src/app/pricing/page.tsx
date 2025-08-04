@@ -173,11 +173,8 @@ export default function PricingPage() {
     })
     
     try {
-      // Get user ID from either NextAuth session or localStorage (Slack OAuth)
-      const slackUserId = localStorage.getItem('biirbal_user_id')
-      const nextAuthUserId = session?.user?.id
-      
-      const userId = nextAuthUserId || slackUserId
+      // Get user ID from NextAuth session
+      const userId = session?.user?.dbUserId || session?.user?.id
       
       if (!userId) {
         analytics.trackFeature('checkout_blocked_no_user', { plan_id: planId })

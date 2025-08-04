@@ -2,13 +2,11 @@ import React from 'react'
 import { cn } from '@/lib/utils'
 import { designTokens } from '@/lib/design-tokens'
 import Header from './Header'
-import DevAuthStatus from '@/components/dev/DevAuthStatus'
 
 interface BaseLayoutProps {
   children: React.ReactNode
   currentPage?: 'home' | 'dashboard' | 'profile' | 'pricing' | 'team' | 'contact' | 'privacy' | 'terms'
   showHeader?: boolean
-  showDevAuth?: boolean
   variant?: 'default' | 'fullscreen' | 'centered' | 'wide'
   background?: 'default' | 'gradient' | 'neutral' | 'white'
   className?: string
@@ -34,7 +32,6 @@ export const BaseLayout: React.FC<BaseLayoutProps> = ({
   children,
   currentPage,
   showHeader = true,
-  showDevAuth = true,
   variant = 'default',
   background = 'default',
   className,
@@ -52,8 +49,6 @@ export const BaseLayout: React.FC<BaseLayoutProps> = ({
         fontFamily: designTokens.typography.fontFamily.sans.join(', ')
       }}
     >
-      {/* Development Authentication Status */}
-      {showDevAuth && process.env.NODE_ENV === 'development' && <DevAuthStatus />}
       
       {/* Header */}
       {showHeader && (
@@ -164,7 +159,6 @@ export const LandingLayout: React.FC<{
     currentPage="home"
     variant="fullscreen"
     background="gradient"
-    showDevAuth={false}
   >
     {children}
   </BaseLayout>

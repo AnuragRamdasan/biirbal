@@ -40,12 +40,6 @@ export function getBaseUrl(): string {
   return 'https://www.biirbal.com'
 }
 
-/**
- * Get the OAuth redirect URI
- */
-export function getOAuthRedirectUri(): string {
-  return `${getBaseUrl()}/api/slack/oauth`
-}
 
 /**
  * Get the dashboard URL with optional link ID
