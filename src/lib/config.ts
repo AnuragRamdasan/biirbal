@@ -48,3 +48,49 @@ export function getDashboardUrl(linkId?: string): string {
   const baseUrl = getBaseUrl()
   return linkId ? `${baseUrl}/#${linkId}` : `${baseUrl}/`
 }
+
+/**
+ * Get the Slack app installation URL
+ */
+export function getSlackInstallUrl(): string {
+  if (!process.env.SLACK_CLIENT_ID || 
+      process.env.SLACK_CLIENT_ID === 'dummy_client_id' ||
+      !process.env.SLACK_CLIENT_SECRET ||
+      process.env.SLACK_CLIENT_SECRET === 'dummy_client_secret') {
+    throw new Error('Slack OAuth is not properly configured')
+  }
+
+  const baseUrl = getBaseUrl()
+  const redirectUri = `${baseUrl}/api/slack/install`
+  
+  // Slack app installation requires these specific scopes for the bot
+  const scopes = [
+    'app_mentions:read',
+    'channels:history',
+    'channels:read', 
+    'chat:write',
+    'files:write',
+    'groups:history',
+    'groups:read',
+    'im:history',
+    'im:read',
+    'mpim:history',
+    'mpim:read',
+    'incoming-webhook',
+    'links.embed:write',
+    'links:read',
+    'team:read'
+  ].join(',')
+
+  // User scopes for getting user info
+  const userScope = 'users:read'
+
+  const params = new URLSearchParams({
+    client_id: process.env.SLACK_CLIENT_ID,
+    scope: scopes,
+    user_scope: userScope,
+    redirect_uri: redirectUri,
+  })
+
+  return `https://slack.com/oauth/v2/authorize?${params.toString()}`
+}

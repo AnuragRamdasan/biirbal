@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { useEffect, useState, useRef, Suspense } from 'react'
 import Script from 'next/script'
+import { getSlackInstallUrl } from '@/lib/config'
 import { 
   Row, 
   Col, 
@@ -180,6 +181,15 @@ function HomeContent() {
     if (searchParams.get('error')) {
       setError(searchParams.get('error') || 'Authentication failed')
       return
+    }
+
+    // Handle Slack app installation success
+    if (searchParams.get('installed') === 'true') {
+      setInstalled(true)
+      const source = searchParams.get('source')
+      if (source === 'slack') {
+        console.log('✅ Slack app installed successfully')
+      }
     }
 
     // Check if user is authenticated via NextAuth
@@ -1431,6 +1441,14 @@ function HomeContent() {
 
   // Use NextAuth signin page for authentication
   const authSigninUrl = '/auth/signin'
+  
+  // Use proper Slack app installation URL (fallback to signin if not configured)
+  let slackInstallUrl = authSigninUrl
+  try {
+    slackInstallUrl = getSlackInstallUrl()
+  } catch (error) {
+    console.warn('Slack not configured, falling back to auth signin')
+  }
 
   // If user is authenticated, show dashboard
   if (showDashboard && !error) {
@@ -1602,7 +1620,7 @@ function HomeContent() {
                     type="primary" 
                     size="large" 
                     icon={<SlackOutlined />}
-                    href={authSigninUrl}
+                    href={slackInstallUrl}
                     style={{ 
                       background: 'linear-gradient(135deg, #4A154B 0%, #6B4E71 100%)',
                       border: 'none',
@@ -1615,7 +1633,7 @@ function HomeContent() {
                       transition: 'all 0.3s ease'
                     }}
                   >
-                    Start Free Trial
+                    Add to Slack
                   </Button>
                   
                   <Button 
@@ -2416,7 +2434,7 @@ function HomeContent() {
                 type="primary" 
                 size="large" 
                 icon={<SlackOutlined />}
-                href={authSigninUrl}
+                href={slackInstallUrl}
                 style={{ 
                   background: 'linear-gradient(135deg, #4A154B 0%, #6B4E71 100%)',
                   border: 'none',
@@ -2429,7 +2447,7 @@ function HomeContent() {
                   transition: 'all 0.3s ease'
                 }}
               >
-                Start Free Trial - No Credit Card
+                Add to Slack - Free Trial
               </Button>
               
               <Button 
