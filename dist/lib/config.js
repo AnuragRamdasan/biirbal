@@ -51,5 +51,5 @@ function getOAuthRedirectUri() {
  */
 function getDashboardUrl(linkId) {
     const baseUrl = getBaseUrl();
-    return linkId ? `${baseUrl}/dashboard#${linkId}` : `${baseUrl}/dashboard`;
+    return linkId ? `${baseUrl}/#${linkId}` : `${baseUrl}/`;
 }
