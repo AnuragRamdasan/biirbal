@@ -251,7 +251,7 @@ export const authOptions: NextAuthOptions = {
           // Check if this is a new team
           const existingTeam = await prisma.team.findUnique({
             where: { slackTeamId: teamId },
-            include: { users: true }
+            include: { memberships: true }
           })
 
           const isNewTeam = !existingTeam
@@ -296,14 +296,41 @@ export const authOptions: NextAuthOptions = {
             }
           }
 
-          // Handle user creation/update
+          // Handle user creation/update with multi-team support
           if (userId && userAccessToken) {
-            const existingUser = await prisma.user.findUnique({
-              where: { slackUserId: userId }
+            // Find or create the user (by email if available, since same person can be in multiple Slack teams)
+            let dbUser = null
+            if (slackProfile.email) {
+              dbUser = await prisma.user.findUnique({
+                where: { email: slackProfile.email },
+                include: { memberships: true }
+              })
+            }
+
+            // If no user found by email, create a new user
+            if (!dbUser) {
+              dbUser = await prisma.user.create({
+                data: {
+                  email: slackProfile.email,
+                  name: slackProfile.name,
+                  image: slackProfile.image
+                },
+                include: { memberships: true }
+              })
+            }
+
+            // Check if user is already a member of this team
+            const existingMembership = await prisma.teamMembership.findUnique({
+              where: {
+                userId_teamId: {
+                  userId: dbUser.id,
+                  teamId: team.id
+                }
+              }
             })
 
             let userSeatAllowed = true
-            if (!existingUser) {
+            if (!existingMembership) {
               const canAdd = await canAddNewUser(teamId)
               if (!canAdd.allowed) {
                 console.log('Cannot add new user due to seat limit:', canAdd.reason)
@@ -311,14 +338,18 @@ export const authOptions: NextAuthOptions = {
               }
             }
 
-            const dbUser = await prisma.user.upsert({
-              where: { slackUserId: userId },
+            // Create or update team membership
+            await prisma.teamMembership.upsert({
+              where: {
+                userId_teamId: {
+                  userId: dbUser.id,
+                  teamId: team.id
+                }
+              },
               update: {
-                teamId: team.id,
-                name: slackProfile.name,
+                slackUserId: userId,
                 displayName: slackProfile.displayName,
                 realName: slackProfile.realName,
-                email: slackProfile.email,
                 profileImage24: slackProfile.profileImage24,
                 profileImage32: slackProfile.profileImage32,
                 profileImage48: slackProfile.profileImage48,
@@ -328,23 +359,23 @@ export const authOptions: NextAuthOptions = {
                 updatedAt: new Date()
               },
               create: {
-                slackUserId: userId,
+                userId: dbUser.id,
                 teamId: team.id,
-                name: slackProfile.name,
+                slackUserId: userId,
                 displayName: slackProfile.displayName,
                 realName: slackProfile.realName,
-                email: slackProfile.email,
                 profileImage24: slackProfile.profileImage24,
                 profileImage32: slackProfile.profileImage32,
                 profileImage48: slackProfile.profileImage48,
                 title: slackProfile.title,
                 userAccessToken,
+                role: 'member',
                 isActive: userSeatAllowed
               }
             })
 
-            // Send user signup notification for new users
-            if (!existingUser) {
+            // Send user signup notification for new memberships
+            if (!existingMembership) {
               try {
                 await adminNotifications.notifyUserSignup({
                   userId,
@@ -378,11 +409,16 @@ export const authOptions: NextAuthOptions = {
         try {
           const dbUser = await prisma.user.findUnique({
             where: { id: user.id },
-            include: { team: true },
+            include: { memberships: { include: { team: true } } },
           })
 
-          if (!dbUser?.team) {
-            console.log(`🏢 Creating web team for: ${user.email}`)
+          // Check if user has any personal (non-Slack) teams
+          const hasPersonalTeam = dbUser?.memberships.some(m => 
+            !m.team.slackTeamId || m.team.slackTeamId.startsWith('web_')
+          )
+
+          if (!hasPersonalTeam) {
+            console.log(`🏢 Creating personal team for: ${user.email}`)
             const webTeamId = `web_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
             
             const team = await prisma.team.create({
@@ -390,26 +426,31 @@ export const authOptions: NextAuthOptions = {
                 slackTeamId: webTeamId,
                 teamName: `${user.name || user.email?.split('@')[0]}'s Team`,
                 isActive: true,
+                subscription: {
+                  create: {
+                    status: 'TRIAL',
+                    planId: 'free',
+                    monthlyLinkLimit: 20,
+                    userLimit: 1,
+                  }
+                }
               },
             })
 
-            await prisma.subscription.create({
+            // Create team membership for the user as admin
+            await prisma.teamMembership.create({
               data: {
+                userId: user.id,
                 teamId: team.id,
-                status: 'TRIAL',
-                planId: 'free',
-                monthlyLinkLimit: 20,
-                userLimit: 1,
-              },
+                role: 'admin',
+                isActive: true
+              }
             })
 
-            await prisma.user.update({
-              where: { id: user.id },
-              data: { teamId: team.id },
-            })
+            console.log(`✅ Created personal team ${team.id} for user ${user.email}`)
           }
         } catch (error) {
-          console.error('❌ Error creating web team:', error)
+          console.error('❌ Error creating personal team:', error)
         }
       }
       
@@ -419,99 +460,73 @@ export const authOptions: NextAuthOptions = {
       if (session.user && user) {
         session.user.id = user.id
         
-        // For Slack users, find by slackUserId first, then by NextAuth user.id
-        let dbUser = null
-        
-        // First try to find Slack user by email if available
-        if (session.user.email) {
-          dbUser = await prisma.user.findFirst({
-            where: {
-              email: session.user.email,
-              slackUserId: { not: null }
-            },
-            include: { 
-              team: {
-                include: {
-                  subscription: true,
+        // Get user with all their team memberships
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          include: { 
+            memberships: {
+              include: {
+                team: {
+                  include: {
+                    subscription: true,
+                  }
                 }
-              }
-            },
-          })
-        }
-        
-        // If not found as Slack user, try by NextAuth ID
-        if (!dbUser) {
-          dbUser = await prisma.user.findUnique({
-            where: { id: user.id },
-            include: { 
-              team: {
-                include: {
-                  subscription: true,
-                }
-              }
-            },
-          })
-        }
-
-        // Create team if user doesn't have one (for web users only)
-        if (dbUser && !dbUser.team && !dbUser.slackUserId) {
-          console.log(`🏢 Creating web team for NextAuth user: ${session.user.email}`)
-          try {
-            const webTeamId = `web_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-            
-            const team = await prisma.team.create({
-              data: {
-                slackTeamId: webTeamId,
-                teamName: `${session.user.name || session.user.email?.split('@')[0]}'s Team`,
-                isActive: true,
               },
-            })
-
-            await prisma.subscription.create({
-              data: {
-                teamId: team.id,
-                status: 'TRIAL',
-                planId: 'free',
-                monthlyLinkLimit: 20,
-                userLimit: 1,
-              },
-            })
-
-            await prisma.user.update({
-              where: { id: user.id },
-              data: { teamId: team.id },
-            })
-
-            // Update session with new team info
-            session.user.teamId = team.id
-            session.user.dbUserId = user.id // Include database user ID
-            session.user.team = {
-              id: team.id,
-              name: team.teamName,
-              subscription: {
-                status: 'TRIAL',
-                planId: 'free',
-                monthlyLinkLimit: 20,
-                userLimit: 1,
-              },
+              where: { isActive: true }
             }
-          } catch (error) {
-            console.error('❌ Error creating web team in session:', error)
-          }
-        } else if (dbUser?.team) {
-          session.user.teamId = dbUser.team.id
-          session.user.team = {
-            id: dbUser.team.id,
-            name: dbUser.team.teamName,
-            subscription: dbUser.team.subscription,
-          }
-          
-          // Include the database user ID for all users for API compatibility
+          },
+        })
+
+        if (dbUser) {
           session.user.dbUserId = dbUser.id
           
-          // For Slack users, also include the Slack user ID
-          if (dbUser.slackUserId) {
-            session.user.slackUserId = dbUser.slackUserId
+          // Add all team memberships to session
+          session.user.teams = dbUser.memberships.map(membership => ({
+            id: membership.team.id,
+            name: membership.team.teamName,
+            slackTeamId: membership.team.slackTeamId,
+            role: membership.role,
+            isSlackTeam: !!membership.team.slackTeamId && !membership.team.slackTeamId.startsWith('web_'),
+            subscription: membership.team.subscription,
+            membership: {
+              id: membership.id,
+              slackUserId: membership.slackUserId,
+              displayName: membership.displayName,
+              realName: membership.realName,
+              profileImage24: membership.profileImage24,
+              isActive: membership.isActive,
+              role: membership.role
+            }
+          }))
+
+          // Set default team (first personal team, or first team if no personal team)
+          const personalTeam = dbUser.memberships.find(m => 
+            m.team.slackTeamId?.startsWith('web_') || !m.team.slackTeamId
+          )
+          const defaultTeam = personalTeam || dbUser.memberships[0]
+          
+          if (defaultTeam) {
+            session.user.currentTeam = {
+              id: defaultTeam.team.id,
+              name: defaultTeam.team.teamName,
+              slackTeamId: defaultTeam.team.slackTeamId,
+              role: defaultTeam.role,
+              isSlackTeam: !!defaultTeam.team.slackTeamId && !defaultTeam.team.slackTeamId.startsWith('web_'),
+              subscription: defaultTeam.team.subscription,
+            }
+            
+            // Legacy fields for backward compatibility
+            session.user.teamId = defaultTeam.team.id
+            session.user.team = {
+              id: defaultTeam.team.id,
+              name: defaultTeam.team.teamName,
+              subscription: defaultTeam.team.subscription,
+            }
+
+            // Include Slack user ID if this is a Slack team membership
+            if (defaultTeam.slackUserId) {
+              session.user.slackUserId = defaultTeam.slackUserId
+            }
           }
         }
       }

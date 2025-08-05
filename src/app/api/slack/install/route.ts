@@ -128,38 +128,67 @@ export async function GET(request: NextRequest) {
       // Handle user creation/update if user info is available
       if (userId && userAccessToken) {
         try {
-          const existingUser = await db.user.findUnique({
-            where: { slackUserId: userId }
-          })
-
-          let userSeatAllowed = true
-          if (!existingUser) {
-            const canAdd = await canAddNewUser(teamId)
-            if (!canAdd.allowed) {
-              installLogger.warn('Cannot add new user due to seat limit', { 
-                teamId, 
-                userId, 
-                reason: canAdd.reason 
-              })
-              userSeatAllowed = false
-            }
-          }
-
           // Get user info from Slack
           const userSlackClient = new WebClient(userAccessToken)
           const userInfo = await userSlackClient.users.info({ user: userId })
 
           if (userInfo.ok && userInfo.user) {
-            const isNewUser = !existingUser
+            // Find existing user by email (since same person can be in multiple Slack teams)
+            let dbUser = null
+            if (userInfo.user.profile?.email) {
+              dbUser = await db.user.findUnique({
+                where: { email: userInfo.user.profile.email },
+                include: { memberships: true }
+              })
+            }
 
-            await db.user.upsert({
-              where: { slackUserId: userId },
+            // If no user found by email, create a new user
+            if (!dbUser) {
+              dbUser = await db.user.create({
+                data: {
+                  email: userInfo.user.profile?.email,
+                  name: userInfo.user.name,
+                  image: userInfo.user.profile?.image_192
+                },
+                include: { memberships: true }
+              })
+            }
+
+            // Check if user is already a member of this team
+            const existingMembership = await db.teamMembership.findUnique({
+              where: {
+                userId_teamId: {
+                  userId: dbUser.id,
+                  teamId: team.id
+                }
+              }
+            })
+
+            let userSeatAllowed = true
+            if (!existingMembership) {
+              const canAdd = await canAddNewUser(teamId)
+              if (!canAdd.allowed) {
+                installLogger.warn('Cannot add new user due to seat limit', { 
+                  teamId, 
+                  userId, 
+                  reason: canAdd.reason 
+                })
+                userSeatAllowed = false
+              }
+            }
+
+            // Create or update team membership
+            await db.teamMembership.upsert({
+              where: {
+                userId_teamId: {
+                  userId: dbUser.id,
+                  teamId: team.id
+                }
+              },
               update: {
-                teamId: team.id,
-                name: userInfo.user.name,
+                slackUserId: userId,
                 displayName: userInfo.user.profile?.display_name,
                 realName: userInfo.user.profile?.real_name,
-                email: userInfo.user.profile?.email,
                 profileImage24: userInfo.user.profile?.image_24,
                 profileImage32: userInfo.user.profile?.image_32,
                 profileImage48: userInfo.user.profile?.image_48,
@@ -169,23 +198,23 @@ export async function GET(request: NextRequest) {
                 updatedAt: new Date()
               },
               create: {
-                slackUserId: userId,
+                userId: dbUser.id,
                 teamId: team.id,
-                name: userInfo.user.name,
+                slackUserId: userId,
                 displayName: userInfo.user.profile?.display_name,
                 realName: userInfo.user.profile?.real_name,
-                email: userInfo.user.profile?.email,
                 profileImage24: userInfo.user.profile?.image_24,
                 profileImage32: userInfo.user.profile?.image_32,
                 profileImage48: userInfo.user.profile?.image_48,
                 title: userInfo.user.profile?.title,
                 userAccessToken,
+                role: 'member',
                 isActive: userSeatAllowed
               }
             })
 
-            // Send user signup notification for new users
-            if (isNewUser) {
+            // Send user signup notification for new memberships
+            if (!existingMembership) {
               try {
                 await adminNotifications.notifyUserSignup({
                   userId,

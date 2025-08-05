@@ -10,39 +10,29 @@ datasource db {
 }
 
 model Team {
-  id             String          @id @default(cuid())
-  slackTeamId    String?         @unique
-  teamName       String?
-  accessToken    String?
-  botUserId      String?
-  isActive       Boolean         @default(true)
-  sendSummaryAsDM Boolean        @default(false)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  channels       Channel[]
-  processedLinks ProcessedLink[]
-  subscription   Subscription?
-  users          User[]
-  invitations    TeamInvitation[]
+  id              String           @id @default(cuid())
+  slackTeamId     String?          @unique
+  teamName        String?
+  accessToken     String?
+  botUserId       String?
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  sendSummaryAsDM Boolean          @default(false)
+  channels        Channel[]
+  processedLinks  ProcessedLink[]
+  subscription    Subscription?
+  invitations     TeamInvitation[]
+  memberships     TeamMembership[]
 
   @@map("teams")
 }
 
 model User {
   id               String        @id @default(cuid())
-  slackUserId      String?       @unique
-  teamId           String?
   name             String?
-  displayName      String?
-  realName         String?
   email            String?       @unique
-  image            String?       // NextAuth profile image
-  profileImage24   String?
-  profileImage32   String?
-  profileImage48   String?
-  title            String?
-  userAccessToken  String?
-  isActive         Boolean       @default(true)
+  image            String?
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
   password         String?
@@ -52,9 +42,34 @@ model User {
   accounts         Account[]
   audioListens     AudioListen[]
   sessions         Session[]
-  team             Team?         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  memberships      TeamMembership[]
 
   @@map("users")
+}
+
+model TeamMembership {
+  id               String    @id @default(cuid())
+  userId           String
+  teamId           String
+  slackUserId      String?   // Slack-specific user ID for this team
+  displayName      String?
+  realName         String?
+  profileImage24   String?
+  profileImage32   String?
+  profileImage48   String?
+  title            String?
+  userAccessToken  String?   // Slack user token for this team
+  role             String    @default("member") // admin, member, etc.
+  isActive         Boolean   @default(true)
+  joinedAt         DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team             Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, teamId])
+  @@unique([slackUserId, teamId]) // Same Slack user can't be in same team twice
+  @@map("team_memberships")
 }
 
 model Channel {
@@ -116,13 +131,13 @@ model Subscription {
 model AudioListen {
   id              String        @id @default(cuid())
   processedLinkId String
-  userId          String?       // Primary user identifier (database user.id)
+  userId          String?
   userAgent       String?
   ipAddress       String?
   listenedAt      DateTime      @default(now())
   completed       Boolean       @default(false)
   listenDuration  Int?
-  slackUserId     String?       // Legacy field for Slack users, kept for backward compatibility
+  slackUserId     String?
   resumePosition  Int?          @default(0)
   processedLink   ProcessedLink @relation(fields: [processedLinkId], references: [id], onDelete: Cascade)
   user            User?         @relation(fields: [userId], references: [id])
@@ -187,17 +202,17 @@ model VerificationToken {
 }
 
 model TeamInvitation {
-  id          String            @id @default(cuid())
-  teamId      String
-  email       String
-  invitedBy   String?           // User ID who sent the invitation
-  token       String            @unique
-  status      InvitationStatus  @default(PENDING)
-  expiresAt   DateTime
-  acceptedAt  DateTime?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  team        Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  id         String           @id @default(cuid())
+  teamId     String
+  email      String
+  token      String           @unique
+  status     InvitationStatus @default(PENDING)
+  invitedBy  String?
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  team       Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@unique([teamId, email])
   @@map("team_invitations")
