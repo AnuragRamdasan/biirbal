@@ -122,6 +122,13 @@ async function processContentAndAudio(url, updateProgress) {
 async function notifySlack(context, params, updateProgress) {
     const { team, processedLink, isLimitExceeded } = context;
     const { channelId, messageTs } = params;
+    // Skip Slack notifications for web-only teams (no Slack integration)
+    if (!team.accessToken || !team.slackTeamId || team.slackTeamId.startsWith('web_')) {
+        console.log(`📧 Skipping Slack notification for web-only team: ${team.slackTeamId || team.id}`);
+        if (updateProgress)
+            await updateProgress(100);
+        return;
+    }
     const slackClient = new web_api_1.WebClient(team.accessToken);
     const baseMessage = `🎧 Audio summary ready: ${(0, config_1.getDashboardUrl)(processedLink.id)}`;
     const limitMessage = isLimitExceeded ? `\n\n⚠️ Note: You've exceeded your monthly limit. Upgrade to access playbook on dashboard.` : '';
