@@ -109,11 +109,9 @@ export async function POST(request: NextRequest) {
       const virtualChannel = await db.channel.findFirst({
         where: { 
           teamId: team.id,
-          OR: [
-            { slackChannelId: null },
-            { slackChannelId: `web_${team.id}` },
-            { slackChannelId: `ext_${team.id}` }
-          ]
+          slackChannelId: {
+            in: [`web_${team.id}`, `ext_${team.id}`]
+          }
         }
       })
       
