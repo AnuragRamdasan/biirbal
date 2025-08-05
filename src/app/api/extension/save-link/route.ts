@@ -99,24 +99,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // For web-only teams (no Slack integration), we need to handle the lack of channels differently
+    // Handle teams with or without channels
     let channelId = null;
     if (team.channels.length > 0) {
       channelId = team.channels[0].id
-    } else if (!team.slackTeamId) {
-      // This is a web-only team, create a virtual channel if needed
+    } else {
+      // No channels found - create a virtual channel for both web-only and Slack teams
+      // This handles cases where Slack integration exists but no channels are synced yet
       const virtualChannel = await db.channel.findFirst({
         where: { 
           teamId: team.id,
-          slackChannelId: null 
+          OR: [
+            { slackChannelId: null },
+            { slackChannelId: `web_${team.id}` },
+            { slackChannelId: `ext_${team.id}` }
+          ]
         }
       })
       
       if (!virtualChannel) {
+        // Create a virtual channel for extension submissions
+        const channelIdPrefix = team.slackTeamId ? 'ext' : 'web'
+        const channelName = team.slackTeamId ? 'Extension Links' : 'Web Links'
+        
         const newChannel = await db.channel.create({
           data: {
-            slackChannelId: `web_${team.id}`,
-            channelName: 'Web Links',
+            slackChannelId: `${channelIdPrefix}_${team.id}`,
+            channelName: channelName,
             teamId: team.id,
             isActive: true
           }
@@ -125,11 +134,6 @@ export async function POST(request: NextRequest) {
       } else {
         channelId = virtualChannel.id
       }
-    } else {
-      return NextResponse.json(
-        { error: 'No channels found for team' },
-        { status: 400 }
-      )
     }
 
     // Generate a unique messageTs for extension submissions

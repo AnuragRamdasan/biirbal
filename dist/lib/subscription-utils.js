@@ -25,9 +25,10 @@ async function getTeamUsageStats(teamId) {
         where: { slackTeamId: teamId },
         include: {
             subscription: true,
-            users: {
+            memberships: {
                 where: { isActive: true },
-                orderBy: { createdAt: 'asc' }
+                include: { user: true },
+                orderBy: { joinedAt: 'asc' }
             },
             processedLinks: {
                 where: {
@@ -54,7 +55,7 @@ async function getTeamUsageStats(teamId) {
     };
     // Calculate current usage
     const currentLinks = team.processedLinks.length;
-    const currentUsers = team.users.filter(user => user.isActive).length;
+    const currentUsers = team.memberships.filter(membership => membership.isActive).length;
     // For exception teams, bypass all limits
     if (isException) {
         return {
@@ -98,22 +99,22 @@ async function canUserConsume(teamId, userId) {
             return true;
         }
         const db = await (0, db_1.getDbClient)();
-        const user = await db.user.findFirst({
+        const membership = await db.teamMembership.findFirst({
             where: {
-                id: userId,
+                user: { id: userId },
                 team: { slackTeamId: teamId }
             }
         });
-        if (!user?.isActive) {
+        if (!membership?.isActive) {
             return false;
         }
         const team = await db.team.findUnique({
             where: { slackTeamId: teamId },
             include: {
                 subscription: true,
-                users: {
+                memberships: {
                     where: { isActive: true },
-                    orderBy: { createdAt: 'asc' }
+                    orderBy: { joinedAt: 'asc' }
                 }
             }
         });
@@ -131,7 +132,7 @@ async function canUserConsume(teamId, userId) {
             return true;
         }
         // For all plans with user limits (including free), check seat limits
-        const userIndex = team.users.findIndex(u => u.id === userId);
+        const userIndex = team.memberships.findIndex(m => m.userId === userId);
         const withinUserLimit = userIndex !== -1 && userIndex < plan.userLimit;
         // Free plans also need to check link limits
         if (plan.id === 'free') {
