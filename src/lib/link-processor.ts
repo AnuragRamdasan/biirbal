@@ -187,7 +187,7 @@ async function notifySlack(
 async function sendDMsToTeamMembers(slackClient: WebClient, teamId: string, message: string): Promise<void> {
   const db = await getDbClient()
   
-  const activeUsers = await db.user.findMany({
+  const activeMembers = await db.teamMembership.findMany({
     where: {
       teamId,
       isActive: true,
@@ -195,21 +195,26 @@ async function sendDMsToTeamMembers(slackClient: WebClient, teamId: string, mess
     },
     select: {
       slackUserId: true,
-      name: true
+      displayName: true,
+      user: {
+        select: {
+          name: true
+        }
+      }
     }
   })
   
   
-  const dmPromises = activeUsers.map(async (user) => {
-    if (!user.slackUserId) return
+  const dmPromises = activeMembers.map(async (member) => {
+    if (!member.slackUserId) return
     
     try {
       await slackClient.chat.postMessage({
-        channel: user.slackUserId,
+        channel: member.slackUserId,
         text: message
       })
     } catch (error) {
-      console.error(`❌ Failed to send DM to ${user.name} (${user.slackUserId}):`, error)
+      console.error(`❌ Failed to send DM to ${member.displayName || member.user.name} (${member.slackUserId}):`, error)
     }
   })
   
