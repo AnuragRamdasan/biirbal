@@ -18,21 +18,26 @@ export async function GET(request: NextRequest) {
 
     const db = await getDbClient()
 
-    // Get user's team
+    // Get user's teams through memberships
     const user = await db.user.findUnique({
       where: { id: session.user.id },
       include: {
-        team: {
-          select: {
-            id: true,
-            slackTeamId: true,
-            teamName: true,
-            isActive: true,
-            subscription: {
+        memberships: {
+          where: { isActive: true },
+          include: {
+            team: {
               select: {
-                status: true,
-                planId: true,
-                monthlyLinkLimit: true
+                id: true,
+                slackTeamId: true,
+                teamName: true,
+                isActive: true,
+                subscription: {
+                  select: {
+                    status: true,
+                    planId: true,
+                    monthlyLinkLimit: true
+                  }
+                }
               }
             }
           }
@@ -40,28 +45,21 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      )
-    }
-
-    if (!user.team) {
+    if (!user || user.memberships.length === 0) {
       return NextResponse.json([])
     }
 
     // Format team data
-    const team = {
-      id: user.team.id,
-      slackTeamId: user.team.slackTeamId || user.team.id,
-      teamName: user.team.teamName || 'My Team',
-      isActive: user.team.isActive,
-      subscription: user.team.subscription
-    }
+    const teams = user.memberships.map(membership => ({
+      id: membership.team.id,
+      slackTeamId: membership.team.slackTeamId || membership.team.id,
+      teamName: membership.team.teamName || 'My Team',
+      isActive: membership.team.isActive,
+      subscription: membership.team.subscription
+    }))
 
     // Return as array to match extension expectations
-    return NextResponse.json([team])
+    return NextResponse.json(teams)
 
   } catch (error) {
     console.error('Failed to fetch teams:', error)

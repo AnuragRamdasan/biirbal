@@ -20,25 +20,30 @@ export async function GET(request: NextRequest) {
     const user = await db.user.findUnique({
       where: { id: session.user.id },
       include: {
-        team: {
-          select: {
-            id: true,
-            slackTeamId: true,
-            teamName: true,
-            isActive: true,
-            subscription: {
+        memberships: {
+          where: { isActive: true },
+          include: {
+            team: {
               select: {
-                status: true,
-                planId: true,
-                monthlyLinkLimit: true
-              }
-            },
-            _count: {
-              select: {
-                processedLinks: {
-                  where: {
-                    createdAt: {
-                      gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+                id: true,
+                slackTeamId: true,
+                teamName: true,
+                isActive: true,
+                subscription: {
+                  select: {
+                    status: true,
+                    planId: true,
+                    monthlyLinkLimit: true
+                  }
+                },
+                _count: {
+                  select: {
+                    processedLinks: {
+                      where: {
+                        createdAt: {
+                          gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+                        }
+                      }
                     }
                   }
                 }
@@ -49,14 +54,14 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    if (!user) {
+    if (!user || user.memberships.length === 0) {
       return NextResponse.json(
-        { error: 'User not found' },
+        { error: 'User not found or no team memberships' },
         { status: 404 }
       )
     }
 
-    const teams = user.team ? [user.team] : []
+    const teams = user.memberships.map(membership => membership.team)
 
     // Format teams for extension
     const formattedTeams = teams.map(team => ({

@@ -39,38 +39,19 @@ export async function POST(request: NextRequest) {
     // Get user's team - if teamId is provided, use it, otherwise use user's default team
     let team;
     if (teamId) {
-      // Find team by ID or slackTeamId and verify user has access
-      team = await db.team.findFirst({
+      // Find team by ID or slackTeamId and verify user has access via membership
+      const userMembership = await db.teamMembership.findFirst({
         where: {
-          AND: [
-            {
-              OR: [
-                { id: teamId },
-                { slackTeamId: teamId }
-              ]
-            },
-            {
-              users: {
-                some: { id: session.user.id }
-              }
-            }
-          ]
-        },
-        select: { 
-          id: true, 
-          accessToken: true,
-          slackTeamId: true,
-          channels: {
-            select: { id: true },
-            take: 1
+          userId: session.user.id,
+          isActive: true,
+          team: {
+            OR: [
+              { id: teamId },
+              { slackTeamId: teamId }
+            ]
           }
-        }
-      })
-    } else {
-      // Use user's default team
-      team = await db.user.findUnique({
-        where: { id: session.user.id },
-        select: {
+        },
+        include: {
           team: {
             select: {
               id: true,
@@ -83,7 +64,32 @@ export async function POST(request: NextRequest) {
             }
           }
         }
-      }).then(user => user?.team)
+      })
+      
+      team = userMembership?.team
+    } else {
+      // Use user's first active team membership
+      const userMembership = await db.teamMembership.findFirst({
+        where: {
+          userId: session.user.id,
+          isActive: true
+        },
+        include: {
+          team: {
+            select: {
+              id: true,
+              accessToken: true,
+              slackTeamId: true,
+              channels: {
+                select: { id: true },
+                take: 1
+              }
+            }
+          }
+        }
+      })
+      
+      team = userMembership?.team
     }
     
     if (!team) {
