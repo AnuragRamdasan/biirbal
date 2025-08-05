@@ -55,6 +55,7 @@ import {
 } from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
 import { useAnalytics } from '@/hooks/useAnalytics'
+import TeamSelector from '@/components/ui/TeamSelector'
 
 const { Title, Text, Paragraph } = Typography
 
@@ -125,6 +126,7 @@ function HomeContent() {
   const [installed, setInstalled] = useState(false)
   const [error, setError] = useState('')
   const [showDashboard, setShowDashboard] = useState(false)
+  const [currentTeamId, setCurrentTeamId] = useState<string | undefined>(undefined)
   
   // Dashboard state
   const [links, setLinks] = useState<ProcessedLink[]>([])
@@ -196,8 +198,22 @@ function HomeContent() {
     if (session?.user) {
       setShowDashboard(true)
       setInstalled(true) // Show success state for authenticated users
+      
+      // Initialize current team if not set
+      if (!currentTeamId && session.user.currentTeam) {
+        setCurrentTeamId(session.user.currentTeam.id)
+      }
     }
   }, [searchParams, session, status])
+
+  // Handle team change
+  const handleTeamChange = (teamId: string) => {
+    setCurrentTeamId(teamId)
+    // Refresh dashboard data for the new team
+    if (showDashboard) {
+      fetchData(true)
+    }
+  }
 
   // Dashboard data fetching with loading state control
   const fetchData = async (isInitialLoad = false) => {
@@ -211,16 +227,23 @@ function HomeContent() {
       }
       
       const userId = session.user.dbUserId || session.user.id
+      const teamId = currentTeamId || session.user.currentTeam?.id
       
       if (!userId) {
         setShowDashboard(false)
         return
       }
 
+      // Build query parameters
+      const queryParams = new URLSearchParams({ userId })
+      if (teamId) {
+        queryParams.append('teamId', teamId)
+      }
+
       const [linksResponse, statsResponse, usageResponse] = await Promise.all([
-        fetch(`/api/dashboard/links?userId=${userId}`),
-        fetch(`/api/dashboard/stats?userId=${userId}`),
-        fetch(`/api/dashboard/usage?userId=${userId}`)
+        fetch(`/api/dashboard/links?${queryParams}`),
+        fetch(`/api/dashboard/stats?${queryParams}`),
+        fetch(`/api/dashboard/usage?${queryParams}`)
       ])
 
       if (!linksResponse.ok || !statsResponse.ok || !usageResponse.ok) {
@@ -251,7 +274,7 @@ function HomeContent() {
     }
   }
 
-  // Load dashboard data when showDashboard becomes true
+  // Load dashboard data when showDashboard becomes true or team changes
   useEffect(() => {
     if (showDashboard) {
       fetchData(true) // Initial load with spinner
@@ -273,7 +296,7 @@ function HomeContent() {
         window.removeEventListener('resize', checkIfMobile)
       }
     }
-  }, [showDashboard])
+  }, [showDashboard, currentTeamId])
 
   // Dashboard helper functions
   const trackListen = async (linkId: string) => {
@@ -733,6 +756,16 @@ function HomeContent() {
             />
           )}
 
+          {/* Team Selector */}
+          {session?.user?.teams && session.user.teams.length > 1 && (
+            <Card size="small" style={{ marginBottom: 16 }}>
+              <TeamSelector 
+                onTeamChange={handleTeamChange}
+                style={{ maxWidth: 400 }}
+              />
+            </Card>
+          )}
+
           {/* Compact Header */}
           <Card size="small" style={{ marginBottom: 16 }}>
             <Row justify="space-between" align="middle">
@@ -741,6 +774,11 @@ function HomeContent() {
                   <Space size="small">
                     <SoundOutlined />
                     Audio Summaries
+                    {session?.user?.teams && session.user.teams.length > 1 && currentTeamId && (
+                      <Text type="secondary" style={{ fontSize: 14 }}>
+                        ({session.user.teams.find(t => t.id === currentTeamId)?.name})
+                      </Text>
+                    )}
                   </Space>
                 </Title>
               </Col>
