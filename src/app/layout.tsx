@@ -43,7 +43,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
         <link rel="dns-prefetch" href="https://api.openai.com" />
-        <link rel="dns-prefetch" href="https://slack.com" />
+        {/* Removed Slack-specific DNS prefetch */}
         
         {/* Theme Color */}
         <meta name="theme-color" content="#6366f1" />
@@ -92,7 +92,7 @@ export default function RootLayout({
         
         {/* Rich Snippets Support */}
         <meta name="application-name" content="Biirbal" />
-        <meta name="msapplication-tooltip" content="AI-Powered Slack Content Intelligence" />
+        <meta name="msapplication-tooltip" content="AI-Powered Audio Summaries" />
         <meta name="msapplication-starturl" content="/" />
         <meta name="msapplication-navbutton-color" content="#6366f1" />
         
@@ -176,7 +176,7 @@ export default function RootLayout({
 
             {/* ZapDigits Analytics */}
             <Script
-              src="https://track.zapdigits.com/analytics.js"
+              src="https://www.zapdigits.com/script/track.js"
               data-site-id="9"
               strategy="afterInteractive"
             />
