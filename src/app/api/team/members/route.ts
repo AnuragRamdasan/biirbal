@@ -31,42 +31,53 @@ export async function GET(request: NextRequest) {
       where: { id: actualUserId },
       select: {
         id: true,
-        teamId: true,
-        team: {
+        memberships: {
           select: {
-            id: true,
-            slackTeamId: true,
-            teamName: true,
-            sendSummaryAsDM: true
+            team: {
+              select: {
+                id: true,
+                slackTeamId: true,
+                teamName: true,
+                sendSummaryAsDM: true
+              }
+            }
           }
         }
       }
     })
 
-    if (!user || !user.team) {
+    if (!user || !user.memberships?.[0]?.team) {
       return NextResponse.json(
         { error: 'User or team not found' },
         { status: 404 }
       )
     }
 
+    const userTeam = user.memberships[0].team;
+
     // Get complete team data with users, pending invitations, and subscription info
     const team = await db.team.findUnique({
-      where: { id: user.teamId! },
+      where: { id: userTeam.id },
       include: {
-        users: {
-          orderBy: { createdAt: 'asc' }, // First users get priority
+        memberships: {
+          orderBy: { joinedAt: 'asc' }, // First users get priority
           select: {
             id: true,
             slackUserId: true,
-            name: true,
             displayName: true,
             realName: true,
-            email: true,
             profileImage32: true,
             isActive: true,
-            createdAt: true,
-            updatedAt: true
+            joinedAt: true,
+            updatedAt: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                createdAt: true
+              }
+            }
           }
         },
         invitations: {
@@ -100,8 +111,22 @@ export async function GET(request: NextRequest) {
     // Get usage stats for seat information (use team ID for web-only teams)
     const usageStats = await getTeamUsageStats(team.slackTeamId || team.id)
 
+    // Transform memberships to match expected format
+    const members = team.memberships.map(membership => ({
+      id: membership.user.id,
+      slackUserId: membership.slackUserId,
+      name: membership.user.name || membership.displayName || membership.realName,
+      displayName: membership.displayName,
+      realName: membership.realName,
+      email: membership.user.email,
+      profileImage32: membership.profileImage32,
+      isActive: membership.isActive,
+      createdAt: membership.user.createdAt,
+      updatedAt: membership.updatedAt
+    }));
+
     return NextResponse.json({
-      members: team.users,
+      members,
       pendingInvitations: team.invitations,
       team: {
         id: team.id,
@@ -161,15 +186,18 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
-    // Find the user
-    const user = await db.user.findFirst({
+    // Find the team membership
+    const membership = await db.teamMembership.findFirst({
       where: {
         slackUserId: userId,
         teamId: team.id
+      },
+      include: {
+        user: true
       }
     })
 
-    if (!user) {
+    if (!membership) {
       return NextResponse.json(
         { error: 'User not found in team' },
         { status: 404 }
@@ -192,26 +220,28 @@ export async function PATCH(request: NextRequest) {
         // For remove, we'll set isActive to false and clear sensitive data
         updateData = {
           isActive: false,
-          userAccessToken: null,
-          email: null
+          userAccessToken: null
         }
         responseMessage = 'User removed from team'
         break
     }
 
-    // Update the user
-    const updatedUser = await db.user.update({
-      where: { id: user.id },
-      data: updateData
+    // Update the team membership
+    const updatedMembership = await db.teamMembership.update({
+      where: { id: membership.id },
+      data: updateData,
+      include: {
+        user: true
+      }
     })
 
     return NextResponse.json({
       message: responseMessage,
       user: {
-        id: updatedUser.id,
-        slackUserId: updatedUser.slackUserId,
-        name: updatedUser.name,
-        isActive: updatedUser.isActive
+        id: updatedMembership.user.id,
+        slackUserId: updatedMembership.slackUserId,
+        name: updatedMembership.user.name,
+        isActive: updatedMembership.isActive
       }
     })
   } catch (error) {

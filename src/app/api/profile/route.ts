@@ -21,12 +21,16 @@ export async function GET(request: NextRequest) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
-        team: {
+        memberships: {
           include: {
-            subscription: true,
-            _count: {
-              select: {
-                processedLinks: true
+            team: {
+              include: {
+                subscription: true,
+                _count: {
+                  select: {
+                    processedLinks: true
+                  }
+                }
               }
             }
           }
@@ -34,14 +38,15 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    if (!user || !user.team) {
+    if (!user || !user.memberships?.[0]?.team) {
       return NextResponse.json(
         { error: 'User or team not found' },
         { status: 404 }
       )
     }
 
-    const team = user.team
+    const team = user.memberships[0].team
+    const userMembership = user.memberships[0]
 
     // Get usage statistics
     const currentMonth = new Date()
@@ -66,35 +71,33 @@ export async function GET(request: NextRequest) {
     })
 
     // Fetch all team members with their listening statistics
-    const teamMembers = await prisma.user.findMany({
+    const teamMemberships = await prisma.teamMembership.findMany({
       where: {
         teamId: team.id,
         isActive: true
       },
-      select: {
-        slackUserId: true,
-        name: true,
-        displayName: true,
-        realName: true,
-        email: true,
-        profileImage24: true,
-        profileImage32: true,
-        profileImage48: true,
-        title: true,
-        createdAt: true
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            createdAt: true
+          }
+        }
       },
       orderBy: {
-        createdAt: 'asc'
+        joinedAt: 'asc'
       }
     })
 
     // Get listening statistics for each team member
     const teamMembersWithStats = await Promise.all(
-      teamMembers.map(async (member) => {
+      teamMemberships.map(async (membership) => {
         const [memberTotalListens, memberMonthlyListens, memberCompletedListens, memberListenDurations] = await Promise.all([
           prisma.audioListen.count({
             where: {
-              slackUserId: member.slackUserId,
+              slackUserId: membership.slackUserId,
               processedLink: {
                 teamId: team.id
               }
@@ -102,7 +105,7 @@ export async function GET(request: NextRequest) {
           }),
           prisma.audioListen.count({
             where: {
-              slackUserId: member.slackUserId,
+              slackUserId: membership.slackUserId,
               processedLink: {
                 teamId: team.id
               },
@@ -113,7 +116,7 @@ export async function GET(request: NextRequest) {
           }),
           prisma.audioListen.count({
             where: {
-              slackUserId: member.slackUserId,
+              slackUserId: membership.slackUserId,
               processedLink: {
                 teamId: team.id
               },
@@ -123,7 +126,7 @@ export async function GET(request: NextRequest) {
           // Calculate total minutes listened
           prisma.audioListen.findMany({
             where: {
-              slackUserId: member.slackUserId,
+              slackUserId: membership.slackUserId,
               processedLink: {
                 teamId: team.id
               }
@@ -153,17 +156,17 @@ export async function GET(request: NextRequest) {
         }, 0)
 
         return {
-          id: member.slackUserId,
-          name: member.name || member.realName || 'Unknown User',
-          email: member.email,
-          joinedAt: member.createdAt,
+          id: membership.slackUserId,
+          name: membership.user.name || membership.realName || 'Unknown User',
+          email: membership.user.email,
+          joinedAt: membership.user.createdAt,
           profile: {
-            display_name: member.displayName,
-            real_name: member.realName,
-            image_24: member.profileImage24,
-            image_32: member.profileImage32,
-            image_48: member.profileImage48,
-            title: member.title
+            display_name: membership.displayName,
+            real_name: membership.realName,
+            image_24: membership.profileImage24,
+            image_32: membership.profileImage32,
+            image_48: membership.profileImage48,
+            title: membership.title
           },
           listenStats: {
             totalListens: memberTotalListens,
@@ -178,15 +181,15 @@ export async function GET(request: NextRequest) {
     // Set current user info (we already have the user from the initial query)
     const currentUser = {
       id: user.id,
-      name: user.name || user.realName || 'Unknown User',
+      name: user.name || userMembership.realName || 'Unknown User',
       email: user.email,
       profile: {
-        display_name: user.displayName,
-        real_name: user.realName,
-        image_24: user.profileImage24,
-        image_32: user.profileImage32,
-        image_48: user.profileImage48,
-        title: user.title
+        display_name: userMembership.displayName,
+        real_name: userMembership.realName,
+        image_24: userMembership.profileImage24,
+        image_32: userMembership.profileImage32,
+        image_48: userMembership.profileImage48,
+        title: userMembership.title
       }
     }
 
