@@ -23,9 +23,8 @@ import {
   CrownOutlined,
   RocketOutlined,
   StarOutlined,
-  TeamOutlined,
+  ReadOutlined,
   SoundOutlined,
-  SlackOutlined,
   QuestionCircleOutlined,
   LoadingOutlined
 } from '@ant-design/icons'
@@ -63,7 +62,7 @@ export default function PricingPage() {
   const [loading, setLoading] = useState<string | null>(null)
   const [isAnnual, setIsAnnual] = useState(false)
   const [linksPerWeek, setLinksPerWeek] = useState(8)
-  const [teamSize, setTeamSize] = useState(3)
+  const [readerCount, setReaderCount] = useState(3)
   const [currentPlan, setCurrentPlan] = useState<string | null>(null)
   const [couponCode, setCouponCode] = useState('')
   const [couponValidation, setCouponValidation] = useState<{
@@ -107,7 +106,7 @@ export default function PricingPage() {
     analytics.trackFeature('pricing_page_visit', {
       initial_annual_toggle: isAnnual,
       initial_links_per_week: linksPerWeek,
-      initial_team_size: teamSize
+      initial_reader_count: readerCount
     })
   }, [])
 
@@ -168,7 +167,7 @@ export default function PricingPage() {
     analytics.trackFeature('plan_selected', {
       plan_id: planId,
       is_annual: isAnnual,
-      team_size_input: teamSize,
+      reader_count_input: readerCount,
       links_per_week_input: linksPerWeek
     })
     
@@ -259,52 +258,21 @@ export default function PricingPage() {
       price: 0,
       features: [
         '20 audio summaries per month',
-        '1 user',
         '2-5 min processing time',
-        'Basic Slack integration',
         'Community support'
       ]
     },
     {
-      id: 'starter',
-      name: 'Starter',
-      description: 'For individual power users',
-      price: isAnnual ? 99.00 : 9.00,
-      stripePriceId: 'price_starter',
-      features: [
-        'Unlimited audio summaries',
-        '1 user',
-        '1-2 min processing time',
-        'Basic analytics',
-        'Email support'
-      ]
-    },
-    {
-      id: 'pro',
-      name: 'Pro',
-      description: 'For growing teams',
-      price: isAnnual ? 399.00 : 39.00,
+      id: 'premium',
+      name: 'Premium',
+      description: 'For power readers and knowledge workers',
+      price: isAnnual ? 99.00 : 9,
       isPopular: true,
-      stripePriceId: 'price_pro',
+      stripePriceId: 'price_premium',
       features: [
         'Unlimited audio summaries',
-        'Up to 10 team members',
         '30s processing time',
         'Advanced analytics & reports',
-        'Priority support',
-      ]
-    },
-    {
-      id: 'business',
-      name: 'Business',
-      description: 'For large organizations',
-      price: isAnnual ? 900.00 : 99.00,
-      stripePriceId: 'price_business',
-      features: [
-        'Unlimited audio summaries',
-        'Unlimited team members',
-        '15s processing time',
-        'Advanced analytics & reporting',
         'Priority support',
       ]
     }
@@ -313,11 +281,11 @@ export default function PricingPage() {
   const faqItems = [
     {
       question: 'How does the free plan work?',
-      answer: 'You get 20 audio summaries completely free for 1 user. No credit card required to start. Upgrade anytime to unlock unlimited links and more users.'
+      answer: 'You get 20 audio summaries completely free for 1 reader. No credit card required to start. Upgrade anytime to unlock unlimited links and more readers.'
     },
     {
       question: 'How fast is the processing?',
-      answer: 'Free: 2-5 minutes, Starter: 1-2 minutes, Pro: 30 seconds, Business: 15 seconds. Most teams see immediate productivity gains with faster processing.'
+      answer: 'Free: 2-5 minutes, Premium: 30 seconds. Most readers see immediate productivity gains with faster processing.'
     },
     {
       question: 'Can I change plans later?',
@@ -366,7 +334,7 @@ export default function PricingPage() {
               fontWeight: 500
             }}>
               💰 <strong>20% discount available</strong> for non-profits, startups, and open source groups.{' '}
-              <a href="mailto:hello@biirbal.com?subject=Special Discount Inquiry" style={{ 
+              <a href="mailto:hello@biirbal.ai?subject=Special Discount Inquiry" style={{ 
                 color: '#52c41a',
                 textDecoration: 'none',
                 fontWeight: '600'
@@ -462,7 +430,7 @@ export default function PricingPage() {
                     setIsAnnual(false)
                     analytics.trackFeature('billing_toggle_changed', {
                       is_annual: false,
-                      team_size: teamSize,
+                      reader_count: readerCount,
                       links_per_week: linksPerWeek
                     })
                   }}
@@ -487,7 +455,7 @@ export default function PricingPage() {
                     setIsAnnual(true)
                     analytics.trackFeature('billing_toggle_changed', {
                       is_annual: true,
-                      team_size: teamSize,
+                      reader_count: readerCount,
                       links_per_week: linksPerWeek
                     })
                   }}
@@ -529,7 +497,7 @@ export default function PricingPage() {
                   fontSize: '14px',
                   color: '#6b7280'
                 }}>
-                  Save 20% with annual billing
+                  Save 10% with annual billing
                 </div>
               )}
             </div>
@@ -968,10 +936,10 @@ export default function PricingPage() {
               <Col xs={24} md={8}>
                 <Card bordered={false} style={{ textAlign: 'center', height: '100%' }}>
                   <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                    <SlackOutlined style={{ fontSize: 48, color: '#52c41a' }} />
-                    <Title level={4}>Slack Integration</Title>
+                    <SoundOutlined style={{ fontSize: 48, color: '#52c41a' }} />
+                    <Title level={4}>Web Integration</Title>
                     <Text type="secondary">
-                      Seamlessly integrates with your existing Slack workspace and workflows
+                      Seamlessly integrates with your existing web workflows and tools
                     </Text>
                   </Space>
                 </Card>
@@ -980,10 +948,10 @@ export default function PricingPage() {
               <Col xs={24} md={8}>
                 <Card bordered={false} style={{ textAlign: 'center', height: '100%' }}>
                   <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                    <TeamOutlined style={{ fontSize: 48, color: '#722ed1' }} />
-                    <Title level={4}>Team Analytics</Title>
+                    <ReadOutlined style={{ fontSize: 48, color: '#722ed1' }} />
+                    <Title level={4}>Reader Analytics</Title>
                     <Text type="secondary">
-                      Track team engagement and understand content consumption patterns
+                      Track reader engagement and understand content consumption patterns
                     </Text>
                   </Space>
                 </Card>
@@ -1084,12 +1052,12 @@ export default function PricingPage() {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "ItemList",
-            "name": "biirbal.com Pricing Plans",
-            "description": "Pricing plans for biirbal.com AI-powered Slack content intelligence",
+            "name": "Biirbal Pricing Plans",
+            "description": "Pricing plans for Biirbal AI-powered content intelligence",
             "itemListElement": plans.map((plan, index) => ({
               "@type": "Product",
               "position": index + 1,
-              "name": `biirbal.com ${plan.name}`,
+              "name": `Biirbal ${plan.name}`,
               "description": plan.description,
               "offers": {
                 "@type": "Offer",

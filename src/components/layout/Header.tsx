@@ -20,8 +20,24 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const router = useRouter()
   const { data: session, status } = useSession()
+  const [hasDevAuth, setHasDevAuth] = useState(false)
 
-  const isAuthenticated = !!session?.user
+  // Check for dev authentication
+  useEffect(() => {
+    const checkDevAuth = async () => {
+      try {
+        const response = await fetch('/api/dev-auth')
+        const result = await response.json()
+        setHasDevAuth(result.success)
+      } catch (error) {
+        setHasDevAuth(false)
+      }
+    }
+    
+    checkDevAuth()
+  }, [])
+
+  const isAuthenticated = !!session?.user || hasDevAuth
 
   const handleLogout = async () => {
     try {
@@ -33,6 +49,8 @@ export const Header: React.FC<HeaderProps> = ({
       window.location.href = '/'
     }
   }
+
+
   return (
     <header className={cn(
       'bg-gradient-to-r from-blue-600 to-purple-600 text-white',

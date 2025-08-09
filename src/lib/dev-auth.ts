@@ -8,27 +8,33 @@ export async function getDevUser() {
   }
 
   try {
-    const devUser = await prisma.user.findUnique({
-      where: { email: 'dev@biirbal.com' },
+    const firstUser = await prisma.user.findFirst({
       include: {
-        team: {
+        memberships: {
           include: {
-            subscription: true,
-            channels: true,
+            team: {
+              include: {
+                subscription: true,
+                channels: true,
+              },
+            },
           },
         },
       },
+      orderBy: {
+        createdAt: 'asc'
+      }
     })
 
-    return devUser
+    return firstUser
   } catch (error) {
-    console.error('Failed to get dev user:', error)
+    console.error('Failed to get first user for dev login:', error)
     return null
   }
 }
 
 // Check if we're in development mode and should bypass auth
-export function shouldBypassAuth(): boolean {
+export function shouldBypassAuth(): boolean {  
   return process.env.NODE_ENV === 'development' && process.env.DEV_AUTO_LOGIN === 'true'
 }
 
@@ -46,15 +52,21 @@ export function createDevSession(user: any) {
     return null
   }
 
+  const firstMembership = user.memberships?.[0]
+  const team = firstMembership?.team
+
   return {
     user: {
       id: user.id,
+      dbUserId: user.id,
       email: user.email,
       name: user.name,
-      displayName: user.displayName,
-      slackUserId: user.slackUserId,
-      teamId: user.teamId,
-      team: user.team,
+      displayName: firstMembership?.displayName || user.name,
+      slackUserId: firstMembership?.slackUserId,
+      teamId: team?.id,
+      team: team,
+      currentTeam: team,
+      teams: user.memberships?.map((m: any) => m.team) || [],
     },
     expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
   }

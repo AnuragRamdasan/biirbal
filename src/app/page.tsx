@@ -4,7 +4,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { useEffect, useState, useRef, Suspense } from 'react'
 import Script from 'next/script'
-import { getSlackInstallUrl } from '@/lib/config'
+// Removed web platform-specific imports
 import { 
   Row, 
   Col, 
@@ -27,24 +27,22 @@ import {
 } from 'antd'
 import {
   SoundOutlined,
-  SlackOutlined,
+  GlobalOutlined,
   PlayCircleOutlined,
   PauseCircleOutlined,
   LinkOutlined,
   EyeOutlined,
   EyeInvisibleOutlined,
   ClockCircleOutlined,
-  TeamOutlined,
+  ReadOutlined,
   CheckCircleOutlined,
   RocketOutlined,
   BulbOutlined,
   SafetyCertificateOutlined,
-  GlobalOutlined,
   ArrowRightOutlined,
   LoadingOutlined,
   ExclamationCircleOutlined,
   CalendarOutlined,
-  ReadOutlined,
   CloseOutlined,
   StepForwardOutlined,
   StepBackwardOutlined,
@@ -55,7 +53,7 @@ import {
 } from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
 import { useAnalytics } from '@/hooks/useAnalytics'
-import TeamSelector from '@/components/ui/TeamSelector'
+// Removed team selector component
 
 const { Title, Text, Paragraph } = Typography
 
@@ -96,7 +94,7 @@ interface ProcessedLink {
   source?: string | null
   channel?: {
     channelName: string | null
-    slackChannelId: string
+    channelId: string
   }
 }
 
@@ -121,6 +119,7 @@ function HomeContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const { data: session, status } = useSession()
+  const [devSession, setDevSession] = useState<any>(null)
   
   // Home page state
   const [installed, setInstalled] = useState(false)
@@ -172,39 +171,69 @@ function HomeContent() {
     trackTimeOnPage: true
   })
 
+  // Check for dev authentication first
+  useEffect(() => {
+    const checkDevAuth = async () => {
+      try {
+        const response = await fetch('/api/dev-auth?t=' + Date.now())
+        const result = await response.json()
+        
+        if (result.success && result.session) {
+          setDevSession(result.session)
+          setShowDashboard(true)
+          setInstalled(true)
+          
+          const teamId = result.session.user.teamId
+          if (!currentTeamId && teamId) {
+            setCurrentTeamId(teamId)
+          }
+        }
+      } catch (error) {
+        console.error('Error in dev auth check:', error)
+      }
+    }
+    
+    checkDevAuth()
+  }, [])
+
   // Authentication check using NextAuth
   useEffect(() => {
+    // Skip if dev session is active
+    if (devSession) {
+      return
+    }
+    
     // Don't proceed if session is still loading
     if (status === 'loading') {
       return
     }
 
-    // Handle OAuth errors (still needed for any auth errors)
+    // Handle OAuth errors
     if (searchParams.get('error')) {
       setError(searchParams.get('error') || 'Authentication failed')
       return
     }
 
-    // Handle Slack app installation success
+    // Handle web platform app installation success
     if (searchParams.get('installed') === 'true') {
       setInstalled(true)
       const source = searchParams.get('source')
-      if (source === 'slack') {
-        console.log('✅ Slack app installed successfully')
+      if (source === 'web') {
+        console.log('✅ Web platform app installed successfully')
       }
     }
 
     // Check if user is authenticated via NextAuth
     if (session?.user) {
       setShowDashboard(true)
-      setInstalled(true) // Show success state for authenticated users
+      setInstalled(true)
       
       // Initialize current team if not set
       if (!currentTeamId && session.user.currentTeam) {
         setCurrentTeamId(session.user.currentTeam.id)
       }
     }
-  }, [searchParams, session, status])
+  }, [searchParams, session, status, devSession])
 
   // Handle team change
   const handleTeamChange = (teamId: string) => {
@@ -217,7 +246,11 @@ function HomeContent() {
 
   // Dashboard data fetching with loading state control
   const fetchData = async (isInitialLoad = false) => {
-    if (!showDashboard || !session?.user) return
+    const currentSession = devSession || session
+    
+    if (!showDashboard || (!currentSession?.user)) {
+      return
+    }
     
     try {
       // Only show loading spinner on initial load
@@ -226,8 +259,8 @@ function HomeContent() {
         setInitialLoading(true)
       }
       
-      const userId = session.user.dbUserId || session.user.id
-      const teamId = currentTeamId || session.user.currentTeam?.id
+      const userId = currentSession.user.dbUserId || currentSession.user.id
+      const teamId = currentTeamId || currentSession.user.currentTeam?.id
       
       if (!userId) {
         setShowDashboard(false)
@@ -296,12 +329,13 @@ function HomeContent() {
         window.removeEventListener('resize', checkIfMobile)
       }
     }
-  }, [showDashboard, currentTeamId])
+  }, [showDashboard, currentTeamId, devSession, session])
 
   // Dashboard helper functions
   const trackListen = async (linkId: string) => {
     try {
-      const userId = session?.user?.dbUserId || session?.user?.id
+      const currentSession = devSession || session
+      const userId = currentSession?.user?.dbUserId || currentSession?.user?.id
       
       const requestBody = {
         linkId,
@@ -714,11 +748,12 @@ function HomeContent() {
 
     const filteredLinks = links.filter(link => {
       if (sourceFilter === 'all') return true
-      return link.source === sourceFilter || (sourceFilter === 'slack' && !link.source)
+      return link.source === sourceFilter || (sourceFilter === 'web' && !link.source)
     })
 
     // Get current user ID for filtering completed links
-    const currentUserId = session?.user?.dbUserId || session?.user?.id
+    const currentSession = devSession || session
+    const currentUserId = currentSession?.user?.dbUserId || currentSession?.user?.id
     
     // Helper function to check if current user has completed this link
     const hasUserCompleted = (link: any) => {
@@ -757,7 +792,7 @@ function HomeContent() {
           )}
 
           {/* Team Selector */}
-          {session?.user?.teams && session.user.teams.length > 1 && (
+          {((devSession?.user?.teams || session?.user?.teams) && (devSession?.user?.teams?.length > 1 || session?.user?.teams?.length > 1)) && (
             <Card size="small" style={{ marginBottom: 16 }}>
               <TeamSelector 
                 onTeamChange={handleTeamChange}
@@ -774,9 +809,9 @@ function HomeContent() {
                   <Space size="small">
                     <SoundOutlined />
                     Audio Summaries
-                    {session?.user?.teams && session.user.teams.length > 1 && currentTeamId && (
+                    {((devSession?.user?.teams || session?.user?.teams) && (devSession?.user?.teams?.length > 1 || session?.user?.teams?.length > 1) && currentTeamId) && (
                       <Text type="secondary" style={{ fontSize: 14 }}>
-                        ({session.user.teams.find(t => t.id === currentTeamId)?.name})
+                        ({(devSession?.user?.teams || session?.user?.teams)?.find(t => t.id === currentTeamId)?.name})
                       </Text>
                     )}
                   </Space>
@@ -844,7 +879,7 @@ function HomeContent() {
                   style={{ width: 120 }}
                   options={[
                     { value: 'all', label: 'All Sources' },
-                    { value: 'slack', label: 'Slack' },
+                    { value: 'web', label: 'Web platform' },
                     { value: 'dashboard', label: 'Dashboard' },
                   ]}
                 />
@@ -1480,12 +1515,12 @@ function HomeContent() {
   // Use NextAuth signin page for authentication
   const authSigninUrl = '/auth/signin'
   
-  // Use proper Slack app installation URL (fallback to signin if not configured)
-  let slackInstallUrl = authSigninUrl
+  // Use proper web platform app installation URL (fallback to signin if not configured)
+  let webInstallUrl = authSigninUrl
   try {
-    slackInstallUrl = getSlackInstallUrl()
+    webInstallUrl = getWebInstallUrl()
   } catch (error) {
-    console.warn('Slack not configured, falling back to auth signin')
+    console.warn('Web platform not configured, falling back to auth signin')
   }
 
   // If user is authenticated, show dashboard
@@ -1519,7 +1554,7 @@ function HomeContent() {
   ]
 
   const socialProof = [
-    { text: '500+ teams trust biirbal.com', icon: <TeamOutlined /> },
+    { text: '500+ readers trust Biirbal', icon: <GlobalOutlined /> },
     { text: '10,000+ hours saved monthly', icon: <ClockCircleOutlined /> },
     { text: '4.9/5 average rating', icon: <CheckCircleOutlined /> }
   ]
@@ -1569,7 +1604,7 @@ function HomeContent() {
                   fontWeight: 500
                 }}>
                   <span style={{ marginRight: '8px' }}>🚀</span>
-                  Trusted by 500+ teams worldwide
+                  Trusted by 500+ readers worldwide
                 </div> */}
 
                 {/* Main Headline */}
@@ -1645,7 +1680,7 @@ function HomeContent() {
                 {installed && (
                   <Alert
                     message="Installation Successful!"
-                    description="Welcome to biirbal.com! Your dashboard is loading..."
+                    description="Welcome to Biirbal! Your dashboard is loading..."
                     type="success"
                     showIcon
                     style={{ marginBottom: 24 }}
@@ -1657,8 +1692,8 @@ function HomeContent() {
                   <Button 
                     type="primary" 
                     size="large" 
-                    icon={<SlackOutlined />}
-                    href={slackInstallUrl}
+                    icon={<GlobalOutlined />}
+                    href={webInstallUrl}
                     style={{ 
                       background: 'linear-gradient(135deg, #4A154B 0%, #6B4E71 100%)',
                       border: 'none',
@@ -1671,7 +1706,7 @@ function HomeContent() {
                       transition: 'all 0.3s ease'
                     }}
                   >
-                    Add to Slack
+                    Get Started with Free Plan
                   </Button>
                   
                   <Button 
@@ -1836,7 +1871,7 @@ function HomeContent() {
               Proven Results
             </Title>
             <Paragraph style={{ fontSize: '18px', color: '#666', margin: 0 }}>
-              Join thousands of teams who've transformed their information consumption
+              Join thousands of readers who've transformed their information consumption
             </Paragraph>
           </div>
           
@@ -2033,7 +2068,7 @@ function HomeContent() {
               color: 'rgba(255,255,255,0.9)', 
               margin: 0 
             }}>
-              Join thousands of teams who've transformed their information consumption
+              Join thousands of readers who've transformed their information consumption
             </Paragraph>
           </div>
 
@@ -2116,7 +2151,7 @@ function HomeContent() {
           </div>
 
           <Row gutter={[32, 32]} justify="center">
-            <Col xs={24} sm={6}>
+            <Col xs={24} sm={12} lg={8}>
               <div style={{
                 background: 'rgba(255, 255, 255, 0.9)',
                 backdropFilter: 'blur(20px)',
@@ -2156,7 +2191,7 @@ function HomeContent() {
                 }}>Perfect for individuals getting started</Text>
                 <List
                   style={{ margin: '24px 0 32px 0' }}
-                  dataSource={['20 audio summaries per month', '1 user', '2-5 min processing time', 'Basic Slack integration', 'Community support']}
+                  dataSource={['20 audio summaries per month', '2-5 min processing time', 'Community support']}
                   renderItem={(item) => (
                     <List.Item style={{ border: 'none', padding: '8px 0' }}>
                       <Space>
@@ -2187,78 +2222,7 @@ function HomeContent() {
               </div>
             </Col>
 
-            <Col xs={24} sm={6}>
-              <div style={{
-                background: 'rgba(255, 255, 255, 0.9)',
-                backdropFilter: 'blur(20px)',
-                border: '1px solid rgba(24, 144, 255, 0.2)',
-                borderRadius: '24px',
-                padding: '40px 32px',
-                textAlign: 'center',
-                height: '100%',
-                boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
-                transition: 'all 0.3s ease',
-                cursor: 'pointer',
-                position: 'relative',
-                overflow: 'hidden'
-              }}>
-                {/* Background Accent */}
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: '4px',
-                  background: 'linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)'
-                }} />
-                
-                <Title level={3} style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: 600 }}>Starter</Title>
-                <Title level={1} style={{ 
-                  color: '#1890ff', 
-                  margin: '16px 0', 
-                  fontSize: '48px',
-                  fontWeight: 700
-                }}>$9</Title>
-                <Text style={{ 
-                  color: '#666', 
-                  fontSize: '16px',
-                  marginBottom: '32px',
-                  display: 'block'
-                }}>For individual power users</Text>
-                <List
-                  style={{ margin: '24px 0 32px 0' }}
-                  dataSource={['Unlimited audio summaries', '1 user', '1-2 min processing time', 'Basic analytics', 'Email support']}
-                  renderItem={(item) => (
-                    <List.Item style={{ border: 'none', padding: '8px 0' }}>
-                      <Space>
-                        <CheckCircleOutlined style={{ color: '#52c41a', fontSize: '16px' }} />
-                        <Text style={{ fontSize: '14px' }}>{item}</Text>
-                      </Space>
-                    </List.Item>
-                  )}
-                />
-                <Button 
-                  type="primary" 
-                  size="large" 
-                  href={authSigninUrl} 
-                  style={{ 
-                    width: '100%',
-                    height: '48px',
-                    borderRadius: '12px',
-                    fontSize: '16px',
-                    fontWeight: 600,
-                    background: 'linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)',
-                    border: 'none',
-                    boxShadow: '0 8px 24px rgba(24, 144, 255, 0.3)',
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  Start Free Trial
-                </Button>
-              </div>
-            </Col>
-
-            <Col xs={24} sm={6}>
+            <Col xs={24} sm={12} lg={8}>
               <div style={{
                 background: 'rgba(255, 255, 255, 0.9)',
                 backdropFilter: 'blur(20px)',
@@ -2299,22 +2263,22 @@ function HomeContent() {
                   background: 'linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)'
                 }} />
                 
-                <Title level={3} style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: 600 }}>Pro</Title>
+                <Title level={3} style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: 600 }}>Premium</Title>
                 <Title level={1} style={{ 
                   color: '#1890ff', 
                   margin: '16px 0', 
                   fontSize: '48px',
                   fontWeight: 700
-                }}>$39</Title>
+                }}>$9</Title>
                 <Text style={{ 
                   color: '#666', 
                   fontSize: '16px',
                   marginBottom: '32px',
                   display: 'block'
-                }}>For growing teams</Text>
+                }}>For power readers and knowledge workers</Text>
                 <List
                   style={{ margin: '24px 0 32px 0' }}
-                  dataSource={['Unlimited audio summaries', 'Up to 10 team members', '30s processing time', 'Advanced analytics & reports', 'Priority support']}
+                  dataSource={['Unlimited audio summaries', '30s processing time', 'Advanced analytics & reports', 'Priority support']}
                   renderItem={(item) => (
                     <List.Item style={{ border: 'none', padding: '8px 0' }}>
                       <Space>
@@ -2345,76 +2309,6 @@ function HomeContent() {
               </div>
             </Col>
 
-            <Col xs={24} sm={6}>
-              <div style={{
-                background: 'rgba(255, 255, 255, 0.9)',
-                backdropFilter: 'blur(20px)',
-                border: '1px solid rgba(114, 46, 209, 0.2)',
-                borderRadius: '24px',
-                padding: '40px 32px',
-                textAlign: 'center',
-                height: '100%',
-                boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
-                transition: 'all 0.3s ease',
-                cursor: 'pointer',
-                position: 'relative',
-                overflow: 'hidden'
-              }}>
-                {/* Background Accent */}
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: '4px',
-                  background: 'linear-gradient(135deg, #722ed1 0%, #9254de 100%)'
-                }} />
-                
-                <Title level={3} style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: 600 }}>Business</Title>
-                <Title level={1} style={{ 
-                  color: '#722ed1', 
-                  margin: '16px 0', 
-                  fontSize: '48px',
-                  fontWeight: 700
-                }}>$99</Title>
-                <Text style={{ 
-                  color: '#666', 
-                  fontSize: '16px',
-                  marginBottom: '32px',
-                  display: 'block'
-                }}>For large organizations</Text>
-                <List
-                  style={{ margin: '24px 0 32px 0' }}
-                  dataSource={['Unlimited audio summaries', 'Unlimited team members', '15s processing time', 'Advanced analytics & reporting', 'Priority support']}
-                  renderItem={(item) => (
-                    <List.Item style={{ border: 'none', padding: '8px 0' }}>
-                      <Space>
-                        <CheckCircleOutlined style={{ color: '#52c41a', fontSize: '16px' }} />
-                        <Text style={{ fontSize: '14px' }}>{item}</Text>
-                      </Space>
-                    </List.Item>
-                  )}
-                />
-                <Button 
-                  type="primary" 
-                  size="large" 
-                  href={authSigninUrl} 
-                  style={{ 
-                    width: '100%',
-                    height: '48px',
-                    borderRadius: '12px',
-                    fontSize: '16px',
-                    fontWeight: 600,
-                    background: 'linear-gradient(135deg, #722ed1 0%, #9254de 100%)',
-                    border: 'none',
-                    boxShadow: '0 8px 24px rgba(114, 46, 209, 0.3)',
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  Start Free Trial
-                </Button>
-              </div>
-            </Col>
           </Row>
 
           <div style={{ textAlign: 'center', marginTop: 40 }}>
@@ -2471,8 +2365,8 @@ function HomeContent() {
               <Button 
                 type="primary" 
                 size="large" 
-                icon={<SlackOutlined />}
-                href={slackInstallUrl}
+                icon={<GlobalOutlined />}
+                href={webInstallUrl}
                 style={{ 
                   background: 'linear-gradient(135deg, #4A154B 0%, #6B4E71 100%)',
                   border: 'none',
@@ -2485,7 +2379,7 @@ function HomeContent() {
                   transition: 'all 0.3s ease'
                 }}
               >
-                Add to Slack - Free Trial
+                Get Started with Free Plan
               </Button>
               
               <Button 
@@ -2581,8 +2475,8 @@ export default function Home() {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "SoftwareApplication",
-            "name": "biirbal.com",
-            "description": "AI-powered audio summaries for Slack teams. Transform shared links into 59-second audio summaries.",
+            "name": "Biirbal",
+            "description": "AI-powered audio summaries for web platform readers. Transform shared links into 59-second audio summaries.",
             "applicationCategory": "BusinessApplication",
             "operatingSystem": "Web",
             "offers": {

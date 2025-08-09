@@ -27,19 +27,36 @@ async function main() {
     where: { email: 'dev@biirbal.ai' },
     update: {},
     create: {
-      slackUserId: 'U_DEV_USER',
-      teamId: team.id,
       name: 'dev-user',
+      email: 'dev@biirbal.ai',
+      emailVerified: new Date(),
+    },
+  })
+
+  console.log('✅ Created development user:', devUser.email)
+
+  // Create team membership for development user
+  const devMembership = await prisma.teamMembership.upsert({
+    where: {
+      userId_teamId: {
+        userId: devUser.id,
+        teamId: team.id,
+      },
+    },
+    update: {},
+    create: {
+      userId: devUser.id,
+      teamId: team.id,
+      slackUserId: 'U_DEV_USER',
       displayName: 'Development User',
       realName: 'Dev User',
-      email: 'dev@biirbal.ai',
       profileImage24: 'https://via.placeholder.com/24',
       profileImage32: 'https://via.placeholder.com/32',
       profileImage48: 'https://via.placeholder.com/48',
       title: 'Developer',
       userAccessToken: 'xoxp-dev-user-token',
+      role: 'admin',
       isActive: true,
-      emailVerified: new Date(),
     },
   })
 
@@ -151,7 +168,7 @@ async function main() {
         data: {
           processedLinkId: processedLink.id,
           userId: devUser.id,
-          slackUserId: devUser.slackUserId,
+          slackUserId: 'U_DEV_USER',
           completed: true,
           listenDuration: Math.floor(Math.random() * 60) + 30, // 30-90 seconds
           resumePosition: 0,
@@ -181,13 +198,32 @@ async function main() {
       where: { email: userData.email },
       update: {},
       create: {
-        ...userData,
-        teamId: team.id,
-        realName: userData.displayName,
-        isActive: true,
+        name: userData.name,
+        email: userData.email,
         emailVerified: new Date(),
       },
     })
+
+    // Create team membership for additional user
+    await prisma.teamMembership.upsert({
+      where: {
+        userId_teamId: {
+          userId: user.id,
+          teamId: team.id,
+        },
+      },
+      update: {},
+      create: {
+        userId: user.id,
+        teamId: team.id,
+        slackUserId: userData.slackUserId,
+        displayName: userData.displayName,
+        realName: userData.displayName,
+        role: 'member',
+        isActive: true,
+      },
+    })
+
     console.log('✅ Created additional user:', user.email)
   }
 
