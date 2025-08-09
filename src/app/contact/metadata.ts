@@ -2,8 +2,8 @@ import { Metadata } from 'next'
 import { generateMetadata, generateStructuredData } from '@/lib/seo'
 
 export const metadata: Metadata = generateMetadata({
-  title: 'Contact Us - Biirbal AI Support | Get Help with Your Slack Bot',
-  description: 'Need help with Biirbal? Contact our support team for assistance with setup, billing, technical issues, or feature requests. We respond within 24 hours.',
+  title: 'Contact Biirbal Support - 24hr Response | AI Content Platform Help',
+  description: 'Get expert help with Biirbal AI content intelligence platform. Fast 24-hour response for setup, billing, and technical support. Live chat available. 10,000+ readers trust our support.',
   keywords: [
     'biirbal support',
     'contact biirbal',

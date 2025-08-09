@@ -16,6 +16,8 @@ export default function robots(): MetadataRoute.Robots {
           '/terms',
           '/blog',
           '/blog/*',
+          '/auth/signin',
+          '/success',
         ],
         disallow: [
           '/team*',
@@ -24,8 +26,12 @@ export default function robots(): MetadataRoute.Robots {
           '/api/*',
           '/_next/*',
           '/admin/*',
+          '/dashboard*',
+          '/auth/error',
+          '/auth/verify-request',
           '*.json$',
           '/.*',
+          '/debug*',
         ],
       },
       // Optimized rules for major search engines
@@ -48,7 +54,7 @@ export default function robots(): MetadataRoute.Robots {
           '/_next/*',
           '/admin/*',
         ],
-        crawlDelay: 1,
+        crawlDelay: 0.5,
       },
       {
         userAgent: ['Bingbot', 'Slurp'],
@@ -69,7 +75,7 @@ export default function robots(): MetadataRoute.Robots {
           '/_next/*',
           '/admin/*',
         ],
-        crawlDelay: 2,
+        crawlDelay: 1,
       },
       {
         userAgent: 'DuckDuckBot',
@@ -90,7 +96,7 @@ export default function robots(): MetadataRoute.Robots {
           '/_next/*',
           '/admin/*',
         ],
-        crawlDelay: 1,
+        crawlDelay: 0.5,
       },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,

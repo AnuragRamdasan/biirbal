@@ -2,27 +2,32 @@ import { Metadata } from 'next'
 import { generateMetadata, generateStructuredData } from '@/lib/seo'
 
 export const metadata: Metadata = generateMetadata({
-  title: 'Biirbal - AI-Powered Slack Content Intelligence | 59-Second Audio Summaries',
-  description: 'Transform Slack links into instant 59-second audio summaries. Never miss important content again with AI-powered content intelligence. Free plan with 20 monthly summaries. Get started in seconds.',
+  title: 'Biirbal - AI-Powered Audio Summaries for Content Readers | Free Forever',
+  description: 'Transform any article into a 59-second AI audio summary instantly. Save 90% of your reading time with intelligent content digests. Free forever plan with 20 monthly summaries. No credit card required. Trusted by 10,000+ content readers worldwide.',
   keywords: [
-    'slack bot',
-    'ai content summarization',
-    'audio summaries',
-    'slack automation',
-    'team productivity tools',
-    'content intelligence',
-    'link summarization',
-    'text to speech',
-    'slack productivity',
-    'team collaboration',
-    'ai-powered slack bot',
-    'instant summaries',
-    'slack link processing',
-    'team communication',
-    'workplace efficiency'
+    'ai audio summaries',
+    'content summarization ai',
+    'article audio digest',
+    'ai content intelligence',
+    'reading productivity tool',
+    'instant audio summaries',
+    'text to speech articles',
+    'content consumption tool',
+    'ai article reader',
+    'content productivity app',
+    'ai summarization tool',
+    'content automation software',
+    'article extraction ai',
+    'reading efficiency tools',
+    'content management ai',
+    'ai powered reading',
+    'content time saver',
+    'audio content digest',
+    'smart content processing',
+    'reading enhancement tool'
   ],
   canonicalUrl: 'https://www.biirbal.com/',
-  ogImage: 'https://www.biirbal.com/og-image.png',
+  ogImage: 'https://www.biirbal.com/og-home-2024.png',
   ogType: 'website'
 })
 
@@ -34,9 +39,11 @@ export const homepageStructuredData = {
     description: 'AI-powered content intelligence for Slack teams providing instant audio summaries',
     foundingDate: '2024',
     sameAs: [
-      'https://twitter.com/biirbal',
-      'https://linkedin.com/company/biirbal',
-      'https://github.com/biirbal'
+      'https://twitter.com/biirbal_ai',
+      'https://linkedin.com/company/biirbal-ai',
+      'https://github.com/biirbal/content-ai',
+      'https://www.crunchbase.com/organization/biirbal',
+      'https://www.producthunt.com/products/biirbal'
     ],
     contactPoint: {
       '@type': 'ContactPoint',
@@ -56,9 +63,9 @@ export const homepageStructuredData = {
   }),
 
   website: generateStructuredData('WebSite', {
-    name: 'Biirbal - AI-Powered Slack Content Intelligence',
+    name: 'Biirbal - AI Content Intelligence for Readers',
     url: 'https://www.biirbal.com',
-    description: 'Transform Slack links into instant audio summaries with AI-powered content intelligence',
+    description: 'The #1 AI platform that transforms any article into a 59-second audio summary. Save time, boost reading productivity, and never miss important content again.',
     publisher: {
       '@type': 'Organization',
       name: 'Biirbal'
@@ -84,10 +91,10 @@ export const homepageStructuredData = {
   }),
 
   softwareApplication: generateStructuredData('SoftwareApplication', {
-    name: 'Biirbal Slack Bot',
-    applicationCategory: 'BusinessApplication',
-    operatingSystem: 'Web Browser, Slack',
-    description: 'AI-powered Slack bot that transforms shared links into 59-second audio summaries',
+    name: 'Biirbal Content AI',
+    applicationCategory: 'ProductivityApplication',
+    operatingSystem: 'Web Browser',
+    description: 'AI-powered content intelligence platform that transforms articles into 59-second audio summaries',
     url: 'https://www.biirbal.com',
     downloadUrl: 'https://slack.com/apps/biirbal',
     screenshot: 'https://www.biirbal.com/app-screenshot.png',

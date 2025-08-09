@@ -9,13 +9,13 @@ export async function GET() {
     {
       url: '/',
       lastModified: currentDate,
-      changeFreq: 'weekly',
+      changeFreq: 'daily',
       priority: 1.0,
       images: [
         {
-          url: `${baseUrl}/og-image.png`,
-          title: 'Biirbal - AI-Powered Slack Content Intelligence',
-          caption: 'Transform Slack links into 59-second audio summaries with AI'
+          url: `${baseUrl}/og-home-2024.png`,
+          title: 'Biirbal - #1 AI Slack Bot for Audio Link Summaries',
+          caption: 'Join 10,000+ teams saving 90% reading time with AI-powered audio summaries'
         }
       ]
     },
@@ -23,7 +23,7 @@ export async function GET() {
       url: '/pricing',
       lastModified: currentDate,
       changeFreq: 'weekly',
-      priority: 0.9,
+      priority: 0.95,
       images: [
         {
           url: `${baseUrl}/pricing-og.png`,
@@ -31,6 +31,25 @@ export async function GET() {
           caption: 'Flexible pricing for teams of all sizes'
         }
       ]
+    },
+    {
+      url: '/blog',
+      lastModified: currentDate,
+      changeFreq: 'daily',
+      priority: 0.9,
+      images: [
+        {
+          url: `${baseUrl}/blog-og.png`,
+          title: 'Biirbal AI Blog - Slack Productivity & Content Intelligence',
+          caption: 'Expert insights on AI productivity tools and team collaboration'
+        }
+      ]
+    },
+    {
+      url: '/auth/signin',
+      lastModified: currentDate,
+      changeFreq: 'monthly',
+      priority: 0.8
     },
     {
       url: '/contact',
