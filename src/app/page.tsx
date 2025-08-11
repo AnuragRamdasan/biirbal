@@ -156,6 +156,52 @@ function HomeContent() {
     trackTimeOnPage: true
   })
 
+  // Conversion-focused landing page content
+  const benefits = [
+    {
+      icon: <RocketOutlined style={{ fontSize: 32, color: '#1890ff' }} />,
+      title: 'Stop Reading, Start Learning',
+      description: 'Transform any article into a 59-second audio summary. Absorb key insights while multitasking or commuting.',
+      stats: 'Save 3+ hours weekly',
+      color: '#1890ff'
+    },
+    {
+      icon: <ClockCircleOutlined style={{ fontSize: 32, color: '#52c41a' }} />,
+      title: 'Kill Your Reading Backlog',
+      description: 'Turn your overwhelming reading list into manageable audio summaries. Finally catch up on industry news and research.',
+      stats: 'Process 10x more content',
+      color: '#52c41a'
+    },
+    {
+      icon: <SafetyCertificateOutlined style={{ fontSize: 32, color: '#722ed1' }} />,
+      title: 'Stay Ahead Without Burnout',
+      description: 'Keep your team informed and competitive without the stress of endless articles. Knowledge becomes accessible to everyone.',
+      stats: 'Zero information anxiety',
+      color: '#722ed1'
+    }
+  ]
+
+  const socialProof = [
+    { text: '500+ readers trust Biirbal', icon: <GlobalOutlined /> },
+    { text: '10,000+ hours saved monthly', icon: <ClockCircleOutlined /> },
+    { text: '4.9/5 average rating', icon: <CheckCircleOutlined /> }
+  ]
+
+  const conversionStats = [
+    { number: '59', unit: 'seconds', label: 'Average summary length' },
+    { number: '90%', unit: '', label: 'Time saved per article' },
+    { number: '24/7', unit: '', label: 'Always available' }
+  ]
+
+  // Authentication URLs
+  const authSigninUrl = '/auth/signin'
+  let webInstallUrl = authSigninUrl
+  try {
+    webInstallUrl = getWebInstallUrl()
+  } catch (error) {
+    console.warn('Web platform not configured, falling back to auth signin')
+  }
+
   // Check for dev authentication first
   useEffect(() => {
     const checkDevAuth = async () => {
@@ -1468,58 +1514,10 @@ function HomeContent() {
     )
   }
 
-  // Use NextAuth signin page for authentication
-  const authSigninUrl = '/auth/signin'
-  
-  // Use proper web platform app installation URL (fallback to signin if not configured)
-  let webInstallUrl = authSigninUrl
-  try {
-    webInstallUrl = getWebInstallUrl()
-  } catch (error) {
-    console.warn('Web platform not configured, falling back to auth signin')
-  }
-
   // If user is authenticated, show dashboard
   if (showDashboard && !error) {
     return renderDashboard()
   }
-
-  // Conversion-focused landing page content
-  const benefits = [
-    {
-      icon: <RocketOutlined style={{ fontSize: 32, color: '#1890ff' }} />,
-      title: 'Stop Reading, Start Learning',
-      description: 'Transform any article into a 59-second audio summary. Absorb key insights while multitasking or commuting.',
-      stats: 'Save 3+ hours weekly',
-      color: '#1890ff'
-    },
-    {
-      icon: <ClockCircleOutlined style={{ fontSize: 32, color: '#52c41a' }} />,
-      title: 'Kill Your Reading Backlog',
-      description: 'Turn your overwhelming reading list into manageable audio summaries. Finally catch up on industry news and research.',
-      stats: 'Process 10x more content',
-      color: '#52c41a'
-    },
-    {
-      icon: <SafetyCertificateOutlined style={{ fontSize: 32, color: '#722ed1' }} />,
-      title: 'Stay Ahead Without Burnout',
-      description: 'Keep your team informed and competitive without the stress of endless articles. Knowledge becomes accessible to everyone.',
-      stats: 'Zero information anxiety',
-      color: '#722ed1'
-    }
-  ]
-
-  const socialProof = [
-    { text: '500+ readers trust Biirbal', icon: <GlobalOutlined /> },
-    { text: '10,000+ hours saved monthly', icon: <ClockCircleOutlined /> },
-    { text: '4.9/5 average rating', icon: <CheckCircleOutlined /> }
-  ]
-
-  const conversionStats = [
-    { number: '59', unit: 'seconds', label: 'Average summary length' },
-    { number: '90%', unit: '', label: 'Time saved per article' },
-    { number: '24/7', unit: '', label: 'Always available' }
-  ]
 
   return (
     <Layout currentPage="home" showHeader={true}>
