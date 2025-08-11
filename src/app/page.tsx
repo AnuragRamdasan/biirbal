@@ -18,7 +18,6 @@ import {
   Divider,
   List,
   Timeline,
-  Spin,
   Switch,
   Empty,
   Tooltip,
@@ -40,7 +39,6 @@ import {
   BulbOutlined,
   SafetyCertificateOutlined,
   ArrowRightOutlined,
-  LoadingOutlined,
   ExclamationCircleOutlined,
   CalendarOutlined,
   CloseOutlined,
@@ -57,26 +55,14 @@ import { useAnalytics } from '@/hooks/useAnalytics'
 
 const { Title, Text, Paragraph } = Typography
 
-// Add CSS animation for slide down effect (for dashboard)
-const slideDownKeyframes = `
-  @keyframes slideDown {
-    from {
-      opacity: 0;
-      transform: translateY(-10px);
-      max-height: 0;
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-      max-height: 500px;
-    }
-  }
-`
-
-// Inject the keyframes into the document head
+// Smooth transitions without layout shifts
 if (typeof document !== 'undefined') {
   const style = document.createElement('style')
-  style.textContent = slideDownKeyframes
+  style.textContent = `
+    .smooth-expand {
+      transition: opacity 0.2s ease-in-out;
+    }
+  `
   document.head.appendChild(style)
 }
 
@@ -146,7 +132,6 @@ function HomeContent() {
   const [isExceptionTeam, setIsExceptionTeam] = useState<boolean>(false)
   const [userCanConsume, setUserCanConsume] = useState<boolean>(true)
   const [sourceFilter, setSourceFilter] = useState<string>('all')
-  const [loadingAudio, setLoadingAudio] = useState<string | null>(null)
   const [expandedSummary, setExpandedSummary] = useState<string | null>(null)
   
   // Audio player state
@@ -413,13 +398,6 @@ function HomeContent() {
   }
 
   const handlePlayAudio = async (linkId: string, audioUrl: string) => {
-    // Prevent multiple simultaneous play attempts
-    if (loadingAudio === linkId) {
-      return
-    }
-    
-    // Set loading state immediately
-    setLoadingAudio(linkId)
     
     try {
       // Stop any currently playing audio
@@ -440,8 +418,7 @@ function HomeContent() {
       const trackResult = await trackListen(linkId)
       if (!trackResult) {
         console.error('Failed to start tracking listen')
-        setLoadingAudio(null)
-        return
+            return
       }
 
       const listenRecord = trackResult.listen
@@ -548,7 +525,6 @@ function HomeContent() {
       setCurrentTime(0)
       setProgress(0)
       setDuration(0)
-      setLoadingAudio(null) // Clear loading state when track ends
       
       // Refresh stats to update listen counts and minutes listened (after cleanup)
       
@@ -565,7 +541,6 @@ function HomeContent() {
         setCurrentTime(0)
         setProgress(0)
         setDuration(0)
-        setLoadingAudio(null) // Clear loading state on error
         if (progressUpdateInterval.current) {
           clearInterval(progressUpdateInterval.current)
         }
@@ -575,7 +550,6 @@ function HomeContent() {
       audio.play().then(() => {
         setCurrentlyPlaying(linkId)
         setAudioElement(audio)
-        setLoadingAudio(null) // Clear loading state on success
         
         // Set up periodic progress updates
         progressUpdateInterval.current = setInterval(async () => {
@@ -609,11 +583,9 @@ function HomeContent() {
         setCurrentTime(0)
         setProgress(0)
         setDuration(0)
-        setLoadingAudio(null) // Clear loading state on error
       })
     } catch (error) {
       console.error('Error in handlePlayAudio:', error)
-      setLoadingAudio(null) // Clear loading state on any error
     }
   }
 
@@ -643,7 +615,6 @@ function HomeContent() {
       }
       
       setCurrentlyPlaying(null)
-      setLoadingAudio(null) // Clear loading state when paused
       // Keep player visible - don't reset other states when pausing
     }
   }
@@ -667,7 +638,6 @@ function HomeContent() {
     setCurrentTime(0)
     setProgress(0)
     setDuration(0)
-    setLoadingAudio(null)
   }
 
   const handleRestartTrack = () => {
@@ -721,14 +691,7 @@ function HomeContent() {
 
   // Render Dashboard content
   const renderDashboard = () => {
-    // Only show loading spinner on initial load, not on background refreshes
-    if (initialLoading) {
-      return (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-          <Spin size="large" />
-        </div>
-      )
-    }
+    // No loading states - just show data immediately
 
     if (dashboardError) {
       return (
@@ -1071,16 +1034,13 @@ function HomeContent() {
                                 shape="circle"
                                 size="large"
                                 disabled={(!userCanConsume || linkLimitExceeded) && !isExceptionTeam}
-                                loading={loadingAudio === record.id}
                                 icon={
-                                  loadingAudio === record.id ? <LoadingOutlined /> :
                                   currentlyPlaying === record.id ? <PauseCircleOutlined /> : 
                                   <PlayCircleOutlined />
                                 }
                                 onClick={async (e) => {
                                   e.stopPropagation()
                                   if ((!userCanConsume || linkLimitExceeded) && !isExceptionTeam) return
-                                  if (loadingAudio === record.id) return
                                   
                                   if (currentlyPlaying === record.id) {
                                     await handlePauseAudio()
