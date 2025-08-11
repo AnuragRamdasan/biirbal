@@ -220,7 +220,7 @@ function HomeContent() {
           }
         }
       } catch (error) {
-        console.error('Error in dev auth check:', error)
+        // Silent fail for dev auth check
       }
     }
     
@@ -324,7 +324,6 @@ function HomeContent() {
       setUserCanConsume(usageData.userCanConsume !== false)
       setDashboardError(null)
     } catch (error) {
-      console.error('Failed to fetch dashboard data:', error)
       setDashboardError('Failed to load data')
     } finally {
       if (isInitialLoad) {
@@ -383,7 +382,6 @@ function HomeContent() {
       
       return await response.json()
     } catch (error) {
-      console.error('Failed to track listen:', error)
       return null
     }
   }
@@ -395,7 +393,6 @@ function HomeContent() {
   
       
       if (!linkId) {
-        console.error('❌ Cannot update progress: linkId is null')
         return null
       }
 
@@ -425,7 +422,6 @@ function HomeContent() {
 
       if (!response.ok) {
         const errorText = await response.text()
-        console.error('❌ Progress update failed:', response.status, errorText)
         throw new Error(`Failed to update progress: ${response.status} - ${errorText}`)
       }
 
@@ -438,7 +434,6 @@ function HomeContent() {
 
       return result
     } catch (error) {
-      console.error('❌ Failed to update listen progress:', error)
       return null
     }
   }
@@ -463,7 +458,6 @@ function HomeContent() {
       // Track listen and get resume position
       const trackResult = await trackListen(linkId)
       if (!trackResult) {
-        console.error('Failed to start tracking listen')
             return
       }
 
@@ -553,7 +547,7 @@ function HomeContent() {
           const result = await updateListenProgress(currentListenRecord.current, audio.currentTime, true, 100)
 
         } catch (error) {
-          console.error('Failed to update listen completion:', error)
+          // Silent fail
         }
         if (progressUpdateInterval.current) {
           clearInterval(progressUpdateInterval.current)
@@ -578,7 +572,6 @@ function HomeContent() {
     })
     
       audio.addEventListener('error', () => {
-        console.error('Audio playback failed')
         analytics.trackFeature('audio_play_error', { link_id: linkId })
         setCurrentlyPlaying(null)
         setAudioElement(null)
@@ -615,12 +608,11 @@ function HomeContent() {
               }
             }
           } catch (error) {
-            console.error('❌ Error in progress update interval:', error)
+            // Silent fail
           }
         }, 5000) // Update every 5 seconds
         
       }).catch((error) => {
-        console.error('Failed to play audio:', error)
         analytics.trackFeature('audio_play_error', { link_id: linkId, error: error.message })
         setCurrentlyPlaying(null)
         setAudioElement(null)
@@ -631,7 +623,7 @@ function HomeContent() {
         setDuration(0)
       })
     } catch (error) {
-      console.error('Error in handlePlayAudio:', error)
+      // Silent fail
     }
   }
 

@@ -25,7 +25,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'No dev user available' })
     }
   } catch (error) {
-    console.error('Error in dev auth:', error)
     return NextResponse.json({ 
       success: false, 
       error: error instanceof Error ? error.message : 'Unknown error' 

@@ -28,7 +28,6 @@ export async function getDevUser() {
 
     return firstUser
   } catch (error) {
-    console.error('Failed to get first user for dev login:', error)
     return null
   }
 }
