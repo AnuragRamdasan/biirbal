@@ -29,16 +29,16 @@ model Team {
 }
 
 model User {
-  id               String        @id @default(cuid())
+  id               String           @id @default(cuid())
   name             String?
-  email            String?       @unique
-  image            String?
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  email            String?          @unique
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
   password         String?
   emailVerified    DateTime?
-  resetToken       String?       @unique
+  resetToken       String?          @unique
   resetTokenExpiry DateTime?
+  image            String?
   accounts         Account[]
   audioListens     AudioListen[]
   sessions         Session[]
@@ -48,27 +48,26 @@ model User {
 }
 
 model TeamMembership {
-  id               String    @id @default(cuid())
-  userId           String
-  teamId           String
-  slackUserId      String?   // Slack-specific user ID for this team
-  displayName      String?
-  realName         String?
-  profileImage24   String?
-  profileImage32   String?
-  profileImage48   String?
-  title            String?
-  userAccessToken  String?   // Slack user token for this team
-  role             String    @default("member") // admin, member, etc.
-  isActive         Boolean   @default(true)
-  joinedAt         DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  
-  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  team             Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  
+  id              String   @id @default(cuid())
+  userId          String
+  teamId          String
+  slackUserId     String?
+  displayName     String?
+  realName        String?
+  profileImage24  String?
+  profileImage32  String?
+  profileImage48  String?
+  title           String?
+  userAccessToken String?
+  role            String   @default("member")
+  isActive        Boolean  @default(true)
+  joinedAt        DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  team            Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([userId, teamId])
-  @@unique([slackUserId, teamId]) // Same Slack user can't be in same team twice
+  @@unique([slackUserId, teamId])
   @@map("team_memberships")
 }
 
@@ -103,6 +102,7 @@ model ProcessedLink {
   ttsScript        String?
   ogImage          String?
   source           String?          @default("slack")
+  wordCount        Int?
   listens          AudioListen[]
   channel          Channel          @relation(fields: [channelId], references: [id], onDelete: Cascade)
   team             Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)

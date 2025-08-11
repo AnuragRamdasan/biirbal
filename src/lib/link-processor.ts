@@ -282,6 +282,7 @@ export async function processLink(params: ProcessLinkParams, updateProgress?: (p
       data: {
         title: extractedContent.title,
         extractedText: summary,
+        wordCount: extractedContent.wordCount,
         audioFileUrl: audioUrl,
         audioFileKey: audioResult.fileName,
         ttsScript: audioResult.ttsScript,

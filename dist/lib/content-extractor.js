@@ -37,13 +37,15 @@ async function extractContentFromUrl(url) {
             throw new Error('Insufficient content extracted');
         }
         const cleanText = cleanContent(article.textContent);
+        const wordCount = calculateWordCount(cleanText);
         const title = article.title || 'Untitled Article';
         const ogImage = extractOgImage(dom.window.document, url);
-        console.log(`✅ Extracted ${cleanText.length} characters from: ${title}`);
+        console.log(`✅ Extracted ${cleanText.length} characters (${wordCount} words) from: ${title}`);
         return {
             title: cleanTitle(title),
             ogImage,
             text: cleanText,
+            wordCount,
             url
         };
     }
@@ -105,22 +107,26 @@ async function extractContentWithFallback(url) {
             throw new Error('Insufficient content from fallback extraction');
         }
         const cleanText = cleanContent(article.textContent);
+        const wordCount = calculateWordCount(cleanText);
         const title = article.title || extractTitleFromUrl(url);
         const ogImage = extractOgImage(dom.window.document, url);
-        console.log(`✅ Fallback extracted ${cleanText.length} characters from: ${title}`);
+        console.log(`✅ Fallback extracted ${cleanText.length} characters (${wordCount} words) from: ${title}`);
         return {
             title: cleanTitle(title),
             ogImage,
             text: cleanText,
+            wordCount,
             url
         };
     }
     catch (error) {
         console.error('Fallback extraction also failed:', error);
         // Generate a minimal content object as last resort
+        const fallbackText = `Content extraction temporarily unavailable for this link. Please try visiting ${url} directly.`;
         return {
             title: extractTitleFromUrl(url),
-            text: `Content extraction temporarily unavailable for this link. Please try visiting ${url} directly.`,
+            text: fallbackText,
+            wordCount: calculateWordCount(fallbackText),
             url,
             ogImage: undefined
         };
@@ -157,6 +163,14 @@ function cleanTitle(title) {
         .replace(/\s*[-–—|]\s*.+$/, '')
         .replace(/\s+/g, ' ')
         .trim();
+}
+function calculateWordCount(text) {
+    if (!text || text.trim().length === 0) {
+        return 0;
+    }
+    // Split by whitespace and filter out empty strings
+    const words = text.trim().split(/\s+/).filter(word => word.length > 0);
+    return words.length;
 }
 async function summarizeForAudio(text, maxWords = 150, sourceUrl) {
     if (!process.env.OPENAI_API_KEY) {
