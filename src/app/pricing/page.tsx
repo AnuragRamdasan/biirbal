@@ -254,26 +254,26 @@ export default function PricingPage() {
     {
       id: 'free',
       name: 'Free',
-      description: 'Perfect for individuals getting started',
+      description: 'Perfect for trying our AI tool - individuals getting started',
       price: 0,
       features: [
-        '20 audio summaries per month',
-        '2-5 min processing time',
-        'Community support'
+        '20 AI-powered audio summaries per month',
+        '2-5 min AI processing time',
+        'Community AI tool support'
       ]
     },
     {
       id: 'premium',
       name: 'Premium',
-      description: 'For power readers and knowledge workers',
+      description: 'AI-powered tool for power readers and knowledge workers',
       price: isAnnual ? 99.00 : 9,
       isPopular: true,
       stripePriceId: 'price_premium',
       features: [
-        'Unlimited audio summaries',
-        '30s processing time',
-        'Advanced analytics & reports',
-        'Priority support',
+        'Unlimited AI-powered audio summaries',
+        '30s AI processing time',
+        'Advanced AI analytics & insights',
+        'Priority AI tool support',
       ]
     }
   ]
@@ -927,7 +927,7 @@ export default function PricingPage() {
                     <SoundOutlined style={{ fontSize: 48, color: '#1890ff' }} />
                     <Title level={4}>AI-Powered Summaries</Title>
                     <Text type="secondary">
-                      Advanced AI creates accurate 59-second audio summaries from any web content
+                      Our advanced AI tool creates accurate 59-second audio summaries from any web content automatically
                     </Text>
                   </Space>
                 </Card>
@@ -937,9 +937,9 @@ export default function PricingPage() {
                 <Card bordered={false} style={{ textAlign: 'center', height: '100%' }}>
                   <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                     <SoundOutlined style={{ fontSize: 48, color: '#52c41a' }} />
-                    <Title level={4}>Web Integration</Title>
+                    <Title level={4}>Smart AI Integration</Title>
                     <Text type="secondary">
-                      Seamlessly integrates with your existing web workflows and tools
+                      Our AI tool seamlessly integrates with your existing web workflows and tools
                     </Text>
                   </Space>
                 </Card>
@@ -949,9 +949,9 @@ export default function PricingPage() {
                 <Card bordered={false} style={{ textAlign: 'center', height: '100%' }}>
                   <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                     <ReadOutlined style={{ fontSize: 48, color: '#722ed1' }} />
-                    <Title level={4}>Reader Analytics</Title>
+                    <Title level={4}>AI-Powered Analytics</Title>
                     <Text type="secondary">
-                      Track reader engagement and understand content consumption patterns
+                      Track reader engagement with AI insights and understand content consumption patterns
                     </Text>
                   </Space>
                 </Card>

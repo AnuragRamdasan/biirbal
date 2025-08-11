@@ -161,22 +161,22 @@ function HomeContent() {
   const benefits = [
     {
       icon: <RocketOutlined style={{ fontSize: 32, color: '#1890ff' }} />,
-      title: 'Stop Reading, Start Learning',
-      description: 'Transform any article into a 59-second audio summary. Absorb key insights while multitasking or commuting.',
+      title: 'Stop Reading, Start Learning with AI',
+      description: 'Our AI tool transforms any article into a 59-second audio summary automatically. Absorb key insights while multitasking or commuting.',
       stats: 'Save 3+ hours weekly',
       color: '#1890ff'
     },
     {
       icon: <ClockCircleOutlined style={{ fontSize: 32, color: '#52c41a' }} />,
-      title: 'Kill Your Reading Backlog',
-      description: 'Turn your overwhelming reading list into manageable audio summaries. Finally catch up on industry news and research.',
+      title: 'AI Kills Your Reading Backlog',
+      description: 'Our AI tool turns your overwhelming reading list into manageable audio summaries. Finally catch up on industry news and research.',
       stats: 'Process 10x more content',
       color: '#52c41a'
     },
     {
       icon: <SafetyCertificateOutlined style={{ fontSize: 32, color: '#722ed1' }} />,
-      title: 'Stay Ahead Without Burnout',
-      description: 'Keep your team informed and competitive without the stress of endless articles. Knowledge becomes accessible to everyone.',
+      title: 'AI Keeps You Ahead Without Burnout',
+      description: 'Our AI tool keeps your team informed and competitive without the stress of endless articles. AI-powered knowledge becomes accessible to everyone.',
       stats: 'Zero information anxiety',
       color: '#722ed1'
     }
@@ -896,18 +896,170 @@ function HomeContent() {
           {/* Links List - Row-based Cards */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {visibleLinks.length === 0 ? (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={
-                  <span style={{ fontSize: 12 }}>
-                    {showListened 
-                      ? "No audio summaries available yet."
-                      : "No unlistened links. Toggle 'Show All' to see all links including listened ones."
-                    }
-                  </span>
-                }
-                style={{ padding: '20px 0' }}
-              />
+              <div>
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description={
+                    <span style={{ fontSize: 12 }}>
+                      {showListened 
+                        ? "No AI-powered audio summaries available yet. Try some publications below to see our AI tool in action!"
+                        : "No unlistened AI summaries. Toggle 'Show All' to see all links including listened ones, or try publications below."
+                      }
+                    </span>
+                  }
+                  style={{ padding: '20px 0' }}
+                />
+                
+                {/* 50 Worldwide Famous Publications */}
+                <Card style={{ marginTop: 24 }}>
+                  <Title level={4} style={{ textAlign: 'center', marginBottom: 24 }}>
+                    🌍 Try Our AI Tool on These World-Famous Publications
+                  </Title>
+                  <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: 32, fontSize: 14 }}>
+                    Click any publication below to experience our AI-powered summarization tool
+                  </Text>
+                  
+                  <Row gutter={[16, 16]}>
+                    {[
+                      // News & Current Affairs
+                      { name: 'BBC News', url: 'https://www.bbc.com/news', category: 'News', icon: '📰' },
+                      { name: 'CNN', url: 'https://www.cnn.com', category: 'News', icon: '📺' },
+                      { name: 'The Guardian', url: 'https://www.theguardian.com', category: 'News', icon: '🗞️' },
+                      { name: 'Reuters', url: 'https://www.reuters.com', category: 'News', icon: '📡' },
+                      { name: 'Associated Press', url: 'https://apnews.com', category: 'News', icon: '📊' },
+                      { name: 'The New York Times', url: 'https://www.nytimes.com', category: 'News', icon: '📋' },
+                      { name: 'The Washington Post', url: 'https://www.washingtonpost.com', category: 'News', icon: '🏛️' },
+                      { name: 'Wall Street Journal', url: 'https://www.wsj.com', category: 'Business', icon: '💼' },
+                      { name: 'Financial Times', url: 'https://www.ft.com', category: 'Business', icon: '📈' },
+                      { name: 'Bloomberg', url: 'https://www.bloomberg.com', category: 'Business', icon: '💹' },
+                      
+                      // Technology
+                      { name: 'TechCrunch', url: 'https://techcrunch.com', category: 'Tech', icon: '🚀' },
+                      { name: 'Wired', url: 'https://www.wired.com', category: 'Tech', icon: '🔌' },
+                      { name: 'Ars Technica', url: 'https://arstechnica.com', category: 'Tech', icon: '⚡' },
+                      { name: 'The Verge', url: 'https://www.theverge.com', category: 'Tech', icon: '📱' },
+                      { name: 'Engadget', url: 'https://www.engadget.com', category: 'Tech', icon: '🤖' },
+                      { name: 'MIT Technology Review', url: 'https://www.technologyreview.com', category: 'Tech', icon: '🧪' },
+                      
+                      // Science & Research
+                      { name: 'Nature', url: 'https://www.nature.com', category: 'Science', icon: '🔬' },
+                      { name: 'Science Magazine', url: 'https://www.science.org', category: 'Science', icon: '🧬' },
+                      { name: 'Scientific American', url: 'https://www.scientificamerican.com', category: 'Science', icon: '🔭' },
+                      { name: 'New Scientist', url: 'https://www.newscientist.com', category: 'Science', icon: '⚗️' },
+                      { name: 'Smithsonian Magazine', url: 'https://www.smithsonianmag.com', category: 'Science', icon: '🏛️' },
+                      
+                      // Business & Economics
+                      { name: 'Harvard Business Review', url: 'https://hbr.org', category: 'Business', icon: '📚' },
+                      { name: 'Forbes', url: 'https://www.forbes.com', category: 'Business', icon: '💰' },
+                      { name: 'Fortune', url: 'https://fortune.com', category: 'Business', icon: '🍀' },
+                      { name: 'Fast Company', url: 'https://www.fastcompany.com', category: 'Business', icon: '⚡' },
+                      { name: 'The Economist', url: 'https://www.economist.com', category: 'Economics', icon: '📊' },
+                      
+                      // Culture & Lifestyle
+                      { name: 'The Atlantic', url: 'https://www.theatlantic.com', category: 'Culture', icon: '🌊' },
+                      { name: 'The New Yorker', url: 'https://www.newyorker.com', category: 'Culture', icon: '🗽' },
+                      { name: 'Vox', url: 'https://www.vox.com', category: 'Explainer', icon: '📝' },
+                      { name: 'Medium', url: 'https://medium.com', category: 'Blogging', icon: '✍️' },
+                      { name: 'Quartz', url: 'https://qz.com', category: 'Business', icon: '💎' },
+                      
+                      // International
+                      { name: 'Le Monde', url: 'https://www.lemonde.fr', category: 'International', icon: '🇫🇷' },
+                      { name: 'Der Spiegel', url: 'https://www.spiegel.de', category: 'International', icon: '🇩🇪' },
+                      { name: 'The Times of India', url: 'https://timesofindia.indiatimes.com', category: 'International', icon: '🇮🇳' },
+                      { name: 'South China Morning Post', url: 'https://www.scmp.com', category: 'International', icon: '🇭🇰' },
+                      { name: 'Al Jazeera', url: 'https://www.aljazeera.com', category: 'International', icon: '🌍' },
+                      
+                      // Health & Medicine
+                      { name: 'The Lancet', url: 'https://www.thelancet.com', category: 'Medical', icon: '⚕️' },
+                      { name: 'NEJM', url: 'https://www.nejm.org', category: 'Medical', icon: '🩺' },
+                      { name: 'Mayo Clinic News', url: 'https://newsnetwork.mayoclinic.org', category: 'Health', icon: '🏥' },
+                      { name: 'WebMD', url: 'https://www.webmd.com', category: 'Health', icon: '💊' },
+                      
+                      // Environment & Climate
+                      { name: 'National Geographic', url: 'https://www.nationalgeographic.com', category: 'Environment', icon: '🌍' },
+                      { name: 'Yale Environment 360', url: 'https://e360.yale.edu', category: 'Environment', icon: '🌱' },
+                      { name: 'Climate Central', url: 'https://www.climatecentral.org', category: 'Climate', icon: '🌡️' },
+                      
+                      // Education & Academia
+                      { name: 'Chronicle of Higher Education', url: 'https://www.chronicle.com', category: 'Education', icon: '🎓' },
+                      { name: 'Inside Higher Ed', url: 'https://www.insidehighered.com', category: 'Education', icon: '📖' },
+                      
+                      // Arts & Entertainment
+                      { name: 'Variety', url: 'https://variety.com', category: 'Entertainment', icon: '🎭' },
+                      { name: 'The Hollywood Reporter', url: 'https://www.hollywoodreporter.com', category: 'Entertainment', icon: '🎬' },
+                      { name: 'Rolling Stone', url: 'https://www.rollingstone.com', category: 'Music', icon: '🎵' },
+                      
+                      // Sports
+                      { name: 'ESPN', url: 'https://www.espn.com', category: 'Sports', icon: '⚽' },
+                      { name: 'Sports Illustrated', url: 'https://www.si.com', category: 'Sports', icon: '🏆' },
+                      
+                      // Specialized
+                      { name: 'Politico', url: 'https://www.politico.com', category: 'Politics', icon: '🏛️' },
+                      { name: 'Foreign Affairs', url: 'https://www.foreignaffairs.com', category: 'Politics', icon: '🌐' },
+                    ].map((publication, index) => (
+                      <Col xs={12} sm={8} md={6} lg={4} xl={4} key={index}>
+                        <Card 
+                          hoverable 
+                          size="small"
+                          style={{ 
+                            textAlign: 'center',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            border: '1px solid #f0f0f0'
+                          }}
+                          bodyStyle={{ padding: '12px 8px' }}
+                          onClick={() => {
+                            // Copy URL to clipboard or open in new tab
+                            navigator.clipboard.writeText(publication.url).then(() => {
+                              // You could add a toast notification here
+                              window.open(publication.url, '_blank')
+                            })
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-2px)'
+                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0px)'
+                            e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'
+                          }}
+                        >
+                          <div style={{ fontSize: '24px', marginBottom: '8px' }}>
+                            {publication.icon}
+                          </div>
+                          <Text 
+                            style={{ 
+                              fontSize: '12px', 
+                              fontWeight: '600', 
+                              display: 'block',
+                              lineHeight: '1.3',
+                              marginBottom: '4px'
+                            }}
+                          >
+                            {publication.name}
+                          </Text>
+                          <Badge 
+                            size="small" 
+                            style={{ 
+                              backgroundColor: '#f0f0f0', 
+                              color: '#666',
+                              fontSize: '10px',
+                              border: 'none'
+                            }}
+                            text={publication.category}
+                          />
+                        </Card>
+                      </Col>
+                    ))}
+                  </Row>
+                  
+                  <div style={{ textAlign: 'center', marginTop: 24 }}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      💡 Our AI tool works with any URL - these are just popular examples to get you started!
+                    </Text>
+                  </div>
+                </Card>
+              </div>
             ) : (
               visibleLinks.map((record) => (
                 <Card 
