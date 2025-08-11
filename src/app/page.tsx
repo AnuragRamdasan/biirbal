@@ -90,6 +90,7 @@ interface DashboardStats {
   totalListens: number
   totalMinutesCurated: number
   totalMinutesListened: number
+  totalWordsConsumed: number
   timestamp: string
 }
 
@@ -816,36 +817,44 @@ function HomeContent() {
               </Col>
               <Col xs={24} sm={24} md={16} lg={18}>
                 <Row gutter={[8, 8]} align="middle">
-                  <Col xs={12} sm={6}>
+                  <Col xs={8} sm={8} md={4} lg={4}>
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: isMobile ? 14 : 16, fontWeight: 'bold', color: '#1890ff' }}>
+                      <div style={{ fontSize: isMobile ? 12 : 16, fontWeight: 'bold', color: '#1890ff' }}>
                         {stats?.totalLinks ?? links.length}
                       </div>
-                      <Text type="secondary" style={{ fontSize: isMobile ? 9 : 10 }}>Total</Text>
+                      <Text type="secondary" style={{ fontSize: isMobile ? 8 : 10 }}>Total</Text>
                     </div>
                   </Col>
-                  <Col xs={12} sm={6}>
+                  <Col xs={8} sm={8} md={4} lg={4}>
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: isMobile ? 14 : 16, fontWeight: 'bold', color: '#722ed1' }}>
+                      <div style={{ fontSize: isMobile ? 12 : 16, fontWeight: 'bold', color: '#722ed1' }}>
                         {stats?.totalListens ?? links.reduce((total, link) => total + getListenCount(link), 0)}
                       </div>
-                      <Text type="secondary" style={{ fontSize: isMobile ? 9 : 10 }}>Listens</Text>
+                      <Text type="secondary" style={{ fontSize: isMobile ? 8 : 10 }}>Listens</Text>
                     </div>
                   </Col>
-                  <Col xs={12} sm={6}>
+                  <Col xs={8} sm={8} md={4} lg={4}>
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: isMobile ? 14 : 16, fontWeight: 'bold', color: '#52c41a' }}>
+                      <div style={{ fontSize: isMobile ? 12 : 16, fontWeight: 'bold', color: '#52c41a' }}>
                         {stats?.totalMinutesCurated ?? 0}
                       </div>
-                      <Text type="secondary" style={{ fontSize: isMobile ? 9 : 10 }}>Min Curated</Text>
+                      <Text type="secondary" style={{ fontSize: isMobile ? 8 : 10 }}>Min Curated</Text>
                     </div>
                   </Col>
-                  <Col xs={12} sm={6}>
+                  <Col xs={8} sm={8} md={4} lg={4}>
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: isMobile ? 14 : 16, fontWeight: 'bold', color: '#fa8c16' }}>
+                      <div style={{ fontSize: isMobile ? 12 : 16, fontWeight: 'bold', color: '#fa8c16' }}>
                         {stats?.totalMinutesListened ?? 0}
                       </div>
-                      <Text type="secondary" style={{ fontSize: isMobile ? 9 : 10 }}>Min Listened</Text>
+                      <Text type="secondary" style={{ fontSize: isMobile ? 8 : 10 }}>Min Listened</Text>
+                    </div>
+                  </Col>
+                  <Col xs={16} sm={8} md={4} lg={4}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: isMobile ? 12 : 16, fontWeight: 'bold', color: '#eb2f96' }}>
+                        {stats?.totalWordsConsumed ? stats.totalWordsConsumed.toLocaleString() : 0}
+                      </div>
+                      <Text type="secondary" style={{ fontSize: isMobile ? 8 : 10 }}>Words Read</Text>
                     </div>
                   </Col>
                 </Row>

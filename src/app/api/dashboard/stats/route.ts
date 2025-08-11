@@ -104,7 +104,8 @@ export async function GET(request: NextRequest) {
           resumePosition: true,
           processedLink: {
             select: {
-              ttsScript: true
+              ttsScript: true,
+              wordCount: true
             }
           }
         }
@@ -138,12 +139,26 @@ export async function GET(request: NextRequest) {
       }, 0)
     )
 
+    // Calculate total words consumed from listened articles
+    const totalWordsConsumed = meaningfulListens.reduce((total, listen) => {
+      if (listen.processedLink.wordCount) {
+        return total + listen.processedLink.wordCount
+      }
+      // Fallback: estimate from TTS script if wordCount not available
+      if (listen.processedLink.ttsScript) {
+        const wordCount = listen.processedLink.ttsScript.split(' ').length
+        return total + wordCount
+      }
+      return total
+    }, 0)
+
     return NextResponse.json({
       totalLinks,
       completedLinks,
       totalListens,
       totalMinutesCurated,
       totalMinutesListened,
+      totalWordsConsumed,
       timestamp: new Date().toISOString()
     })
 
