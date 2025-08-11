@@ -2165,9 +2165,11 @@ function HomeContent() {
                 </div>
               </Col>
             ))}
-          </Row> */}
-        </div>*/}
-      </div> 
+          </Row> 
+        </div>
+      </div> */}
+      
+      </div>
 
       {/* Pricing Section */}
       <div style={{ 
