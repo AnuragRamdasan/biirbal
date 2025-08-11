@@ -1070,15 +1070,15 @@ function HomeContent() {
                             e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'
                           }}
                         >
-                          <div style={{ marginBottom: '8px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <div style={{ marginBottom: '12px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <img 
                               src={publication.logo} 
                               alt={publication.name}
                               style={{ 
-                                maxHeight: '32px', 
-                                maxWidth: '48px', 
+                                maxHeight: '64px', 
+                                maxWidth: '96px', 
                                 objectFit: 'contain',
-                                borderRadius: '4px'
+                                borderRadius: '6px'
                               }}
                               onError={(e) => {
                                 // Fallback to first letter if logo fails to load
@@ -1086,7 +1086,7 @@ function HomeContent() {
                                 target.style.display = 'none';
                                 const parent = target.parentElement;
                                 if (parent) {
-                                  parent.innerHTML = `<div style="width: 32px; height: 32px; border-radius: 50%; background: #1890ff; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">${publication.name.charAt(0)}</div>`;
+                                  parent.innerHTML = `<div style="width: 64px; height: 64px; border-radius: 50%; background: #1890ff; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 24px;">${publication.name.charAt(0)}</div>`;
                                 }
                               }}
                             />
