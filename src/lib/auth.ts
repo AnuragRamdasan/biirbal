@@ -397,6 +397,54 @@ export const authOptions: NextAuthOptions = {
         }
       }
       
+      // Ensure a personal web team exists for Google/Email sign-ins as well
+      if (account && (account.provider === 'google' || account.provider === 'email')) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: user.id },
+            include: { memberships: { include: { team: true } } },
+          })
+
+          const hasPersonalTeam = dbUser?.memberships.some(m =>
+            !m.team.slackTeamId || m.team.slackTeamId.startsWith('web_')
+          )
+
+          if (!hasPersonalTeam) {
+            console.log(`🏢 [${account.provider}] Creating personal team for: ${user.email}`)
+            const webTeamId = `web_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+            const team = await prisma.team.create({
+              data: {
+                slackTeamId: webTeamId,
+                teamName: `${user.name || user.email?.split('@')[0]}'s Team`,
+                isActive: true,
+                subscription: {
+                  create: {
+                    status: 'TRIAL',
+                    planId: 'free',
+                    monthlyLinkLimit: 20,
+                    userLimit: 1,
+                  }
+                }
+              },
+            })
+
+            await prisma.teamMembership.create({
+              data: {
+                userId: user.id,
+                teamId: team.id,
+                role: 'admin',
+                isActive: true
+              }
+            })
+
+            console.log(`✅ [${account.provider}] Created personal team ${team.id} for user ${user.email}`)
+          }
+        } catch (error) {
+          console.error(`❌ [${account.provider}] Error ensuring personal team:`, error)
+        }
+      }
+      
       return true
     },
     
