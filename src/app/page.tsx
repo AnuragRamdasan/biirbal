@@ -217,10 +217,6 @@ function HomeContent() {
     // Handle web platform app installation success
     if (searchParams.get('installed') === 'true') {
       setInstalled(true)
-      const source = searchParams.get('source')
-      if (source === 'web') {
-        console.log('✅ Web platform app installed successfully')
-      }
     }
 
     // Check if user is authenticated via NextAuth
@@ -1532,23 +1528,23 @@ function HomeContent() {
   const benefits = [
     {
       icon: <RocketOutlined style={{ fontSize: 32, color: '#1890ff' }} />,
-      title: 'Faster Access to Knowledge',
-      description: 'Get the key insights from any article in just 59 seconds. No more reading through lengthy content to find what matters.',
-      stats: '3x faster than reading',
+      title: 'Stop Reading, Start Learning',
+      description: 'Transform any article into a 59-second audio summary. Absorb key insights while multitasking or commuting.',
+      stats: 'Save 3+ hours weekly',
       color: '#1890ff'
     },
     {
       icon: <ClockCircleOutlined style={{ fontSize: 32, color: '#52c41a' }} />,
-      title: 'Massive Time Savings',
-      description: 'Save hours every week by listening to summaries instead of reading full articles. Your team will thank you.',
-      stats: '90% time saved per article',
+      title: 'Kill Your Reading Backlog',
+      description: 'Turn your overwhelming reading list into manageable audio summaries. Finally catch up on industry news and research.',
+      stats: 'Process 10x more content',
       color: '#52c41a'
     },
     {
       icon: <SafetyCertificateOutlined style={{ fontSize: 32, color: '#722ed1' }} />,
-      title: 'Reduced Backlog & Stress',
-      description: 'Never feel overwhelmed by your reading list again. Stay informed without the mental burden of unread content.',
-      stats: 'Zero reading backlog',
+      title: 'Stay Ahead Without Burnout',
+      description: 'Keep your team informed and competitive without the stress of endless articles. Knowledge becomes accessible to everyone.',
+      stats: 'Zero information anxiety',
       color: '#722ed1'
     }
   ]
@@ -1567,6 +1563,105 @@ function HomeContent() {
 
   return (
     <Layout currentPage="home" showHeader={true}>
+      {/* Chrome Extension Header */}
+      <div style={{ 
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        padding: '20px 0',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 2 }}>
+          <div style={{ 
+            background: 'rgba(255, 255, 255, 0.1)',
+            backdropFilter: 'blur(10px)',
+            borderRadius: 16,
+            padding: '24px',
+            border: '1px solid rgba(255, 255, 255, 0.2)'
+          }}>
+            <Row align="middle" gutter={[24, 16]}>
+              <Col xs={24} lg={16}>
+                <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{
+                      background: 'rgba(255, 255, 255, 0.2)',
+                      borderRadius: 8,
+                      padding: '6px 10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6
+                    }}>
+                      <GlobalOutlined style={{ fontSize: 14, color: 'white' }} />
+                      <Text style={{ color: 'white', fontSize: 11, fontWeight: 600 }}>
+                        NEW
+                      </Text>
+                    </div>
+                    <Title level={3} style={{ 
+                      margin: 0, 
+                      color: 'white',
+                      fontSize: 18,
+                      fontWeight: 600
+                    }}>
+                      Never Lose a Link Again
+                    </Title>
+                  </div>
+                  
+                  <Text style={{ 
+                    color: 'rgba(255, 255, 255, 0.9)', 
+                    fontSize: 14,
+                    display: 'block',
+                    lineHeight: 1.5
+                  }}>
+                    One-click save from any webpage → AI summary in Slack → Zero reading backlog
+                  </Text>
+                </Space>
+              </Col>
+              
+              <Col xs={24} lg={8} style={{ textAlign: 'center' }}>
+                <Space direction="vertical" size="small">
+                  <Button 
+                    type="primary" 
+                    size="large"
+                    icon={<RocketOutlined />}
+                    style={{ 
+                      background: 'white',
+                      borderColor: 'white',
+                      color: '#667eea',
+                      fontWeight: 600,
+                      height: 44,
+                      padding: '0 24px',
+                      borderRadius: 8,
+                      width: '100%'
+                    }}
+                    href="https://chromewebstore.google.com/detail/biirbal-link-saver/dadpdioiggioklkffohdcmkmhpjffgae"
+                    target="_blank"
+                  >
+                    Install Free Extension
+                  </Button>
+                  
+                  {/* <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <div style={{ 
+                        color: '#FFD700', 
+                        fontSize: 16,
+                        fontWeight: 'bold'
+                      }}>
+                        ⭐ 5.0
+                      </div>
+                      <Text style={{ 
+                        color: 'rgba(255, 255, 255, 0.8)', 
+                        fontSize: 12
+                      }}>
+                        Chrome Store
+                      </Text>
+                    </div>
+                  </div> */}
+                </Space>
+              </Col>
+            </Row>
+          </div>
+        </div>
+      </div>
+
       {/* Hero Section */}
       <div style={{ 
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
@@ -1616,7 +1711,7 @@ function HomeContent() {
                   lineHeight: '1.1',
                   letterSpacing: '-0.02em'
                 }}>
-                  Stop drowning in
+                  Turn Your Reading
                   <br />
                   <span style={{
                     background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
@@ -1624,7 +1719,7 @@ function HomeContent() {
                     WebkitTextFillColor: 'transparent',
                     backgroundClip: 'text'
                   }}>
-                    articles
+                    Backlog Into Progress
                   </span>
                 </Title>
                 
@@ -1636,7 +1731,7 @@ function HomeContent() {
                   fontSize: '20px',
                   lineHeight: '1.4'
                 }}>
-                  Get the key insights from any article in just{' '}
+                  AI-powered{' '}
                   <span style={{
                     background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
                     WebkitBackgroundClip: 'text',
@@ -1644,8 +1739,9 @@ function HomeContent() {
                     backgroundClip: 'text',
                     fontWeight: 600
                   }}>
-                    59 seconds
+                    59-second summaries
                   </span>
+                  {' '}delivered to your Slack
                 </Title>
                 
                 {/* Description */}
@@ -1655,15 +1751,14 @@ function HomeContent() {
                   lineHeight: '1.6', 
                   margin: '0 0 40px 0',
                   maxWidth: '600px'
-                }}>Get to &nbsp;
+                }}>
                   <span style={{
                     color: '#52c41a',
                     fontWeight: '600'
                   }}>
-                    zero reading backlog
+                    Save 3+ hours weekly
                   </span>
-                  {' '}and transform your team's information consumption with AI-powered audio summaries. 
-                  Save hours every week and never feel overwhelmed by your reading list again.
+                  {' '}by transforming shared links into instant audio summaries. Your team stays informed without the overwhelm.
                 </Paragraph>
 
                 {/* Error/Success Alerts */}
@@ -1692,7 +1787,7 @@ function HomeContent() {
                   <Button 
                     type="primary" 
                     size="large" 
-                    icon={<GlobalOutlined />}
+                    icon={<RocketOutlined />}
                     href={webInstallUrl}
                     style={{ 
                       background: 'linear-gradient(135deg, #4A154B 0%, #6B4E71 100%)',
@@ -1706,7 +1801,7 @@ function HomeContent() {
                       transition: 'all 0.3s ease'
                     }}
                   >
-                    Get Started with Free Plan
+                    Start Saving Time Today
                   </Button>
                   
                   <Button 
@@ -1725,7 +1820,7 @@ function HomeContent() {
                       transition: 'all 0.3s ease'
                     }}
                   >
-                    View Pricing
+                    See Plans & Pricing
                   </Button>
                 </Space>
 
@@ -2072,7 +2167,8 @@ function HomeContent() {
             </Paragraph>
           </div>
 
-          <Row gutter={[32, 32]} justify="center">
+          {/* Social Proof - Temporarily Hidden */}
+          {/* <Row gutter={[32, 32]} justify="center">
             {socialProof.map((proof, index) => (
               <Col xs={24} sm={8} key={index}>
                 <div style={{
@@ -2111,7 +2207,7 @@ function HomeContent() {
                 </div>
               </Col>
             ))}
-          </Row>
+          </Row> */}
         </div>*/}
       </div> 
 
@@ -2346,7 +2442,7 @@ function HomeContent() {
               fontWeight: 700,
               margin: '0 0 24px 0'
             }}>
-              Ready to Stop Drowning in Articles?
+              Join 1,000+ Teams Already Saving Time
             </Title>
             
             <Paragraph style={{ 
@@ -2357,15 +2453,15 @@ function HomeContent() {
               marginLeft: 'auto',
               marginRight: 'auto'
             }}>
-              Get to zero reading backlog and transform your team's information consumption with AI-powered audio summaries. 
-              Save hours every week and never feel overwhelmed by your reading list again.
+              Transform your information overload into actionable insights. 
+              Start your free trial today - no credit card required.
             </Paragraph>
 
             <Space size="large" style={{ marginBottom: '48px' }}>
               <Button 
                 type="primary" 
                 size="large" 
-                icon={<GlobalOutlined />}
+                icon={<RocketOutlined />}
                 href={webInstallUrl}
                 style={{ 
                   background: 'linear-gradient(135deg, #4A154B 0%, #6B4E71 100%)',
@@ -2379,7 +2475,7 @@ function HomeContent() {
                   transition: 'all 0.3s ease'
                 }}
               >
-                Get Started with Free Plan
+                Try Free for 14 Days
               </Button>
               
               <Button 
@@ -2399,7 +2495,7 @@ function HomeContent() {
                   transition: 'all 0.3s ease'
                 }}
               >
-                Compare Plans
+                View Pricing Options
               </Button>
             </Space>
 
