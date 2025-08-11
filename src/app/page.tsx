@@ -55,6 +55,18 @@ import { useAnalytics } from '@/hooks/useAnalytics'
 
 const { Title, Text, Paragraph } = Typography
 
+// Format large numbers with K, M, B suffixes
+const formatLargeNumber = (num: number): string => {
+  if (num >= 1000000000) {
+    return (num / 1000000000).toFixed(1) + 'B'
+  } else if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M'
+  } else if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K'
+  }
+  return num.toString()
+}
+
 // Smooth transitions without layout shifts
 if (typeof document !== 'undefined') {
   const style = document.createElement('style')
@@ -122,6 +134,7 @@ function HomeContent() {
   const [dashboardError, setDashboardError] = useState<string | null>(null)
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null)
   const [showListened, setShowListened] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState<string>('All')
   const [isMobile, setIsMobile] = useState(false)
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null)
   const [currentTime, setCurrentTime] = useState(0)
@@ -820,7 +833,7 @@ function HomeContent() {
                   <Col xs={8} sm={8} md={4} lg={4}>
                     <div style={{ textAlign: 'center' }}>
                       <div style={{ fontSize: isMobile ? 12 : 16, fontWeight: 'bold', color: '#1890ff' }}>
-                        {stats?.totalLinks ?? links.length}
+                        {stats?.totalLinks ? formatLargeNumber(stats.totalLinks) : formatLargeNumber(links.length)}
                       </div>
                       <Text type="secondary" style={{ fontSize: isMobile ? 8 : 10 }}>Total</Text>
                     </div>
@@ -828,7 +841,7 @@ function HomeContent() {
                   <Col xs={8} sm={8} md={4} lg={4}>
                     <div style={{ textAlign: 'center' }}>
                       <div style={{ fontSize: isMobile ? 12 : 16, fontWeight: 'bold', color: '#722ed1' }}>
-                        {stats?.totalListens ?? links.reduce((total, link) => total + getListenCount(link), 0)}
+                        {stats?.totalListens ? formatLargeNumber(stats.totalListens) : formatLargeNumber(links.reduce((total, link) => total + getListenCount(link), 0))}
                       </div>
                       <Text type="secondary" style={{ fontSize: isMobile ? 8 : 10 }}>Listens</Text>
                     </div>
@@ -836,7 +849,7 @@ function HomeContent() {
                   <Col xs={8} sm={8} md={4} lg={4}>
                     <div style={{ textAlign: 'center' }}>
                       <div style={{ fontSize: isMobile ? 12 : 16, fontWeight: 'bold', color: '#52c41a' }}>
-                        {stats?.totalMinutesCurated ?? 0}
+                        {stats?.totalMinutesCurated ? formatLargeNumber(stats.totalMinutesCurated) : 0}
                       </div>
                       <Text type="secondary" style={{ fontSize: isMobile ? 8 : 10 }}>Min Curated</Text>
                     </div>
@@ -844,7 +857,7 @@ function HomeContent() {
                   <Col xs={8} sm={8} md={4} lg={4}>
                     <div style={{ textAlign: 'center' }}>
                       <div style={{ fontSize: isMobile ? 12 : 16, fontWeight: 'bold', color: '#fa8c16' }}>
-                        {stats?.totalMinutesListened ?? 0}
+                        {stats?.totalMinutesListened ? formatLargeNumber(stats.totalMinutesListened) : 0}
                       </div>
                       <Text type="secondary" style={{ fontSize: isMobile ? 8 : 10 }}>Min Listened</Text>
                     </div>
@@ -852,9 +865,9 @@ function HomeContent() {
                   <Col xs={16} sm={8} md={4} lg={4}>
                     <div style={{ textAlign: 'center' }}>
                       <div style={{ fontSize: isMobile ? 12 : 16, fontWeight: 'bold', color: '#eb2f96' }}>
-                        {stats?.totalWordsConsumed ? stats.totalWordsConsumed.toLocaleString() : 0}
+                        {stats?.totalWordsConsumed ? formatLargeNumber(stats.totalWordsConsumed) : 0}
                       </div>
-                      <Text type="secondary" style={{ fontSize: isMobile ? 8 : 10 }}>Words Read</Text>
+                      <Text type="secondary" style={{ fontSize: isMobile ? 8 : 10 }}>Words Consumed</Text>
                     </div>
                   </Col>
                 </Row>
@@ -912,92 +925,125 @@ function HomeContent() {
                 
                 {/* 50 Worldwide Famous Publications */}
                 <Card style={{ marginTop: 24 }}>
-                  <Title level={4} style={{ textAlign: 'center', marginBottom: 24 }}>
+                  <Title level={4} style={{ textAlign: 'center', marginBottom: 16 }}>
                     🌍 Try Our AI Tool on These World-Famous Publications
                   </Title>
-                  <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: 32, fontSize: 14 }}>
+                  <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: 24, fontSize: 14 }}>
                     Click any publication below to experience our AI-powered summarization tool
                   </Text>
                   
+                  {/* Category Filter */}
+                  <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                    <Select
+                      value={selectedCategory}
+                      onChange={setSelectedCategory}
+                      style={{ width: 200 }}
+                      placeholder="Filter by category"
+                    >
+                      <Select.Option value="All">All Categories</Select.Option>
+                      <Select.Option value="News">News</Select.Option>
+                      <Select.Option value="Business">Business</Select.Option>
+                      <Select.Option value="Tech">Technology</Select.Option>
+                      <Select.Option value="Science">Science</Select.Option>
+                      <Select.Option value="Culture">Culture</Select.Option>
+                      <Select.Option value="International">International</Select.Option>
+                      <Select.Option value="Health">Health & Medical</Select.Option>
+                      <Select.Option value="Environment">Environment</Select.Option>
+                      <Select.Option value="Sports">Sports</Select.Option>
+                      <Select.Option value="Entertainment">Entertainment</Select.Option>
+                    </Select>
+                  </div>
+                  
                   <Row gutter={[16, 16]}>
-                    {[
-                      // News & Current Affairs
-                      { name: 'BBC News', url: 'https://www.bbc.com/news', category: 'News', icon: '📰' },
-                      { name: 'CNN', url: 'https://www.cnn.com', category: 'News', icon: '📺' },
-                      { name: 'The Guardian', url: 'https://www.theguardian.com', category: 'News', icon: '🗞️' },
-                      { name: 'Reuters', url: 'https://www.reuters.com', category: 'News', icon: '📡' },
-                      { name: 'Associated Press', url: 'https://apnews.com', category: 'News', icon: '📊' },
-                      { name: 'The New York Times', url: 'https://www.nytimes.com', category: 'News', icon: '📋' },
-                      { name: 'The Washington Post', url: 'https://www.washingtonpost.com', category: 'News', icon: '🏛️' },
-                      { name: 'Wall Street Journal', url: 'https://www.wsj.com', category: 'Business', icon: '💼' },
-                      { name: 'Financial Times', url: 'https://www.ft.com', category: 'Business', icon: '📈' },
-                      { name: 'Bloomberg', url: 'https://www.bloomberg.com', category: 'Business', icon: '💹' },
+                    {(() => {
+                      const publications = [
+                        // News & Current Affairs
+                        { name: 'BBC News', url: 'https://www.bbc.com/news', category: 'News', logo: '/logos/bbc.png' },
+                        { name: 'CNN', url: 'https://www.cnn.com', category: 'News', logo: '/logos/cnn.png' },
+                        { name: 'The Guardian', url: 'https://www.theguardian.com', category: 'News', logo: '/logos/guardian.png' },
+                        { name: 'Reuters', url: 'https://www.reuters.com', category: 'News', logo: '/logos/reuters.png' },
+                        { name: 'Associated Press', url: 'https://apnews.com', category: 'News', logo: '/logos/ap.png' },
+                        { name: 'The New York Times', url: 'https://www.nytimes.com', category: 'News', logo: '/logos/nytimes.png' },
+                        { name: 'The Washington Post', url: 'https://www.washingtonpost.com', category: 'News', logo: '/logos/washingtonpost.png' },
+                        { name: 'Wall Street Journal', url: 'https://www.wsj.com', category: 'Business', logo: '/logos/wsj.png' },
+                        { name: 'Financial Times', url: 'https://www.ft.com', category: 'Business', logo: '/logos/ft.png' },
+                        { name: 'Bloomberg', url: 'https://www.bloomberg.com', category: 'Business', logo: '/logos/bloomberg.png' },
+                        
+                        // Technology
+                        { name: 'TechCrunch', url: 'https://techcrunch.com', category: 'Tech', logo: '/logos/techcrunch.png' },
+                        { name: 'Wired', url: 'https://www.wired.com', category: 'Tech', logo: '/logos/wired.png' },
+                        { name: 'Ars Technica', url: 'https://arstechnica.com', category: 'Tech', logo: '/logos/arstechnica.png' },
+                        { name: 'The Verge', url: 'https://www.theverge.com', category: 'Tech', logo: '/logos/theverge.png' },
+                        { name: 'Engadget', url: 'https://www.engadget.com', category: 'Tech', logo: '/logos/engadget.png' },
+                        { name: 'MIT Technology Review', url: 'https://www.technologyreview.com', category: 'Tech', logo: '/logos/mit-tech-review.png' },
+                        
+                        // Science & Research
+                        { name: 'Nature', url: 'https://www.nature.com', category: 'Science', logo: '/logos/nature.png' },
+                        { name: 'Science Magazine', url: 'https://www.science.org', category: 'Science', logo: '/logos/science.png' },
+                        { name: 'Scientific American', url: 'https://www.scientificamerican.com', category: 'Science', logo: '/logos/scientific-american.png' },
+                        { name: 'New Scientist', url: 'https://www.newscientist.com', category: 'Science', logo: '/logos/new-scientist.png' },
+                        { name: 'Smithsonian Magazine', url: 'https://www.smithsonianmag.com', category: 'Science', logo: '/logos/smithsonian.png' },
+                        
+                        // Business & Economics
+                        { name: 'Harvard Business Review', url: 'https://hbr.org', category: 'Business', logo: '/logos/hbr.png' },
+                        { name: 'Forbes', url: 'https://www.forbes.com', category: 'Business', logo: '/logos/forbes.png' },
+                        { name: 'Fortune', url: 'https://fortune.com', category: 'Business', logo: '/logos/fortune.png' },
+                        { name: 'Fast Company', url: 'https://www.fastcompany.com', category: 'Business', logo: '/logos/fastcompany.png' },
+                        { name: 'The Economist', url: 'https://www.economist.com', category: 'Business', logo: '/logos/economist.png' },
+                        
+                        // Culture & Lifestyle
+                        { name: 'The Atlantic', url: 'https://www.theatlantic.com', category: 'Culture', logo: '/logos/atlantic.png' },
+                        { name: 'The New Yorker', url: 'https://www.newyorker.com', category: 'Culture', logo: '/logos/new-yorker.png' },
+                        { name: 'Vox', url: 'https://www.vox.com', category: 'Culture', logo: '/logos/vox.png' },
+                        { name: 'Medium', url: 'https://medium.com', category: 'Culture', logo: '/logos/medium.png' },
+                        { name: 'Quartz', url: 'https://qz.com', category: 'Business', logo: '/logos/quartz.png' },
+                        
+                        // International
+                        { name: 'Le Monde', url: 'https://www.lemonde.fr', category: 'International', logo: '/logos/lemonde.png' },
+                        { name: 'Der Spiegel', url: 'https://www.spiegel.de', category: 'International', logo: '/logos/spiegel.png' },
+                        { name: 'The Times of India', url: 'https://timesofindia.indiatimes.com', category: 'International', logo: '/logos/times-of-india.png' },
+                        { name: 'South China Morning Post', url: 'https://www.scmp.com', category: 'International', logo: '/logos/scmp.png' },
+                        { name: 'Al Jazeera', url: 'https://www.aljazeera.com', category: 'International', logo: '/logos/al-jazeera.png' },
+                        
+                        // Health & Medicine
+                        { name: 'The Lancet', url: 'https://www.thelancet.com', category: 'Health', logo: '/logos/lancet.png' },
+                        { name: 'NEJM', url: 'https://www.nejm.org', category: 'Health', logo: '/logos/nejm.png' },
+                        { name: 'Mayo Clinic News', url: 'https://newsnetwork.mayoclinic.org', category: 'Health', logo: '/logos/mayo-clinic.png' },
+                        { name: 'WebMD', url: 'https://www.webmd.com', category: 'Health', logo: '/logos/webmd.png' },
+                        
+                        // Environment & Climate
+                        { name: 'National Geographic', url: 'https://www.nationalgeographic.com', category: 'Environment', logo: '/logos/natgeo.png' },
+                        { name: 'Yale Environment 360', url: 'https://e360.yale.edu', category: 'Environment', logo: '/logos/yale.png' },
+                        { name: 'Climate Central', url: 'https://www.climatecentral.org', category: 'Environment', logo: '/logos/climate-central.png' },
+                        
+                        // Education & Academia
+                        { name: 'Chronicle of Higher Education', url: 'https://www.chronicle.com', category: 'Education', logo: '/logos/chronicle.png' },
+                        { name: 'Inside Higher Ed', url: 'https://www.insidehighered.com', category: 'Education', logo: '/logos/inside-higher-ed.png' },
+                        
+                        // Arts & Entertainment
+                        { name: 'Variety', url: 'https://variety.com', category: 'Entertainment', logo: '/logos/variety.png' },
+                        { name: 'The Hollywood Reporter', url: 'https://www.hollywoodreporter.com', category: 'Entertainment', logo: '/logos/thr.png' },
+                        { name: 'Rolling Stone', url: 'https://www.rollingstone.com', category: 'Entertainment', logo: '/logos/rolling-stone.png' },
+                        
+                        // Sports
+                        { name: 'ESPN', url: 'https://www.espn.com', category: 'Sports', logo: '/logos/espn.png' },
+                        { name: 'Sports Illustrated', url: 'https://www.si.com', category: 'Sports', logo: '/logos/si.png' },
+                        
+                        // Specialized
+                        { name: 'Politico', url: 'https://www.politico.com', category: 'Politics', logo: '/logos/politico.png' },
+                        { name: 'Foreign Affairs', url: 'https://www.foreignaffairs.com', category: 'Politics', logo: '/logos/foreign-affairs.png' },
+                      ];
                       
-                      // Technology
-                      { name: 'TechCrunch', url: 'https://techcrunch.com', category: 'Tech', icon: '🚀' },
-                      { name: 'Wired', url: 'https://www.wired.com', category: 'Tech', icon: '🔌' },
-                      { name: 'Ars Technica', url: 'https://arstechnica.com', category: 'Tech', icon: '⚡' },
-                      { name: 'The Verge', url: 'https://www.theverge.com', category: 'Tech', icon: '📱' },
-                      { name: 'Engadget', url: 'https://www.engadget.com', category: 'Tech', icon: '🤖' },
-                      { name: 'MIT Technology Review', url: 'https://www.technologyreview.com', category: 'Tech', icon: '🧪' },
+                      // Filter publications based on selected category
+                      const filteredPublications = selectedCategory === 'All' 
+                        ? publications 
+                        : publications.filter(pub => {
+                            if (selectedCategory === 'Health') return pub.category === 'Health' || pub.category === 'Medical';
+                            return pub.category === selectedCategory;
+                          });
                       
-                      // Science & Research
-                      { name: 'Nature', url: 'https://www.nature.com', category: 'Science', icon: '🔬' },
-                      { name: 'Science Magazine', url: 'https://www.science.org', category: 'Science', icon: '🧬' },
-                      { name: 'Scientific American', url: 'https://www.scientificamerican.com', category: 'Science', icon: '🔭' },
-                      { name: 'New Scientist', url: 'https://www.newscientist.com', category: 'Science', icon: '⚗️' },
-                      { name: 'Smithsonian Magazine', url: 'https://www.smithsonianmag.com', category: 'Science', icon: '🏛️' },
-                      
-                      // Business & Economics
-                      { name: 'Harvard Business Review', url: 'https://hbr.org', category: 'Business', icon: '📚' },
-                      { name: 'Forbes', url: 'https://www.forbes.com', category: 'Business', icon: '💰' },
-                      { name: 'Fortune', url: 'https://fortune.com', category: 'Business', icon: '🍀' },
-                      { name: 'Fast Company', url: 'https://www.fastcompany.com', category: 'Business', icon: '⚡' },
-                      { name: 'The Economist', url: 'https://www.economist.com', category: 'Economics', icon: '📊' },
-                      
-                      // Culture & Lifestyle
-                      { name: 'The Atlantic', url: 'https://www.theatlantic.com', category: 'Culture', icon: '🌊' },
-                      { name: 'The New Yorker', url: 'https://www.newyorker.com', category: 'Culture', icon: '🗽' },
-                      { name: 'Vox', url: 'https://www.vox.com', category: 'Explainer', icon: '📝' },
-                      { name: 'Medium', url: 'https://medium.com', category: 'Blogging', icon: '✍️' },
-                      { name: 'Quartz', url: 'https://qz.com', category: 'Business', icon: '💎' },
-                      
-                      // International
-                      { name: 'Le Monde', url: 'https://www.lemonde.fr', category: 'International', icon: '🇫🇷' },
-                      { name: 'Der Spiegel', url: 'https://www.spiegel.de', category: 'International', icon: '🇩🇪' },
-                      { name: 'The Times of India', url: 'https://timesofindia.indiatimes.com', category: 'International', icon: '🇮🇳' },
-                      { name: 'South China Morning Post', url: 'https://www.scmp.com', category: 'International', icon: '🇭🇰' },
-                      { name: 'Al Jazeera', url: 'https://www.aljazeera.com', category: 'International', icon: '🌍' },
-                      
-                      // Health & Medicine
-                      { name: 'The Lancet', url: 'https://www.thelancet.com', category: 'Medical', icon: '⚕️' },
-                      { name: 'NEJM', url: 'https://www.nejm.org', category: 'Medical', icon: '🩺' },
-                      { name: 'Mayo Clinic News', url: 'https://newsnetwork.mayoclinic.org', category: 'Health', icon: '🏥' },
-                      { name: 'WebMD', url: 'https://www.webmd.com', category: 'Health', icon: '💊' },
-                      
-                      // Environment & Climate
-                      { name: 'National Geographic', url: 'https://www.nationalgeographic.com', category: 'Environment', icon: '🌍' },
-                      { name: 'Yale Environment 360', url: 'https://e360.yale.edu', category: 'Environment', icon: '🌱' },
-                      { name: 'Climate Central', url: 'https://www.climatecentral.org', category: 'Climate', icon: '🌡️' },
-                      
-                      // Education & Academia
-                      { name: 'Chronicle of Higher Education', url: 'https://www.chronicle.com', category: 'Education', icon: '🎓' },
-                      { name: 'Inside Higher Ed', url: 'https://www.insidehighered.com', category: 'Education', icon: '📖' },
-                      
-                      // Arts & Entertainment
-                      { name: 'Variety', url: 'https://variety.com', category: 'Entertainment', icon: '🎭' },
-                      { name: 'The Hollywood Reporter', url: 'https://www.hollywoodreporter.com', category: 'Entertainment', icon: '🎬' },
-                      { name: 'Rolling Stone', url: 'https://www.rollingstone.com', category: 'Music', icon: '🎵' },
-                      
-                      // Sports
-                      { name: 'ESPN', url: 'https://www.espn.com', category: 'Sports', icon: '⚽' },
-                      { name: 'Sports Illustrated', url: 'https://www.si.com', category: 'Sports', icon: '🏆' },
-                      
-                      // Specialized
-                      { name: 'Politico', url: 'https://www.politico.com', category: 'Politics', icon: '🏛️' },
-                      { name: 'Foreign Affairs', url: 'https://www.foreignaffairs.com', category: 'Politics', icon: '🌐' },
-                    ].map((publication, index) => (
-                      <Col xs={12} sm={8} md={6} lg={4} xl={4} key={index}>
+                      return filteredPublications.map((publication, index) => (
+                        <Col xs={12} sm={8} md={6} lg={4} xl={4} key={index}>
                         <Card 
                           hoverable 
                           size="small"
@@ -1024,8 +1070,26 @@ function HomeContent() {
                             e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'
                           }}
                         >
-                          <div style={{ fontSize: '24px', marginBottom: '8px' }}>
-                            {publication.icon}
+                          <div style={{ marginBottom: '8px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <img 
+                              src={publication.logo} 
+                              alt={publication.name}
+                              style={{ 
+                                maxHeight: '32px', 
+                                maxWidth: '48px', 
+                                objectFit: 'contain',
+                                borderRadius: '4px'
+                              }}
+                              onError={(e) => {
+                                // Fallback to first letter if logo fails to load
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const parent = target.parentElement;
+                                if (parent) {
+                                  parent.innerHTML = `<div style="width: 32px; height: 32px; border-radius: 50%; background: #1890ff; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">${publication.name.charAt(0)}</div>`;
+                                }
+                              }}
+                            />
                           </div>
                           <Text 
                             style={{ 
@@ -1050,7 +1114,8 @@ function HomeContent() {
                           />
                         </Card>
                       </Col>
-                    ))}
+                      ))
+                    })()}
                   </Row>
                   
                   <div style={{ textAlign: 'center', marginTop: 24 }}>
