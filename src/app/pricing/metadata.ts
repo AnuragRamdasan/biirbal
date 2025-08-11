@@ -6,15 +6,15 @@ export const metadata: Metadata = generateMetadata({
   description: 'Get Biirbal AI content platform pricing. Free forever plan with 20 monthly audio summaries. Pro plans from $9/month with unlimited summaries. Join 10,000+ readers saving 90% reading time. No setup fees.',
   keywords: [
     'biirbal pricing',
-    'slack bot pricing',
+    'content automation pricing',
     'ai summarization pricing',
     'team collaboration tools pricing',
-    'slack automation cost',
+    'content automation cost',
     'audio summary pricing',
     'content intelligence pricing',
-    'enterprise slack solutions',
+    'enterprise content solutions',
     'team productivity pricing',
-    'slack integration cost'
+    'content integration cost'
   ],
   canonicalUrl: 'https://www.biirbal.com/pricing',
   ogImage: 'https://www.biirbal.com/pricing-og.png',
@@ -23,8 +23,8 @@ export const metadata: Metadata = generateMetadata({
 
 export const pricingStructuredData = {
   product: generateStructuredData('Product', {
-    name: 'Biirbal AI Slack Bot',
-    description: 'AI-powered audio summaries for Slack links with flexible pricing plans',
+    name: 'Biirbal AI Content Platform',
+    description: 'AI-powered audio summaries for web content with flexible pricing plans',
     brand: { '@type': 'Brand', name: 'Biirbal' },
     offers: [
       {

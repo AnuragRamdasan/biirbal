@@ -7,7 +7,7 @@ export const metadata: Metadata = generateMetadata({
   keywords: [
     'biirbal support',
     'contact biirbal',
-    'slack bot help',
+    'content automation help',
     'customer support',
     'technical support',
     'billing support',
@@ -26,7 +26,7 @@ export const contactStructuredData = {
     name: 'Biirbal',
     url: 'https://www.biirbal.com',
     logo: 'https://www.biirbal.com/logo.png',
-    description: 'AI-powered content intelligence for Slack teams',
+    description: 'AI-powered content intelligence for teams',
     contactPoint: [
       {
         '@type': 'ContactPoint',
@@ -68,7 +68,7 @@ export const contactStructuredData = {
 
   webpage: generateStructuredData('WebPage', {
     name: 'Contact Biirbal Support',
-    description: 'Get in touch with Biirbal support team for help with your AI-powered Slack bot',
+    description: 'Get in touch with Biirbal support team for help with your AI-powered content platform',
     url: 'https://www.biirbal.com/contact',
     breadcrumb: {
       '@type': 'BreadcrumbList',

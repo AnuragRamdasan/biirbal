@@ -56,7 +56,7 @@ export default function ContactPage() {
         <div style={{ textAlign: 'center', marginBottom: 60 }}>
           <Title level={1}>Contact Us</Title>
           <Paragraph style={{ fontSize: 18, color: '#666', maxWidth: 600, margin: '0 auto' }}>
-            Have questions about biirbal.com? Need help with your Slack integration? 
+            Have questions about biirbal.com? Need help with your content automation? 
             We're here to help you get the most out of your AI audio summaries.
           </Paragraph>
         </div>
@@ -113,7 +113,7 @@ export default function ContactPage() {
                   <Col xs={24} sm={12}>
                     <Form.Item
                       name="teamId"
-                      label="Slack Team ID (Optional)"
+                      label="Team ID (Optional)"
                     >
                       <Input placeholder="T1234567890" />
                     </Form.Item>
@@ -232,7 +232,7 @@ export default function ContactPage() {
                     <Text strong>How do I install biirbal.com?</Text>
                     <br />
                     <Text type="secondary">
-                      Click "Add to Slack" on our homepage and follow the OAuth flow.
+                      Create an account on our homepage and start using the platform immediately.
                     </Text>
                   </div>
                   

@@ -3,16 +3,16 @@ import { generateMetadata, generateStructuredData } from '@/lib/seo'
 
 export const metadata: Metadata = generateMetadata({
   title: 'Success - Welcome to Biirbal! | Setup Complete',
-  description: 'Welcome to Biirbal! Your AI-powered Slack bot is now ready to transform links into audio summaries. Start sharing links in your Slack channels to get instant 59-second audio summaries.',
+  description: 'Welcome to Biirbal! Your AI-powered content platform is now ready to transform links into audio summaries. Start sharing links to get instant 59-second audio summaries.'
   keywords: [
     'biirbal setup complete',
-    'slack bot installed',
+    'content platform installed',
     'ai bot ready',
     'audio summaries active',
-    'slack integration success',
+    'content integration success',
     'biirbal welcome',
     'setup confirmation',
-    'slack automation ready'
+    'content automation ready'
   ],
   canonicalUrl: 'https://www.biirbal.com/success',
   ogImage: 'https://www.biirbal.com/success-og.png',
@@ -23,7 +23,7 @@ export const metadata: Metadata = generateMetadata({
 export const successStructuredData = {
   webpage: generateStructuredData('WebPage', {
     name: 'Setup Success - Biirbal',
-    description: 'Confirmation page for successful Biirbal Slack bot installation and setup',
+    description: 'Confirmation page for successful Biirbal content platform setup',
     url: 'https://www.biirbal.com/success',
     breadcrumb: {
       '@type': 'BreadcrumbList',
@@ -47,11 +47,11 @@ export const successStructuredData = {
   action: generateStructuredData('Action', {
     '@type': 'AchieveAction',
     name: 'Biirbal Setup Complete',
-    description: 'Successfully installed and configured Biirbal AI Slack bot',
+    description: 'Successfully installed and configured Biirbal AI content platform',
     result: {
       '@type': 'Product',
-      name: 'Biirbal AI Slack Bot',
-      description: 'Active AI-powered content intelligence for Slack'
+      name: 'Biirbal AI Content Platform',
+      description: 'Active AI-powered content intelligence platform'
     }
   })
 }

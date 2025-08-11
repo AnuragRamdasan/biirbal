@@ -36,7 +36,7 @@ export const homepageStructuredData = {
     name: 'Biirbal',
     url: 'https://www.biirbal.com',
     logo: 'https://www.biirbal.com/logo.png',
-    description: 'AI-powered content intelligence for Slack teams providing instant audio summaries',
+    description: 'AI-powered content intelligence providing instant audio summaries',
     foundingDate: '2024',
     sameAs: [
       'https://twitter.com/biirbal_ai',
@@ -96,7 +96,7 @@ export const homepageStructuredData = {
     operatingSystem: 'Web Browser',
     description: 'AI-powered content intelligence platform that transforms articles into 59-second audio summaries',
     url: 'https://www.biirbal.com',
-    downloadUrl: 'https://slack.com/apps/biirbal',
+    downloadUrl: 'https://www.biirbal.com/pricing',
     screenshot: 'https://www.biirbal.com/app-screenshot.png',
     author: {
       '@type': 'Organization',
@@ -138,7 +138,7 @@ export const homepageStructuredData = {
     featureList: [
       '59-second audio summaries',
       'AI-powered content extraction',
-      'Slack integration',
+      'Browser extension',
       'Multi-language support',
       'Team collaboration',
       'Analytics dashboard',
@@ -165,7 +165,7 @@ export const homepageStructuredData = {
         name: 'What is Biirbal?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Biirbal is an AI-powered Slack bot that automatically converts shared links into 59-second audio summaries, helping teams stay informed without reading lengthy content.'
+          text: 'Biirbal is an AI-powered content intelligence platform that automatically converts web links into 59-second audio summaries, helping teams stay informed without reading lengthy content.'
         }
       },
       {
@@ -173,7 +173,7 @@ export const homepageStructuredData = {
         name: 'How does Biirbal work?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'When someone shares a link in your Slack channel, Biirbal automatically extracts the content, creates an AI-powered summary, and converts it to a 59-second audio clip that plays directly in Slack.'
+          text: 'When you share a link with Biirbal, it automatically extracts the content, creates an AI-powered summary, and converts it to a 59-second audio clip that you can listen to instantly.'
         }
       },
       {
@@ -189,7 +189,7 @@ export const homepageStructuredData = {
         name: 'How long does it take to set up Biirbal?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Setting up Biirbal takes less than 2 minutes. Simply install from the Slack App Directory and start sharing links to get instant audio summaries.'
+          text: 'Setting up Biirbal takes less than 2 minutes. Simply create an account and start sharing links to get instant audio summaries.'
         }
       },
       {
@@ -197,7 +197,7 @@ export const homepageStructuredData = {
         name: 'What types of content can Biirbal summarize?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Biirbal can summarize articles, blog posts, news stories, documentation, research papers, and most web content shared via links in Slack.'
+          text: 'Biirbal can summarize articles, blog posts, news stories, documentation, research papers, and most web content from any URL.'
         }
       }
     ]

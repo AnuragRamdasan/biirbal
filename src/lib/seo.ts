@@ -17,19 +17,18 @@ import { getBaseUrl } from './config'
 const baseUrl = getBaseUrl()
 
 const defaultSEO: SEOConfig = {
-  title: 'Biirbal - AI-Powered Slack Content Intelligence',
-  description: 'Transform Slack links into 59-second audio summaries. Never miss important content again with AI-powered content intelligence for your team.',
+  title: 'Biirbal - AI-Powered Content Intelligence',
+  description: 'Transform any link into 59-second audio summaries. Never miss important content again with AI-powered content intelligence for your team.',
   keywords: [
-    'slack bot',
     'ai content summarization', 
     'audio summaries',
     'productivity tools',
     'team collaboration',
     'content intelligence',
-    'slack automation',
+    'content automation',
     'text to speech',
     'link summarization',
-    'slack productivity'
+    'content productivity'
   ],
   ogImage: `${baseUrl}/og-image.png`,
   ogType: 'website',
@@ -143,7 +142,7 @@ export function generateStructuredData(typeOrConfig: 'Organization' | 'Product' 
         name: 'Biirbal',
         url: baseUrl,
         logo: `${baseUrl}/logo.png`,
-        description: 'AI-powered content intelligence for Slack teams',
+        description: 'AI-powered content intelligence for teams',
         foundingDate: '2024',
         sameAs: [
           'https://twitter.com/biirbal',
@@ -178,7 +177,7 @@ export function generateStructuredData(typeOrConfig: 'Organization' | 'Product' 
           bestRating: '5',
           worstRating: '1'
         },
-        description: 'Transform Slack links into AI-powered audio summaries',
+        description: 'Transform any links into AI-powered audio summaries',
         url: baseUrl,
         screenshot: `${baseUrl}/app-screenshot.png`,
         ...config
@@ -189,7 +188,7 @@ export function generateStructuredData(typeOrConfig: 'Organization' | 'Product' 
         ...baseData,
         name: 'Biirbal',
         url: baseUrl,
-        description: 'AI-powered content intelligence for Slack teams',
+        description: 'AI-powered content intelligence for teams',
         publisher: {
           '@type': 'Organization',
           name: 'Biirbal'
@@ -217,8 +216,8 @@ export function generateStructuredData(typeOrConfig: 'Organization' | 'Product' 
     case 'Product':
       return {
         ...baseData,
-        name: 'Biirbal Slack Bot',
-        description: 'AI-powered audio summaries for Slack links',
+        name: 'Biirbal Content AI',
+        description: 'AI-powered audio summaries for web content',
         brand: {
           '@type': 'Brand',
           name: 'Biirbal'
