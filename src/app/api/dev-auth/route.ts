@@ -3,7 +3,7 @@ import { getCurrentUser, createDevSession } from '@/lib/dev-auth'
 
 export async function GET(request: NextRequest) {
   try {
-    const devUser = await getCurrentUser()
+    const devUser = await getCurrentUser(request.url)
     
     if (devUser) {
       const devSession = createDevSession(devUser)

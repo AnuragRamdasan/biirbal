@@ -27,7 +27,7 @@ DATABASE_URL_UNPOOLED="postgresql://postgres:password@localhost:5432/biirbal_dev
 
 # Development settings
 NODE_ENV=development
-DEV_AUTO_LOGIN=true
+# DEV_AUTO_LOGIN=true  # No longer needed - use ?dev=true URL parameter instead
 
 # Slack (for testing, use dummy values)
 SLACK_SIGNING_SECRET=dummy_signing_secret_for_dev
@@ -105,7 +105,7 @@ console.log('3. Run: npm run dev')
 console.log('')
 console.log('Development user credentials:')
 console.log('- Email: dev@biirbal.ai')
-console.log('- This user will be automatically logged in when DEV_AUTO_LOGIN=true')
+console.log('- This user will be automatically logged in when you add ?dev=true to the URL')
 console.log('')
 console.log('Useful commands:')
 console.log('- npm run dev          # Start development server')

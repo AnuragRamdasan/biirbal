@@ -34,7 +34,7 @@ Update the database URL in `.env.local`:
 ```env
 DATABASE_URL="postgresql://postgres:password@localhost:5432/biirbal_dev"
 DATABASE_URL_UNPOOLED="postgresql://postgres:password@localhost:5432/biirbal_dev"
-DEV_AUTO_LOGIN=true
+# DEV_AUTO_LOGIN=true  # No longer needed - use ?dev=true URL parameter instead
 ```
 
 ### 2. Database Setup
@@ -65,11 +65,12 @@ npm run dev
 
 ### Automatic Authentication
 
-When `DEV_AUTO_LOGIN=true` is set in your environment:
+When you add `?dev=true` or `?devLogin=true` to your URL:
 
 - You'll be automatically logged in as `dev@biirbal.ai`
 - No need to go through OAuth flow
-- Access the dev auth status at `/api/dev/auth`
+- Example: `http://localhost:3000/?dev=true`
+- Access the dev auth status at `/api/dev-auth`
 
 ### Development User
 
@@ -177,7 +178,7 @@ npm run db:seed
 ```env
 DATABASE_URL="postgresql://..."
 NODE_ENV=development
-DEV_AUTO_LOGIN=true
+# DEV_AUTO_LOGIN=true  # No longer needed - use ?dev=true URL parameter instead
 ```
 
 ### Optional (for full functionality)
@@ -218,16 +219,16 @@ npm run db:seed
 
 ### Authentication Issues
 
-1. Check `DEV_AUTO_LOGIN=true` in `.env.local`
-2. Verify dev user exists: visit `/api/dev/auth`
+1. Add `?dev=true` to your URL (e.g., `http://localhost:3000/?dev=true`)
+2. Verify dev user exists: visit `/api/dev-auth?dev=true`
 3. Re-run seed script if user missing
 
 ## Production Differences
 
 In production:
 
-- `DEV_AUTO_LOGIN` is ignored
-- `/api/dev/*` endpoints return 404
+- URL parameter `?dev=true` is ignored
+- `/api/dev-auth` returns no dev user
 - `DevAuthStatus` component doesn't render
 - Full OAuth flow is required
 

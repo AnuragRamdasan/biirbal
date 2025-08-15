@@ -51,6 +51,7 @@ import {
 } from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
 import { useAnalytics } from '@/hooks/useAnalytics'
+import { ExtensionButton } from '@/components/ExtensionButton'
 // Removed team selector component
 
 const { Title, Text, Paragraph } = Typography
@@ -220,7 +221,21 @@ function HomeContent() {
   useEffect(() => {
     const checkDevAuth = async () => {
       try {
-        const response = await fetch('/api/dev-auth?t=' + Date.now())
+        // Check if URL has dev=true or devLogin=true parameter
+        const urlParams = new URLSearchParams(window.location.search)
+        const hasDevParam = urlParams.get('dev') === 'true' || urlParams.get('devLogin') === 'true'
+        
+        if (!hasDevParam) {
+          return // Skip dev auth check if no dev parameter
+        }
+        
+        // Pass current URL parameters to the dev-auth endpoint
+        const currentUrl = new URL(window.location.href)
+        const devAuthUrl = new URL('/api/dev-auth', window.location.origin)
+        devAuthUrl.searchParams.set('dev', urlParams.get('dev') || urlParams.get('devLogin') || 'true')
+        devAuthUrl.searchParams.set('t', Date.now().toString())
+        
+        const response = await fetch(devAuthUrl.toString())
         const result = await response.json()
         
         if (result.success && result.session) {
@@ -1794,10 +1809,7 @@ function HomeContent() {
               
               <Col xs={24} lg={8} style={{ textAlign: 'center' }}>
                 <Space direction="vertical" size="small">
-                  <Button 
-                    type="primary" 
-                    size="large"
-                    icon={<RocketOutlined />}
+                  <ExtensionButton 
                     style={{ 
                       background: 'white',
                       borderColor: 'white',
@@ -1808,11 +1820,9 @@ function HomeContent() {
                       borderRadius: 8,
                       width: '100%'
                     }}
-                    href="https://chromewebstore.google.com/detail/biirbal-link-saver/dadpdioiggioklkffohdcmkmhpjffgae"
-                    target="_blank"
                   >
                     Install Free Extension
-                  </Button>
+                  </ExtensionButton>
                   
                   {/* <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
