@@ -73,6 +73,20 @@ export const Header: React.FC<HeaderProps> = ({
             <nav className="flex items-center space-x-6">
               {isAuthenticated && (
                 <>
+                  {/* Show extension install button if not installed */}
+                  {!extensionChecking && extensionInstalled === false && (
+                    <a
+                      href={extensionInfo.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-green-500 hover:bg-green-600 rounded-full transition-colors duration-200 shadow-md hover:shadow-lg"
+                    >
+                      <svg className="w-3 h-3 mr-1.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+                      </svg>
+                      Install Extension
+                    </a>
+                  )}
                   <Link 
                     href="/" 
                     className={cn(
@@ -91,20 +105,6 @@ export const Header: React.FC<HeaderProps> = ({
                   >
                     Profile
                   </Link>
-                  {/* Show extension install button if not installed */}
-                  {!extensionChecking && extensionInstalled === false && (
-                    <a
-                      href={extensionInfo.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-green-500 hover:bg-green-600 rounded-full transition-colors duration-200 shadow-md hover:shadow-lg"
-                    >
-                      <svg className="w-3 h-3 mr-1.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                        <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
-                      </svg>
-                      Install Extension
-                    </a>
-                  )}
                 </>
               )}
               <Link 
