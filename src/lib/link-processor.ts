@@ -71,7 +71,7 @@ async function setupChannelAndRecord({
   messageTs,
   linkId,
   team
-}: ProcessLinkParams & { team: any }): Promise<{ channel: any; processedLink: any }> {
+}: ProcessLinkParams & { team: any }): Promise<{ channel: any; processedLink: any; existingLink?: any }> {
   const db = await getDbClient()
   
   // Get channel info from Slack
@@ -99,6 +99,24 @@ async function setupChannelAndRecord({
       ...(channelName && { channelName })
     }
   })
+
+  // Check for existing processed link with same URL (duplicate detection)
+  let existingLink = null
+  if (!linkId) {
+    existingLink = await db.processedLink.findFirst({
+      where: {
+        url,
+        processingStatus: 'COMPLETED',
+        extractedText: { not: null },
+        audioFileUrl: { not: null }
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+    
+    if (existingLink) {
+      console.log(`🔁 Found existing processed link for URL: ${existingLink.id}`)
+    }
+  }
 
   // Create or update processing record
   let processedLink
@@ -132,7 +150,36 @@ async function setupChannelAndRecord({
     })
   }
 
-  return { channel, processedLink }
+  return { channel, processedLink, existingLink }
+}
+
+async function copyExistingLinkData(
+  existingLink: any,
+  processedLinkId: string,
+  updateProgress?: (progress: number) => Promise<void>
+): Promise<void> {
+  console.log('📋 Copying existing link data...')
+  const db = await getDbClient()
+  
+  if (updateProgress) await updateProgress(50)
+  
+  // Copy all the processed data from the existing link
+  await db.processedLink.update({
+    where: { id: processedLinkId },
+    data: {
+      title: existingLink.title,
+      extractedText: existingLink.extractedText,
+      wordCount: existingLink.wordCount,
+      audioFileUrl: existingLink.audioFileUrl,
+      audioFileKey: existingLink.audioFileKey,
+      ttsScript: existingLink.ttsScript,
+      ogImage: existingLink.ogImage,
+      processingStatus: 'COMPLETED'
+    }
+  })
+  
+  if (updateProgress) await updateProgress(90)
+  console.log('✅ Successfully copied existing link data')
 }
 
 async function processContentAndAudio(
@@ -258,7 +305,7 @@ export async function processLink(params: ProcessLinkParams, updateProgress?: (p
     
     // Step 1: Validate and setup
     const { team, subscriptionTeamId, isLimitExceeded } = await validateLinkProcessing(params)
-    const { channel, processedLink } = await setupChannelAndRecord({ ...params, team })
+    const { channel, processedLink, existingLink } = await setupChannelAndRecord({ ...params, team })
     
     context = {
       team,
@@ -271,30 +318,47 @@ export async function processLink(params: ProcessLinkParams, updateProgress?: (p
     
     if (updateProgress) await updateProgress(30)
     
-    // Step 2: Process content and generate audio
-    const { extractedContent, summary, audioUrl, audioResult } = await processContentAndAudio(params.url, updateProgress)
-    
-    // Step 3: Update database
-    console.log('💾 Updating database...')
-    const db = await getDbClient()
-    await db.processedLink.update({
-      where: { id: processedLink.id },
-      data: {
-        title: extractedContent.title,
-        extractedText: summary,
-        wordCount: extractedContent.wordCount,
-        audioFileUrl: audioUrl,
-        audioFileKey: audioResult.fileName,
-        ttsScript: audioResult.ttsScript,
-        ogImage: extractedContent.ogImage,
-        processingStatus: 'COMPLETED'
+    // Step 2: Check if we can reuse existing processed link
+    if (existingLink) {
+      console.log('🚀 Using existing processed link data - skipping content processing')
+      await copyExistingLinkData(existingLink, processedLink.id, updateProgress)
+      
+      // Create mock extractedContent for analytics with existing data
+      const mockExtractedContent = {
+        title: existingLink.title,
+        text: existingLink.extractedText,
+        wordCount: existingLink.wordCount
       }
-    })
-    
-    // Step 4: Notify Slack
-    await notifySlack(context as ProcessingContext, params, updateProgress)
-    
-    trackProcessingMetrics(context as ProcessingContext, true, extractedContent)
+      
+      // Step 4: Notify Slack
+      await notifySlack(context as ProcessingContext, params, updateProgress)
+      trackProcessingMetrics(context as ProcessingContext, true, mockExtractedContent)
+      
+    } else {
+      // Step 2: Process content and generate audio (original flow)
+      const { extractedContent, summary, audioUrl, audioResult } = await processContentAndAudio(params.url, updateProgress)
+      
+      // Step 3: Update database
+      console.log('💾 Updating database...')
+      const db = await getDbClient()
+      await db.processedLink.update({
+        where: { id: processedLink.id },
+        data: {
+          title: extractedContent.title,
+          extractedText: summary,
+          wordCount: extractedContent.wordCount,
+          audioFileUrl: audioUrl,
+          audioFileKey: audioResult.fileName,
+          ttsScript: audioResult.ttsScript,
+          ogImage: extractedContent.ogImage,
+          processingStatus: 'COMPLETED'
+        }
+      })
+      
+      // Step 4: Notify Slack
+      await notifySlack(context as ProcessingContext, params, updateProgress)
+      trackProcessingMetrics(context as ProcessingContext, true, extractedContent)
+    }
 
   } catch (error) {
     console.error('Link processing failed:', error)
