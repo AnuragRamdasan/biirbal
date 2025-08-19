@@ -172,9 +172,6 @@ function HomeContent() {
   
   // Initialize analytics and PostHog tracking
   useEffect(() => {
-    // Track page view
-    trackPageView('dashboard')
-    
     // Track daily active user when session loads
     if (session?.user) {
       identifyUser(session.user.id, {

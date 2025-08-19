@@ -75,7 +75,6 @@ export default function PricingPage() {
   
   // Track pricing page visit
   useEffect(() => {
-    trackPageView('pricing')
     trackConversion(CONVERSION_EVENTS.PRICING_PAGE_VISITED, {
       userId: session?.user?.id,
       source: 'pricing_page'
