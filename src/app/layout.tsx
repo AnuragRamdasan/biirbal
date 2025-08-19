@@ -111,52 +111,7 @@ export default function RootLayout({
         {/* Analytics Scripts */}
         {process.env.NODE_ENV === 'production' && (
           <>
-            {/* Google Analytics 4 */}
-            {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
-              <>
-                <Script
-                  src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}`}
-                  strategy="afterInteractive"
-                />
-                <Script id="google-analytics" strategy="afterInteractive">
-                  {`
-                    window.dataLayer = window.dataLayer || [];
-                    function gtag(){dataLayer.push(arguments);}
-                    gtag('js', new Date());
-                    
-                    gtag('config', '${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}', {
-                      // Enhanced measurement settings
-                      enhanced_measurement: true,
-                      page_title: document.title,
-                      page_location: window.location.href,
-                      
-                      // Custom dimensions for SaaS tracking
-                      custom_map: {
-                        'custom_parameter_1': 'team_id',
-                        'custom_parameter_2': 'plan_type',
-                        'custom_parameter_3': 'usage_percentage',
-                        'custom_parameter_4': 'team_size'
-                      },
-                      
-                      // E-commerce tracking
-                      send_page_view: true,
-                      
-                      // Privacy settings
-                      anonymize_ip: true,
-                      allow_google_signals: false,
-                      allow_ad_personalization_signals: false
-                    });
-                    
-                    // Set default user properties for SaaS tracking
-                    gtag('set', {
-                      'app_name': 'Biirbal',
-                      'app_version': '1.0.0',
-                      'content_group1': 'SaaS Application'
-                    });
-                  `}
-                </Script>
-              </>
-            )}
+            {/* Google Analytics removed - using PostHog instead */}
             
             {/* Hotjar */}
             {process.env.NEXT_PUBLIC_HOTJAR_ID && (

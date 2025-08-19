@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { trackConversion, CONVERSION_EVENTS } from '@/lib/posthog-tracking'
 
 function SuccessContent() {
   const searchParams = useSearchParams()
@@ -30,6 +31,13 @@ function SuccessContent() {
         if (data.success) {
           setStatus('success')
           setMessage('Your subscription has been activated successfully!')
+          
+          // Track successful payment conversion
+          trackConversion(CONVERSION_EVENTS.PAYMENT_SUCCESSFUL, {
+            sessionId,
+            plan: data.subscription?.plan || 'unknown',
+            amount: data.subscription?.amount || 0,
+          })
         } else {
           setStatus('error')
           setMessage(data.error || 'Failed to verify payment')

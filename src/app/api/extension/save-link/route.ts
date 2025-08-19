@@ -200,10 +200,34 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Check if this is the user's first link
+    const userLinkCount = await db.processedLink.count({
+      where: {
+        team: {
+          memberships: {
+            some: {
+              userId: session.user.id,
+              isActive: true
+            }
+          }
+        }
+      }
+    })
+
+    // Track conversion events
+    console.log('📊 CONVERSION: Extension link saved', {
+      userId: session.user.id,
+      linkId: processedLink.id,
+      source,
+      isFirstLink: userLinkCount === 1,
+      teamId: team.id
+    })
+
     return NextResponse.json({
       message: 'Link saved successfully',
       linkId: processedLink.id,
-      status: 'PENDING'
+      status: 'PENDING',
+      isFirstLink: userLinkCount === 1
     })
 
   } catch (error) {

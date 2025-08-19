@@ -338,6 +338,14 @@ export const authOptions: NextAuthOptions = {
                 userCount: 1,
                 installationType: 'new'
               })
+              
+              // Track Slack team installation conversion
+              // Note: This is server-side, actual tracking happens client-side
+              console.log('📊 CONVERSION: Slack team installed', {
+                teamId: team.id,
+                teamName,
+                slackTeamId: teamId
+              })
             } catch (error) {
               console.error('Failed to send team signup notification:', error)
             }

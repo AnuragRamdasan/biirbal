@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { useEffect, useState, useRef, Suspense } from 'react'
 import Script from 'next/script'
+import { trackConversion, CONVERSION_EVENTS, identifyUser, trackPageView } from '@/lib/posthog-tracking'
 // Removed web platform-specific imports
 import { 
   Row, 
@@ -169,12 +170,39 @@ function HomeContent() {
   const currentListenRecord = useRef<string | null>(null)
   const currentPlayingLinkId = useRef<string | null>(null)
   
-  // Initialize analytics
-  const analytics = useAnalytics({
-    autoTrackPageViews: true,
-    trackScrollDepth: true,
-    trackTimeOnPage: true
-  })
+  // Initialize analytics and PostHog tracking
+  useEffect(() => {
+    // Track page view
+    trackPageView('dashboard')
+    
+    // Track daily active user when session loads
+    if (session?.user) {
+      identifyUser(session.user.id, {
+        email: session.user.email,
+        name: session.user.name,
+        teamId: session.user.teamId,
+        teams: session.user.teams?.length || 0,
+      })
+      
+      trackConversion(CONVERSION_EVENTS.DAILY_ACTIVE_USER, {
+        userId: session.user.id,
+        source: 'dashboard_visit'
+      })
+    } else if (devSession?.user) {
+      identifyUser(devSession.user.id, {
+        email: devSession.user.email,
+        name: devSession.user.name,
+        isDev: true,
+      })
+      
+      trackConversion(CONVERSION_EVENTS.DAILY_ACTIVE_USER, {
+        userId: devSession.user.id,
+        source: 'dashboard_visit_dev'
+      })
+    }
+  }, [session, devSession])
+
+  // Removed Google Analytics - using PostHog instead
 
   // Conversion-focused landing page content
   const benefits = [
@@ -533,8 +561,13 @@ function HomeContent() {
         setProgress(resumePosition / audio.duration)
       }
       
-      // Track audio play event
-      analytics.trackAudioPlay(linkId, audio.duration, 'dashboard')
+      // Track PostHog conversion event
+      trackConversion(CONVERSION_EVENTS.AUDIO_PLAYED, {
+        linkId,
+        duration: audio.duration,
+        source: 'dashboard',
+        userId: session?.user?.id || devSession?.user?.id
+      })
     })
     
     audio.addEventListener('timeupdate', async () => {
@@ -561,16 +594,22 @@ function HomeContent() {
     })
     
     audio.addEventListener('ended', async () => {
-
-      
       const listenDuration = audioStartTimes.current[linkId] 
         ? (Date.now() - audioStartTimes.current[linkId]) / 1000 
         : audio.duration
       
+      // Track PostHog audio completion event
+      trackConversion(CONVERSION_EVENTS.AUDIO_COMPLETED, {
+        linkId,
+        duration: audio.duration,
+        listenDuration,
+        source: 'dashboard',
+        userId: session?.user?.id || devSession?.user?.id
+      })
       
       
-      // Track audio completion
-      analytics.trackAudioComplete(linkId, 100, listenDuration)
+      
+      // Audio completion already tracked via PostHog above
       
       // Mark listen as completed (only if not already marked at 85%)
       if (currentListenRecord.current && !completedListens.current.has(currentListenRecord.current)) {
@@ -606,7 +645,6 @@ function HomeContent() {
     })
     
       audio.addEventListener('error', () => {
-        analytics.trackFeature('audio_play_error', { link_id: linkId })
         setCurrentlyPlaying(null)
         setAudioElement(null)
         currentListenRecord.current = null
@@ -647,7 +685,6 @@ function HomeContent() {
         }, 5000) // Update every 5 seconds
         
       }).catch((error) => {
-        analytics.trackFeature('audio_play_error', { link_id: linkId, error: error.message })
         setCurrentlyPlaying(null)
         setAudioElement(null)
         currentListenRecord.current = null
@@ -677,8 +714,14 @@ function HomeContent() {
       }
       
       // Track partial completion if user listened to some of the audio
-      if (completionPercentage > 10) {
-        analytics.trackAudioComplete(currentlyPlaying, completionPercentage, listenDuration)
+      if (completionPercentage > 10 && currentlyPlaying) {
+        trackConversion(CONVERSION_EVENTS.AUDIO_COMPLETED, {
+          linkId: currentlyPlaying,
+          completionPercentage,
+          listenDuration,
+          source: 'dashboard',
+          userId: session?.user?.id || devSession?.user?.id
+        })
       }
       
       // Refresh stats if user listened for more than 30 seconds or 50% completion

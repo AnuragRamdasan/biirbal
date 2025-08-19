@@ -29,7 +29,7 @@ import {
   LoadingOutlined
 } from '@ant-design/icons'
 import Layout from '@/components/layout/Layout'
-import { useAnalytics } from '@/hooks/useAnalytics'
+import { trackConversion, CONVERSION_EVENTS, trackPageView } from '@/lib/posthog-tracking'
 
 const { Title, Text, Paragraph } = Typography
 
@@ -73,11 +73,14 @@ export default function PricingPage() {
   }>({ valid: false, loading: false })
   const { data: session } = useSession()
   
-  // Initialize analytics
-  const analytics = useAnalytics({
-    autoTrackPageViews: true,
-    trackScrollDepth: true
-  })
+  // Track pricing page visit
+  useEffect(() => {
+    trackPageView('pricing')
+    trackConversion(CONVERSION_EVENTS.PRICING_PAGE_VISITED, {
+      userId: session?.user?.id,
+      source: 'pricing_page'
+    })
+  }, [session])
   
   // Fetch current plan
   useEffect(() => {
@@ -162,13 +165,14 @@ export default function PricingPage() {
   const handleSubscribe = async (planId: string) => {
     setLoading(planId)
     
-    // Track checkout attempt
-    analytics.trackConversion('checkout_initiated', plans.find(p => p.id === planId)?.price)
-    analytics.trackFeature('plan_selected', {
-      plan_id: planId,
-      is_annual: isAnnual,
-      reader_count_input: readerCount,
-      links_per_week_input: linksPerWeek
+    // Track checkout attempt with PostHog
+    trackConversion(CONVERSION_EVENTS.SUBSCRIPTION_STARTED, {
+      planId,
+      isAnnual,
+      price: plans.find(p => p.id === planId)?.price,
+      userId: session?.user?.id,
+      readerCount,
+      linksPerWeek
     })
     
     try {
@@ -176,7 +180,6 @@ export default function PricingPage() {
       const userId = session?.user?.dbUserId || session?.user?.id
       
       if (!userId) {
-        analytics.trackFeature('checkout_blocked_no_user', { plan_id: planId })
         alert('Please log in first to access subscription plans.')
         window.location.href = '/auth/signin'
         return
@@ -214,8 +217,6 @@ export default function PricingPage() {
       const { url } = await response.json()
       
       if (url) {
-        // Track successful checkout redirect
-        analytics.trackConversion('checkout_redirect_success', plans.find(p => p.id === planId)?.price)
         window.location.href = url
       } else {
         throw new Error('No checkout URL received')
@@ -223,11 +224,7 @@ export default function PricingPage() {
     } catch (error) {
       console.error('Checkout failed:', error)
       
-      // Track checkout failure
-      analytics.trackFeature('checkout_failed', {
-        plan_id: planId,
-        error_message: error instanceof Error ? error.message : 'Unknown error'
-      })
+      // Checkout failure already logged to console
       
       alert(`Failed to start checkout: ${error instanceof Error ? error.message : 'Please try again.'}`)
     } finally {
