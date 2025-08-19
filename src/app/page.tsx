@@ -905,19 +905,6 @@ function HomeContent() {
                   <Text style={{ fontSize: 12 }}>Show listened</Text>
                 </Space>
               </Col>
-              <Col>
-                <Select
-                  size="small"
-                  value={sourceFilter}
-                  onChange={setSourceFilter}
-                  style={{ width: 120 }}
-                  options={[
-                    { value: 'all', label: 'All Sources' },
-                    { value: 'web', label: 'Web platform' },
-                    { value: 'dashboard', label: 'Dashboard' },
-                  ]}
-                />
-              </Col>
             </Row>
           </Card>
 
