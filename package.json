@@ -13,7 +13,7 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
     "setup:dev": "tsx scripts/setup-dev.ts",
-    "delete:user": "tsx scripts/delete-user.ts",
+    "delete:user": "node scripts/delete-user.js",
     "ensure:memberships": "node scripts/ensure-memberships.js",
     "heroku-postbuild": "npm run build"
   },
