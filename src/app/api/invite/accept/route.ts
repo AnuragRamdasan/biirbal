@@ -57,22 +57,39 @@ export async function POST(request: NextRequest) {
     })
 
     if (user) {
-      // If user exists but is not part of this team, add them
-      if (user.teamId !== invitation.teamId) {
-        user = await db.user.update({
-          where: { email: invitation.email },
+      // Check if user is already a member of this team
+      const existingMembership = await db.teamMembership.findUnique({
+        where: {
+          userId_teamId: {
+            userId: user.id,
+            teamId: invitation.teamId
+          }
+        }
+      })
+
+      if (!existingMembership) {
+        // Create team membership for existing user
+        await db.teamMembership.create({
           data: {
+            userId: user.id,
             teamId: invitation.teamId,
-            isActive: true,
-            // Update name if provided
-            ...(name && { name, realName: name })
+            role: 'member',
+            isActive: true
           }
         })
-      } else if (!user.isActive) {
-        // Reactivate user if they were previously deactivated
+      } else if (!existingMembership.isActive) {
+        // Reactivate membership if it was deactivated
+        await db.teamMembership.update({
+          where: { id: existingMembership.id },
+          data: { isActive: true }
+        })
+      }
+
+      // Update user name if provided
+      if (name) {
         user = await db.user.update({
           where: { email: invitation.email },
-          data: { isActive: true }
+          data: { name }
         })
       }
     } else {
@@ -80,11 +97,18 @@ export async function POST(request: NextRequest) {
       user = await db.user.create({
         data: {
           email: invitation.email,
-          teamId: invitation.teamId,
           name: name || invitation.email.split('@')[0],
-          realName: name || invitation.email.split('@')[0],
-          isActive: true,
           ...(password && { password }) // Add password if provided for email auth
+        }
+      })
+
+      // Create team membership for new user
+      await db.teamMembership.create({
+        data: {
+          userId: user.id,
+          teamId: invitation.teamId,
+          role: 'member',
+          isActive: true
         }
       })
     }

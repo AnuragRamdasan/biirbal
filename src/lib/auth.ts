@@ -27,6 +27,53 @@ customAdapter.getUserByEmail = async (email: string) => {
   }
 }
 
+// Override createUser to ensure team membership is created
+const originalCreateUser = customAdapter.createUser!
+customAdapter.createUser = async (user) => {
+  console.log('👤 CreateUser called for:', { email: user.email, name: user.name })
+  
+  // Create the user first
+  const newUser = await originalCreateUser(user)
+  
+  // For Google/Email sign-ins, create a personal team and membership
+  console.log(`🏢 Creating personal team for new user: ${user.email}`)
+  const webTeamId = `web_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  
+  try {
+    const team = await prisma.team.create({
+      data: {
+        slackTeamId: webTeamId,
+        teamName: `${user.name || user.email?.split('@')[0]}'s Team`,
+        isActive: true,
+        subscription: {
+          create: {
+            status: 'TRIAL',
+            planId: 'free',
+            monthlyLinkLimit: 20,
+            userLimit: 1,
+          }
+        }
+      },
+    })
+
+    await prisma.teamMembership.create({
+      data: {
+        userId: newUser.id,
+        teamId: team.id,
+        role: 'admin',
+        isActive: true
+      }
+    })
+
+    console.log(`✅ Created personal team ${team.id} for user ${user.email}`)
+  } catch (error) {
+    console.error('❌ Error creating personal team during user creation:', error)
+    // Don't fail user creation if team creation fails
+  }
+  
+  return newUser
+}
+
 // Override linkAccount to handle Slack OAuth response properly
 const originalLinkAccount = customAdapter.linkAccount!
 customAdapter.linkAccount = async (account) => {
@@ -397,111 +444,12 @@ export const authOptions: NextAuthOptions = {
         }
       }
       
-      // Ensure a personal web team exists for Google/Email sign-ins as well
-      if (account && (account.provider === 'google' || account.provider === 'email')) {
-        try {
-          const dbUser = await prisma.user.findUnique({
-            where: { id: user.id },
-            include: { memberships: { include: { team: true } } },
-          })
-
-          const hasPersonalTeam = dbUser?.memberships.some(m =>
-            !m.team.slackTeamId || m.team.slackTeamId.startsWith('web_')
-          )
-
-          if (!hasPersonalTeam) {
-            console.log(`🏢 [${account.provider}] Creating personal team for: ${user.email}`)
-            const webTeamId = `web_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-
-            const team = await prisma.team.create({
-              data: {
-                slackTeamId: webTeamId,
-                teamName: `${user.name || user.email?.split('@')[0]}'s Team`,
-                isActive: true,
-                subscription: {
-                  create: {
-                    status: 'TRIAL',
-                    planId: 'free',
-                    monthlyLinkLimit: 20,
-                    userLimit: 1,
-                  }
-                }
-              },
-            })
-
-            await prisma.teamMembership.create({
-              data: {
-                userId: user.id,
-                teamId: team.id,
-                role: 'admin',
-                isActive: true
-              }
-            })
-
-            console.log(`✅ [${account.provider}] Created personal team ${team.id} for user ${user.email}`)
-          }
-        } catch (error) {
-          console.error(`❌ [${account.provider}] Error ensuring personal team:`, error)
-        }
-      }
-      
       return true
     },
     
     async linkAccount({ user, account, profile }) {
       console.log(`🔗 Account linked: ${account.provider} for user ${user.email}`)
-      
-      // Slack team creation is handled in signIn callback
-      // Handle web team creation for Google/Email only
-      if (account.provider !== 'slack') {
-        try {
-          const dbUser = await prisma.user.findUnique({
-            where: { id: user.id },
-            include: { memberships: { include: { team: true } } },
-          })
-
-          // Check if user has any personal (non-Slack) teams
-          const hasPersonalTeam = dbUser?.memberships.some(m => 
-            !m.team.slackTeamId || m.team.slackTeamId.startsWith('web_')
-          )
-
-          if (!hasPersonalTeam) {
-            console.log(`🏢 Creating personal team for: ${user.email}`)
-            const webTeamId = `web_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-            
-            const team = await prisma.team.create({
-              data: {
-                slackTeamId: webTeamId,
-                teamName: `${user.name || user.email?.split('@')[0]}'s Team`,
-                isActive: true,
-                subscription: {
-                  create: {
-                    status: 'TRIAL',
-                    planId: 'free',
-                    monthlyLinkLimit: 20,
-                    userLimit: 1,
-                  }
-                }
-              },
-            })
-
-            // Create team membership for the user as admin
-            await prisma.teamMembership.create({
-              data: {
-                userId: user.id,
-                teamId: team.id,
-                role: 'admin',
-                isActive: true
-              }
-            })
-
-            console.log(`✅ Created personal team ${team.id} for user ${user.email}`)
-          }
-        } catch (error) {
-          console.error('❌ Error creating personal team:', error)
-        }
-      }
-      
+      // Team creation is now handled in the createUser override
       return true
     },
     async session({ session, user }) {
