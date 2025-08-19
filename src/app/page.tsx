@@ -52,6 +52,11 @@ import {
 import Layout from '@/components/layout/Layout'
 import { useAnalytics } from '@/hooks/useAnalytics'
 import { ExtensionButton } from '@/components/ExtensionButton'
+import { HeroSection } from '@/components/landing/HeroSection'
+import { ExtensionHeaderSection } from '@/components/landing/ExtensionHeaderSection'
+import { ConversionStatsSection } from '@/components/landing/ConversionStatsSection'
+import { ProblemAgitationSection } from '@/components/landing/ProblemAgitationSection'
+import { BenefitsSection } from '@/components/landing/BenefitsSection'
 // Removed team selector component
 
 const { Title, Text, Paragraph } = Typography
@@ -1741,105 +1746,21 @@ function HomeContent() {
 
   return (
     <Layout currentPage="home" showHeader={true}>
-      {/* Chrome Extension Header */}
-      <div style={{ 
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        padding: '20px 0',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 2 }}>
-          <div style={{ 
-            background: 'rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(10px)',
-            borderRadius: 16,
-            padding: '24px',
-            border: '1px solid rgba(255, 255, 255, 0.2)'
-          }}>
-            <Row align="middle" gutter={[24, 16]}>
-              <Col xs={24} lg={16}>
-                <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{
-                      background: 'rgba(255, 255, 255, 0.2)',
-                      borderRadius: 8,
-                      padding: '6px 10px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6
-                    }}>
-                      <GlobalOutlined style={{ fontSize: 14, color: 'white' }} />
-                      <Text style={{ color: 'white', fontSize: 11, fontWeight: 600 }}>
-                        NEW
-                      </Text>
-                    </div>
-                    <Title level={3} style={{ 
-                      margin: 0, 
-                      color: 'white',
-                      fontSize: 18,
-                      fontWeight: 600
-                    }}>
-                      Never Lose a Link Again
-                    </Title>
-                  </div>
-                  
-                  <Text style={{ 
-                    color: 'rgba(255, 255, 255, 0.9)', 
-                    fontSize: 14,
-                    display: 'block',
-                    lineHeight: 1.5
-                  }}>
-                    One-click save from any webpage → AI summary in Slack → Zero reading backlog
-                  </Text>
-                </Space>
-              </Col>
-              
-              <Col xs={24} lg={8} style={{ textAlign: 'center' }}>
-                <Space direction="vertical" size="small">
-                  <ExtensionButton 
-                    style={{ 
-                      background: 'white',
-                      borderColor: 'white',
-                      color: '#667eea',
-                      fontWeight: 600,
-                      height: 44,
-                      padding: '0 24px',
-                      borderRadius: 8,
-                      width: '100%'
-                    }}
-                  >
-                    Install Free Extension
-                  </ExtensionButton>
-                  
-                  {/* <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <div style={{ 
-                        color: '#FFD700', 
-                        fontSize: 16,
-                        fontWeight: 'bold'
-                      }}>
-                        ⭐ 5.0
-                      </div>
-                      <Text style={{ 
-                        color: 'rgba(255, 255, 255, 0.8)', 
-                        fontSize: 12
-                      }}>
-                        Chrome Store
-                      </Text>
-                    </div>
-                  </div> */}
-                </Space>
-              </Col>
-            </Row>
-          </div>
-        </div>
-      </div>
+      <ExtensionHeaderSection />
 
-      {/* Hero Section */}
+      <HeroSection 
+        webInstallUrl={webInstallUrl}
+        error={error}
+        installed={installed}
+      />
+
+      <ConversionStatsSection />
+
+      {/* Problem Agitation Section */}
       <div style={{ 
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
-        color: 'white', 
-        padding: '80px 0 100px 0',
+        padding: '100px 0', 
+        background: 'linear-gradient(135deg, #ff4d4f 0%, #ff7875 100%)',
+        color: 'white',
         position: 'relative',
         overflow: 'hidden'
       }}>
@@ -1850,210 +1771,44 @@ function HomeContent() {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%)',
+          background: 'radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%)',
           pointerEvents: 'none'
         }} />
         
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 1 }}>
-          <Row justify="center" align="middle" gutter={[64, 48]}>
-            <Col xs={24} lg={14}>
-              <div style={{ textAlign: 'left' }}>
-                {/* Badge */}
-                {/* <div style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  borderRadius: '50px',
-                  padding: '8px 16px',
-                  marginBottom: '24px',
-                  fontSize: '14px',
-                  fontWeight: 500
-                }}>
-                  <span style={{ marginRight: '8px' }}>🚀</span>
-                  Trusted by 500+ readers worldwide
-                </div> */}
+        <div style={{ maxWidth: 1000, margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 1 }}>
+          <div style={{ textAlign: 'center', marginBottom: '60px' }}>
+            <Title level={2} style={{ 
+              color: 'white',
+              fontSize: '42px', 
+              fontWeight: 700, 
+              margin: '0 0 24px 0'
+            }}>
+              The Reading Backlog Crisis
+            </Title>
+            <Paragraph style={{ 
+              fontSize: '20px', 
+              color: 'rgba(255,255,255,0.9)', 
+              margin: 0,
+              lineHeight: 1.6
+            }}>
+              Sound familiar? You're not alone...
+            </Paragraph>
+          </div>
 
-                {/* Main Headline */}
-                <Title level={1} style={{ 
-                  color: 'white', 
-                  fontWeight: 700, 
-                  margin: '0 0 24px 0', 
-                  fontSize: '48px',
-                  lineHeight: '1.1',
-                  letterSpacing: '-0.02em'
-                }}>
-                  Turn Your Reading
-                  <br />
-                  <span style={{
-                    background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text'
-                  }}>
-                    Backlog Into Progress
-                  </span>
-                </Title>
-                
-                {/* Subheadline */}
-                <Title level={3} style={{ 
-                  color: 'rgba(255,255,255,0.9)', 
-                  fontWeight: 400, 
-                  margin: '0 0 32px 0',
-                  fontSize: '20px',
-                  lineHeight: '1.4'
-                }}>
-                  AI-powered{' '}
-                  <span style={{
-                    background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text',
-                    fontWeight: 600
-                  }}>
-                    59-second summaries
-                  </span>
-                  {' '}delivered to your Slack
-                </Title>
-                
-                {/* Description */}
-                <Paragraph style={{ 
-                  color: 'rgba(255,255,255,0.8)', 
-                  fontSize: '18px', 
-                  lineHeight: '1.6', 
-                  margin: '0 0 40px 0',
-                  maxWidth: '600px'
-                }}>
-                  <span style={{
-                    color: '#52c41a',
-                    fontWeight: '600'
-                  }}>
-                    Save 3+ hours weekly
-                  </span>
-                  {' '}by transforming shared links into instant audio summaries. Your team stays informed without the overwhelm.
-                </Paragraph>
-
-                {/* Error/Success Alerts */}
-                {error && (
-                  <Alert
-                    message="Installation Error"
-                    description={error}
-                    type="error"
-                    showIcon
-                    style={{ marginBottom: 24 }}
-                  />
-                )}
-
-                {installed && (
-                  <Alert
-                    message="Installation Successful!"
-                    description="Welcome to Biirbal! Your dashboard is loading..."
-                    type="success"
-                    showIcon
-                    style={{ marginBottom: 24 }}
-                  />
-                )}
-
-                {/* CTA Buttons */}
-                <Space size="large" style={{ marginBottom: '32px' }}>
-                  <Button 
-                    type="primary" 
-                    size="large" 
-                    icon={<RocketOutlined />}
-                    href={webInstallUrl}
-                    style={{ 
-                      background: 'linear-gradient(135deg, #4A154B 0%, #6B4E71 100%)',
-                      border: 'none',
-                      height: '56px',
-                      fontSize: '16px',
-                      fontWeight: 600,
-                      padding: '0 40px',
-                      borderRadius: '12px',
-                      boxShadow: '0 8px 32px rgba(74, 21, 75, 0.3)',
-                      transition: 'all 0.3s ease'
-                    }}
-                  >
-                    Start Saving Time Today
-                  </Button>
-                  
-                  <Button 
-                    size="large" 
-                    ghost
-                    href="/pricing"
-                    style={{ 
-                      border: '2px solid rgba(255, 255, 255, 0.3)',
-                      color: 'white',
-                      height: '56px',
-                      fontSize: '16px',
-                      fontWeight: 500,
-                      padding: '0 32px',
-                      borderRadius: '12px',
-                      backdropFilter: 'blur(10px)',
-                      transition: 'all 0.3s ease'
-                    }}
-                  >
-                    See Plans & Pricing
-                  </Button>
-                </Space>
-
-                {/* Trust Indicators */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ 
-                      width: '8px', 
-                      height: '8px', 
-                      borderRadius: '50%', 
-                      background: '#52c41a' 
-                    }} />
-                    <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>
-                      Free Trial Available
-                    </Text>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ 
-                      width: '8px', 
-                      height: '8px', 
-                      borderRadius: '50%', 
-                      background: '#52c41a' 
-                    }} />
-                    <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>
-                      No setup required
-                    </Text>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ 
-                      width: '8px', 
-                      height: '8px', 
-                      borderRadius: '50%', 
-                      background: '#52c41a' 
-                    }} />
-                    <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>
-                      Works instantly
-                    </Text>
-                  </div>
-                </div>
-              </div>
-            </Col>
-            
-            <Col xs={24} lg={10}>
-              <div style={{ 
-                textAlign: 'center',
-                position: 'relative'
-              }}>
-                {/* Floating Card */}
+          <Row gutter={[32, 32]} justify="center">
+            {[
+              { icon: <ExclamationCircleOutlined />, text: 'Articles bookmarked but never read' },
+              { icon: <ClockCircleOutlined />, text: 'Important insights missed while you\'re "too busy"' },
+              { icon: <BulbOutlined />, text: 'Competitors stay ahead while your backlog grows' },
+              { icon: <ReadOutlined />, text: 'Feeling overwhelmed by information overload' }
+            ].map((problem, index) => (
+              <Col xs={24} sm={12} md={6} key={index}>
                 <div style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  backdropFilter: 'blur(20px)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  borderRadius: '24px',
-                  padding: '32px',
-                  boxShadow: '0 20px 60px rgba(0, 0, 0, 0.1)',
-                  transform: 'rotate(-2deg)',
-                  animation: 'float 6s ease-in-out infinite'
+                  textAlign: 'center',
+                  padding: '32px 16px'
                 }}>
                   <div style={{
-                    background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+                    background: 'rgba(255, 255, 255, 0.2)',
                     borderRadius: '50%',
                     width: '80px',
                     height: '80px',
@@ -2061,133 +1816,35 @@ function HomeContent() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     margin: '0 auto 24px auto',
-                    boxShadow: '0 8px 32px rgba(255, 215, 0, 0.3)'
+                    fontSize: '32px',
+                    boxShadow: '0 8px 24px rgba(255, 255, 255, 0.1)'
                   }}>
-                    <SoundOutlined style={{ fontSize: '36px', color: 'white' }} />
+                    {problem.icon}
                   </div>
-                  <Title level={4} style={{ color: 'white', margin: '0 0 8px 0', fontWeight: 600 }}>
-                    59-Second Summaries
-                  </Title>
-                  <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>
-                    Perfect length for quick consumption
+                  <Text style={{ 
+                    color: 'white', 
+                    fontSize: '16px',
+                    fontWeight: 500,
+                    lineHeight: 1.4,
+                    display: 'block'
+                  }}>
+                    {problem.text}
                   </Text>
-                </div>
-                
-                {/* Floating Elements */}
-                <div style={{
-                  position: 'absolute',
-                  top: '20%',
-                  right: '10%',
-                  width: '60px',
-                  height: '60px',
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  borderRadius: '50%',
-                  animation: 'float 4s ease-in-out infinite reverse'
-                }} />
-                <div style={{
-                  position: 'absolute',
-                  bottom: '20%',
-                  left: '10%',
-                  width: '40px',
-                  height: '40px',
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  borderRadius: '50%',
-                  animation: 'float 5s ease-in-out infinite'
-                }} />
-              </div>
-            </Col>
-          </Row>
-        </div>
-        
-        {/* CSS Animation */}
-        <style jsx>{`
-          @keyframes float {
-            0%, 100% { transform: translateY(0px) rotate(-2deg); }
-            50% { transform: translateY(-20px) rotate(-1deg); }
-          }
-        `}</style>
-      </div>
-
-      {/* Conversion Stats Section */}
-      <div style={{ 
-        padding: '80px 0', 
-        background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
-        position: 'relative'
-      }}>
-        {/* Background Pattern */}
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.05) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(118, 75, 162, 0.05) 0%, transparent 50%)',
-          pointerEvents: 'none'
-        }} />
-        
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 1 }}>
-          <div style={{ textAlign: 'center', marginBottom: '60px' }}>
-            <Title level={2} style={{ 
-              fontSize: '36px', 
-              fontWeight: 700, 
-              margin: '0 0 16px 0',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text'
-            }}>
-              Proven Results
-            </Title>
-            <Paragraph style={{ fontSize: '18px', color: '#666', margin: 0 }}>
-              Join thousands of readers who've transformed their information consumption
-            </Paragraph>
-          </div>
-          
-          <Row gutter={[32, 32]} justify="center">
-            {conversionStats.map((stat, index) => (
-              <Col xs={24} sm={8} key={index}>
-                <div style={{
-                  background: 'rgba(255, 255, 255, 0.8)',
-                  backdropFilter: 'blur(20px)',
-                  border: '1px solid rgba(102, 126, 234, 0.1)',
-                  borderRadius: '20px',
-                  padding: '32px',
-                  textAlign: 'center',
-                  height: '100%',
-                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
-                  transition: 'all 0.3s ease',
-                  cursor: 'pointer'
-                }}>
-                  <div style={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    borderRadius: '50%',
-                    width: '60px',
-                    height: '60px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    margin: '0 auto 20px auto',
-                    boxShadow: '0 8px 24px rgba(102, 126, 234, 0.3)'
-                  }}>
-                    <ClockCircleOutlined style={{ fontSize: '24px', color: 'white' }} />
-                  </div>
-                  <Statistic
-                    title={stat.label}
-                    value={stat.number}
-                    suffix={stat.unit}
-                    valueStyle={{ 
-                      fontSize: '32px', 
-                      fontWeight: '700', 
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      backgroundClip: 'text'
-                    }}
-                  />
                 </div>
               </Col>
             ))}
           </Row>
+
+          <div style={{ textAlign: 'center', marginTop: '60px' }}>
+            <Title level={3} style={{ 
+              color: 'white',
+              fontSize: '24px', 
+              fontWeight: 600, 
+              margin: '0 0 16px 0'
+            }}>
+              There's a better way...
+            </Title>
+          </div>
         </div>
       </div>
 
@@ -2219,7 +1876,7 @@ function HomeContent() {
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text'
             }}>
-              Transform How Your Team Consumes Information
+              Transform How You Consume Information
             </Title>
             <Paragraph style={{ fontSize: '18px', color: '#666', margin: 0 }}>
               Stop drowning in articles. Start listening to insights.
