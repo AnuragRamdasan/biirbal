@@ -150,7 +150,8 @@ export async function POST(request: NextRequest) {
         { 
           message: 'Link already exists for this team',
           linkId: existingLink.id,
-          status: existingLink.processingStatus
+          status: existingLink.processingStatus,
+          audioUrl: existingLink.audioFileUrl // Include audio URL if available
         },
         { status: 200 }
       )
@@ -220,7 +221,9 @@ export async function POST(request: NextRequest) {
       message: 'Link saved successfully',
       linkId: processedLink.id,
       status: 'PENDING',
-      isFirstLink: userLinkCount === 1
+      isFirstLink: userLinkCount === 1,
+      // Note: audioUrl will be null for new links, extension should poll /api/extension/link-status
+      audioUrl: null
     })
 
   } catch (error) {
