@@ -11,15 +11,8 @@ if (process.env.NEXT_PUBLIC_POSTHOG_KEY) {
     api_host: "/ingest",
     ui_host: "https://us.posthog.com",
     capture_exceptions: true,
-    debug: process.env.NODE_ENV === "development",
-    loaded: (posthog) => {
-      if (process.env.NODE_ENV === "development") {
-        console.log("✅ PostHog initialized successfully")
-      }
-    }
+    debug: false,
   });
-} else {
-  console.warn("⚠️ NEXT_PUBLIC_POSTHOG_KEY not found - PostHog tracking disabled")
 }
 
 Sentry.init({

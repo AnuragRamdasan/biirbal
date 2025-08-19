@@ -52,17 +52,13 @@ export const trackConversion = (event: ConversionEvent, properties?: EventProper
       url: window.location.href,
       referrer: document.referrer,
     }
-
-    console.log(`📊 Tracking conversion: ${event}`, enrichedProperties)
     
     // Check if PostHog is initialized
     if (posthog && posthog.__loaded) {
       posthog.capture(event, enrichedProperties)
-    } else {
-      console.warn('PostHog not loaded - event logged to console only')
     }
   } catch (error) {
-    console.error('PostHog tracking error:', error)
+    // Silent fail
   }
 }
 
@@ -73,15 +69,11 @@ export const identifyUser = (userId: string, properties?: EventProperties) => {
   }
 
   try {
-    console.log(`👤 User identified: ${userId}`, properties)
-    
     if (posthog && posthog.__loaded) {
       posthog.identify(userId, properties)
-    } else {
-      console.warn('PostHog not loaded - user identification logged to console only')
     }
   } catch (error) {
-    console.error('PostHog identify error:', error)
+    // Silent fail
   }
 }
 
@@ -92,15 +84,11 @@ export const setUserProperties = (properties: EventProperties) => {
   }
 
   try {
-    console.log('👤 User properties set:', properties)
-    
     if (posthog && posthog.__loaded) {
       posthog.people.set(properties)
-    } else {
-      console.warn('PostHog not loaded - user properties logged to console only')
     }
   } catch (error) {
-    console.error('PostHog set properties error:', error)
+    // Silent fail
   }
 }
 
@@ -116,14 +104,10 @@ export const trackPageView = (pageName?: string) => {
       title: document.title,
     }
     
-    console.log('📄 Page view tracked:', properties)
-    
     if (posthog && posthog.__loaded) {
       posthog.capture('$pageview', properties)
-    } else {
-      console.warn('PostHog not loaded - page view logged to console only')
     }
   } catch (error) {
-    console.error('PostHog page view error:', error)
+    // Silent fail
   }
 }

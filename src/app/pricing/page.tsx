@@ -178,8 +178,6 @@ export default function PricingPage() {
         return
       }
 
-      // Debug: Log the user ID being used
-      console.log('Using user ID:', userId)
 
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',

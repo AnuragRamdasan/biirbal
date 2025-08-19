@@ -214,14 +214,7 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Track conversion events
-    console.log('📊 CONVERSION: Extension link saved', {
-      userId: session.user.id,
-      linkId: processedLink.id,
-      source,
-      isFirstLink: userLinkCount === 1,
-      teamId: team.id
-    })
+    // Extension link tracking handled client-side
 
     return NextResponse.json({
       message: 'Link saved successfully',
