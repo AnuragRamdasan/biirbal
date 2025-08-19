@@ -116,7 +116,17 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   Logout
                 </Button>
-              ) : null}
+              ) : (
+                <Link href="/auth/signin">
+                  <Button 
+                    variant="secondary" 
+                    size="sm"
+                    className="bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-sm"
+                  >
+                    Login
+                  </Button>
+                </Link>
+              )}
             </nav>
           )}
         </div>
