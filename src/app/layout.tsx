@@ -129,12 +129,7 @@ export default function RootLayout({
               </Script>
             )}
 
-            {/* ZapDigits Analytics */}
-            <Script
-              src="https://www.zapdigits.com/script/track.js"
-              data-site-id="20"
-              strategy="afterInteractive"
-            />
+            {/* ZapDigits removed - using PostHog instead */}
           </>
         )}
       </body>

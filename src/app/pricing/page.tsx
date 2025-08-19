@@ -104,14 +104,7 @@ export default function PricingPage() {
     fetchCurrentPlan()
   }, [session])
 
-  // Track pricing page visit
-  useEffect(() => {
-    analytics.trackFeature('pricing_page_visit', {
-      initial_annual_toggle: isAnnual,
-      initial_links_per_week: linksPerWeek,
-      initial_reader_count: readerCount
-    })
-  }, [])
+  // Pricing page tracking handled above with PostHog
 
   // Validate coupon code
   const validateCoupon = async (code: string) => {
@@ -425,11 +418,6 @@ export default function PricingPage() {
                 <button
                   onClick={() => {
                     setIsAnnual(false)
-                    analytics.trackFeature('billing_toggle_changed', {
-                      is_annual: false,
-                      reader_count: readerCount,
-                      links_per_week: linksPerWeek
-                    })
                   }}
                   style={{
                     padding: '12px 24px',
@@ -450,11 +438,6 @@ export default function PricingPage() {
                 <button
                   onClick={() => {
                     setIsAnnual(true)
-                    analytics.trackFeature('billing_toggle_changed', {
-                      is_annual: true,
-                      reader_count: readerCount,
-                      links_per_week: linksPerWeek
-                    })
                   }}
                   style={{
                     padding: '12px 24px',

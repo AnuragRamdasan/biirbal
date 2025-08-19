@@ -147,12 +147,7 @@ export default function TeamManagement() {
       const data = await response.json()
       setTeamData(data)
       
-      // Track team management visit
-      analytics.trackFeature('team_management_visit', {
-        team_id: data.team.slackTeamId, // Use team ID from response
-        member_count: data.members.length,
-        plan_type: data.subscription.planId
-      })
+      // Team management visit tracking removed
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
@@ -190,12 +185,7 @@ export default function TeamManagement() {
       const result = await response.json()
       message.success(result.message)
       
-      // Track the action
-      analytics.trackFeature('member_action', {
-        team_id: teamData?.team.slackTeamId,
-        action,
-        target_user_id: userId
-      })
+      // Member action tracking removed
       
       // Refresh the data
       await fetchTeamData()
@@ -232,11 +222,7 @@ export default function TeamManagement() {
       const result = await response.json()
       message.success('Invitation sent successfully!')
       
-      // Track the invitation
-      analytics.trackFeature('user_invitation_sent', {
-        team_id: teamData?.team.slackTeamId,
-        invited_email: values.email
-      })
+      // Invitation tracking removed
       
       // Reset form and close modal
       inviteForm.resetFields()

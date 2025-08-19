@@ -5,13 +5,22 @@
 import * as Sentry from "@sentry/nextjs";
 import posthog from "posthog-js";
 
-posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
-  api_host: "/ingest",
-  ui_host: "https://us.posthog.com",
-  defaults: "2025-05-24",
-  capture_exceptions: true,
-  debug: process.env.NODE_ENV === "development",
-});
+// Initialize PostHog only if the key is provided
+if (process.env.NEXT_PUBLIC_POSTHOG_KEY) {
+  posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
+    api_host: "/ingest",
+    ui_host: "https://us.posthog.com",
+    capture_exceptions: true,
+    debug: process.env.NODE_ENV === "development",
+    loaded: (posthog) => {
+      if (process.env.NODE_ENV === "development") {
+        console.log("✅ PostHog initialized successfully")
+      }
+    }
+  });
+} else {
+  console.warn("⚠️ NEXT_PUBLIC_POSTHOG_KEY not found - PostHog tracking disabled")
+}
 
 Sentry.init({
   dsn: "https://a123977cb8ae7960a4a56cd7366504f2@o4509801215229952.ingest.us.sentry.io/4509801219489792",

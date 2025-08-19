@@ -54,7 +54,13 @@ export const trackConversion = (event: ConversionEvent, properties?: EventProper
     }
 
     console.log(`📊 Tracking conversion: ${event}`, enrichedProperties)
-    posthog.capture(event, enrichedProperties)
+    
+    // Check if PostHog is initialized
+    if (posthog && posthog.__loaded) {
+      posthog.capture(event, enrichedProperties)
+    } else {
+      console.warn('PostHog not loaded - event logged to console only')
+    }
   } catch (error) {
     console.error('PostHog tracking error:', error)
   }
@@ -67,8 +73,13 @@ export const identifyUser = (userId: string, properties?: EventProperties) => {
   }
 
   try {
-    posthog.identify(userId, properties)
     console.log(`👤 User identified: ${userId}`, properties)
+    
+    if (posthog && posthog.__loaded) {
+      posthog.identify(userId, properties)
+    } else {
+      console.warn('PostHog not loaded - user identification logged to console only')
+    }
   } catch (error) {
     console.error('PostHog identify error:', error)
   }
@@ -81,8 +92,13 @@ export const setUserProperties = (properties: EventProperties) => {
   }
 
   try {
-    posthog.people.set(properties)
     console.log('👤 User properties set:', properties)
+    
+    if (posthog && posthog.__loaded) {
+      posthog.people.set(properties)
+    } else {
+      console.warn('PostHog not loaded - user properties logged to console only')
+    }
   } catch (error) {
     console.error('PostHog set properties error:', error)
   }
@@ -100,8 +116,13 @@ export const trackPageView = (pageName?: string) => {
       title: document.title,
     }
     
-    posthog.capture('$pageview', properties)
     console.log('📄 Page view tracked:', properties)
+    
+    if (posthog && posthog.__loaded) {
+      posthog.capture('$pageview', properties)
+    } else {
+      console.warn('PostHog not loaded - page view logged to console only')
+    }
   } catch (error) {
     console.error('PostHog page view error:', error)
   }
