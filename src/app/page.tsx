@@ -140,6 +140,7 @@ function HomeContent() {
   const [initialLoading, setInitialLoading] = useState(true)
   const [dashboardError, setDashboardError] = useState<string | null>(null)
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null)
+  const [pausedTrack, setPausedTrack] = useState<string | null>(null)
   const [showListened, setShowListened] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<string>('All')
   const [isMobile, setIsMobile] = useState(false)
@@ -513,6 +514,7 @@ function HomeContent() {
       setCurrentTime(0)
       setProgress(0)
       setDuration(0)
+      setPausedTrack(null) // Clear paused track when starting a new one
 
       // Track listen and get resume position
       const trackResult = await trackListen(linkId)
@@ -702,6 +704,9 @@ function HomeContent() {
         : 0
       const completionPercentage = duration > 0 ? Math.round((currentTime / duration) * 100) : 0
       
+      // Actually pause the audio element
+      audioElement.pause()
+      
       // Save current progress
       if (currentListenRecord.current) {
         await updateListenProgress(currentListenRecord.current, audioElement.currentTime, false, completionPercentage)
@@ -726,8 +731,31 @@ function HomeContent() {
         await fetchData(false)
       }
       
+      setPausedTrack(currentlyPlaying)
       setCurrentlyPlaying(null)
       // Keep player visible - don't reset other states when pausing
+    }
+  }
+
+  const handleResumeAudio = () => {
+    if (audioElement && pausedTrack) {
+      // Resume the paused audio
+      audioElement.play()
+      setCurrentlyPlaying(pausedTrack)
+      setPausedTrack(null)
+      
+      // Restart progress tracking
+      if (currentListenRecord.current) {
+        progressUpdateInterval.current = setInterval(() => {
+          if (audioElement && audioElement.currentTime !== undefined) {
+            const currentTimeValue = audioElement.currentTime
+            const progressValue = duration > 0 ? currentTimeValue / duration : 0
+            
+            setCurrentTime(currentTimeValue)
+            setProgress(progressValue)
+          }
+        }, 1000)
+      }
     }
   }
 
@@ -743,6 +771,7 @@ function HomeContent() {
     
     setShowAudioPlayer(false)
     setCurrentlyPlaying(null)
+    setPausedTrack(null)
     setAudioElement(null)
     setCurrentTrackInfo(null)
     currentListenRecord.current = null
@@ -1189,6 +1218,8 @@ function HomeContent() {
                     if (record.processingStatus === 'COMPLETED' && record.audioFileUrl) {
                       if (currentlyPlaying === record.id) {
                         await handlePauseAudio()
+                      } else if (pausedTrack === record.id) {
+                        handleResumeAudio()
                       } else {
                         await handlePlayAudio(record.id, record.audioFileUrl)
                       }
@@ -1355,6 +1386,8 @@ function HomeContent() {
                                   
                                   if (currentlyPlaying === record.id) {
                                     await handlePauseAudio()
+                                  } else if (pausedTrack === record.id) {
+                                    handleResumeAudio()
                                   } else {
                                     await handlePlayAudio(record.id, record.audioFileUrl!)
                                   }
@@ -1590,7 +1623,7 @@ function HomeContent() {
                   shape="circle"
                   size={isMobile ? "middle" : "large"}
                   icon={currentlyPlaying ? <PauseOutlined /> : <PlayCircleOutlined />}
-                  onClick={currentlyPlaying ? handlePauseAudio : () => handlePlayAudio(currentTrackInfo.id, currentTrackInfo.url)}
+                  onClick={currentlyPlaying ? handlePauseAudio : pausedTrack === currentTrackInfo?.id ? handleResumeAudio : () => handlePlayAudio(currentTrackInfo!.id, currentTrackInfo!.url)}
                   style={{ 
                     display: 'flex',
                     alignItems: 'center',
