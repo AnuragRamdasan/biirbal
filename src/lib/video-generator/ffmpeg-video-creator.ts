@@ -54,7 +54,7 @@ export class FFmpegVideoCreator {
       const inputPath = clipPaths[i];
       const outputPath = `/tmp/clip_${i}_processed.mp4`;
       
-      // FFmpeg command to resize to TikTok format and trim duration
+      // FFmpeg command to resize to TikTok format, trim duration, and ensure consistent frame rate
       const args = [
         '-i', inputPath,
         '-vf', 'scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920',
@@ -62,8 +62,12 @@ export class FFmpegVideoCreator {
         '-c:v', 'libx264',
         '-preset', 'fast',
         '-crf', '23',
-        '-an', // Remove audio (we'll add our own)
-        '-y', // Overwrite
+        '-r', '30',                  // Force consistent 30fps
+        '-g', '90',                  // Set GOP size (3 seconds at 30fps)
+        '-keyint_min', '30',         // Minimum keyframe interval
+        '-pix_fmt', 'yuv420p',       // Ensure consistent pixel format
+        '-an',                       // Remove audio (we'll add our own)
+        '-y',                        // Overwrite
         outputPath
       ];
       
@@ -82,13 +86,24 @@ export class FFmpegVideoCreator {
     const concatContent = clipPaths.map(path => `file '${path}'`).join('\n');
     await fs.writeFile(concatFile, concatContent);
     
-    // Concatenate videos
+    // Concatenate videos with consistent encoding to prevent frame freezing
     const args = [
       '-f', 'concat',
       '-safe', '0',
       '-i', concatFile,
       '-t', totalDuration.toString(),
-      '-c', 'copy',
+      // Force consistent encoding parameters
+      '-c:v', 'libx264',           // Use H.264 codec
+      '-preset', 'medium',         // Encoding speed vs quality balance
+      '-crf', '23',                // Constant rate factor (quality)
+      '-r', '30',                  // Force 30fps throughout
+      '-g', '90',                  // Set GOP size (3 seconds at 30fps)
+      '-keyint_min', '30',         // Minimum keyframe interval
+      '-sc_threshold', '0',        // Disable scene change detection
+      '-pix_fmt', 'yuv420p',       // Ensure consistent pixel format
+      '-movflags', '+faststart',   // Enable fast start for web playback
+      '-avoid_negative_ts', 'make_zero',  // Handle timestamp issues
+      '-fflags', '+genpts',        // Generate presentation timestamps
       '-y',
       outputPath
     ];
@@ -147,18 +162,25 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
   
   private async createFinalVideo(videoPath: string, audioPath: string, captionFile: string, outputPath: string): Promise<void> {
     const args = [
-      '-i', videoPath,        // Input video
-      '-i', audioPath,        // Input audio
+      '-i', videoPath,             // Input video
+      '-i', audioPath,             // Input audio
       '-vf', `ass=${captionFile}`, // Add captions
+      // Maintain consistent encoding parameters
       '-c:v', 'libx264',
       '-preset', 'fast',
       '-crf', '23',
+      '-r', '30',                  // Maintain 30fps
+      '-g', '90',                  // Maintain GOP size
+      '-keyint_min', '30',         // Maintain keyframe interval
+      '-pix_fmt', 'yuv420p',       // Maintain pixel format
       '-c:a', 'aac',
       '-b:a', '128k',
-      '-map', '0:v',          // Use video from first input
-      '-map', '1:a',          // Use audio from second input  
-      '-shortest',            // End when shortest stream ends
-      '-y',                   // Overwrite output
+      '-map', '0:v',               // Use video from first input
+      '-map', '1:a',               // Use audio from second input  
+      '-shortest',                 // End when shortest stream ends
+      '-avoid_negative_ts', 'make_zero',  // Handle timestamp issues
+      '-fflags', '+genpts',        // Generate presentation timestamps
+      '-y',                        // Overwrite output
       outputPath
     ];
     

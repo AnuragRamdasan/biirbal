@@ -38,7 +38,7 @@ export class VideoGenerationPipeline {
       // Step 4: Extract keywords for video footage
       const keywords = await this.extractKeywords(extractedContent.title + ' ' + videoSummary);
 
-      // Step 5: Generate video using FFmpeg
+      // Step 5: Generate video using FFmpeg with frame freezing fixes
       console.log('🎬 Creating video with FFmpeg (10 clips + TikTok captions)...');
       const videoResult = await createFFmpegVideoFromArticle(
         extractedContent.title,
