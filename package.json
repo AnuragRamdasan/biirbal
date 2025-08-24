@@ -15,6 +15,7 @@
     "setup:dev": "tsx scripts/setup-dev.ts",
     "delete:user": "node scripts/delete-user.js",
     "ensure:memberships": "node scripts/ensure-memberships.js",
+    "video-cron": "node scripts/video-generator-cron.js",
     "heroku-postbuild": "npm run build"
   },
   "dependencies": {

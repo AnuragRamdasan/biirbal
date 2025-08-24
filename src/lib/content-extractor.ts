@@ -311,3 +311,49 @@ function resolveImageUrl(imageUrl: string, baseUrl: string): string {
   }
 }
 
+// Direct extraction method without ScrapingBee for video generator
+export async function extractContentDirect(url: string): Promise<ExtractedContent> {
+  try {
+    console.log(`🔗 Direct extraction from: ${url}`)
+    
+    // Fetch content directly
+    const response = await axios.get(url, {
+      timeout: 20000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    })
+
+    if (response.status !== 200) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+
+    const html = response.data
+    const dom = new JSDOM(html, { url })
+    const reader = new Readability(dom.window.document)
+    const article = reader.parse()
+
+    if (!article || !article.textContent || article.textContent.length < 100) {
+      throw new Error('Insufficient content extracted from article')
+    }
+
+    const cleanText = cleanContent(article.textContent)
+    const wordCount = calculateWordCount(cleanText)
+    const title = cleanTitle(article.title || 'Untitled Article')
+    const ogImage = extractOgImage(dom.window.document, url)
+
+    console.log(`✅ Direct extraction completed: ${title} (${wordCount} words)`)
+
+    return {
+      title,
+      text: cleanText,
+      url,
+      wordCount,
+      ogImage
+    }
+  } catch (error: any) {
+    console.error(`❌ Direct extraction failed for ${url}:`, error.message)
+    throw new Error(`Direct content extraction failed: ${error.message}`)
+  }
+}
+

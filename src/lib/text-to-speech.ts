@@ -1,5 +1,7 @@
 import OpenAI from 'openai'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import fs from 'fs'
+import path from 'path'
 
 export interface AudioResult {
   audioBuffer: Buffer
@@ -48,6 +50,23 @@ export async function uploadAudioToStorage(
   audioBuffer: Buffer, 
   fileName: string
 ): Promise<string> {
+  // In development, save locally instead of S3
+  if (process.env.NODE_ENV !== 'production') {
+    const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'audio')
+    
+    // Create directory if it doesn't exist
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true })
+    }
+    
+    const filePath = path.join(uploadsDir, fileName)
+    fs.writeFileSync(filePath, audioBuffer)
+    
+    // Return local URL
+    return `/uploads/audio/${fileName}`
+  }
+
+  // Production: use S3
   const bucketName = process.env.AWS_S3_BUCKET_NAME
   const accessKeyId = process.env.AWS_ACCESS_KEY_ID
   const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY
@@ -63,7 +82,6 @@ export async function uploadAudioToStorage(
       secretAccessKey
     }
   })
-
 
   const key = `audio/${fileName}`
   const command = new PutObjectCommand({
