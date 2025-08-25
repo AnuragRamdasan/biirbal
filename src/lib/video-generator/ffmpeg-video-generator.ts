@@ -1,5 +1,6 @@
 import { FFmpegVideoCreator } from './ffmpeg-video-creator';
 import { generateAudioSummary } from '../text-to-speech';
+import { searchPexelsVideo } from '../pexels-api';
 import axios from 'axios';
 import * as path from 'path';
 import * as fs from 'fs/promises';
@@ -13,10 +14,11 @@ export interface VideoResult {
   error?: string;
 }
 
-export async function createFFmpegVideoFromArticle(
+// Main function using pre-fetched contextual videos
+export async function createFFmpegVideoFromUrls(
   title: string,
   summary: string,
-  keywords: string[],
+  videoUrls: string[],
   options: { duration: number }
 ): Promise<VideoResult> {
   const { duration } = options;
@@ -32,36 +34,37 @@ export async function createFFmpegVideoFromArticle(
     const audioPath = path.join(workingDir, 'narration.mp3');
     await fs.writeFile(audioPath, audioResult.audioBuffer);
     
-    // Step 2: Download Pexels videos
+    // Step 2: Download contextually-selected videos
     const videoPaths: string[] = [];
-    const targetVideoCount = 20; // Download more than 15 to have variety
+    console.log(`📥 Downloading ${videoUrls.length} contextually-selected videos...`);
     
-    for (let i = 0; i < Math.min(keywords.length, targetVideoCount); i++) {
-      const keyword = keywords[i];
+    for (let i = 0; i < videoUrls.length; i++) {
+      const videoUrl = videoUrls[i];
       
       try {
-        const videoUrl = await searchPexelsVideo(keyword);
-        if (videoUrl) {
-          const videoPath = path.join(workingDir, `clip_${i + 1}.mp4`);
-          await downloadVideo(videoUrl, videoPath);
-          videoPaths.push(videoPath);
-          
-          if (videoPaths.length >= targetVideoCount) break;
-        }
+        const videoPath = path.join(workingDir, `clip_${i + 1}.mp4`);
+        await downloadVideo(videoUrl, videoPath);
+        videoPaths.push(videoPath);
+        console.log(`✅ Downloaded video ${i + 1}/${videoUrls.length}`);
+        
+        // Small delay between downloads
+        await new Promise(resolve => setTimeout(resolve, 100));
       } catch (error) {
-        console.error(`Failed to download video for keyword "${keyword}":`, error);
+        console.error(`Failed to download video ${i + 1}:`, error.message);
       }
     }
     
-    // Fallback keywords if we don't have enough
+    // Fallback videos if we don't have enough contextual ones
     if (videoPaths.length < 15) {
+      console.log(`⚠️ Only got ${videoPaths.length} contextual videos, adding fallback videos...`);
+      
       const fallbackKeywords = [
-        'business', 'technology', 'nature', 'city', 'people', 
-        'abstract', 'modern', 'urban', 'creative', 'innovation'
+        'business meeting', 'professional office', 'modern technology', 'urban city', 'serious discussion', 
+        'news studio', 'corporate building', 'data visualization', 'creative workspace', 'innovation'
       ];
       
       for (const fallback of fallbackKeywords) {
-        if (videoPaths.length >= targetVideoCount) break;
+        if (videoPaths.length >= 20) break; // Still allow up to 20 total videos
         
         try {
           const videoUrl = await searchPexelsVideo(fallback);
@@ -69,10 +72,14 @@ export async function createFFmpegVideoFromArticle(
             const videoPath = path.join(workingDir, `fallback_${videoPaths.length + 1}.mp4`);
             await downloadVideo(videoUrl, videoPath);
             videoPaths.push(videoPath);
+            console.log(`✅ Added fallback video: ${fallback}`);
           }
         } catch (error) {
-          console.error(`Failed to download fallback video for "${fallback}":`, error);
+          console.error(`Failed to download fallback video for "${fallback}":`, error.message);
         }
+        
+        // Small delay for fallback searches too
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
     }
     
@@ -136,65 +143,36 @@ export async function createFFmpegVideoFromArticle(
   }
 }
 
-async function searchPexelsVideo(keyword: string): Promise<string | null> {
-  try {
-    const pexelsApiKey = process.env.PEXELS_API_KEY;
-    if (!pexelsApiKey) {
-      throw new Error('PEXELS_API_KEY environment variable is required');
+// Legacy function for backward compatibility
+export async function createFFmpegVideoFromArticle(
+  title: string,
+  summary: string,
+  keywords: string[],
+  options: { duration: number }
+): Promise<VideoResult> {
+  // Use the intelligent search to get better video URLs
+  const { searchContextualVideos } = require('./intelligent-pexels-search');
+  const videoResults = await searchContextualVideos(title, summary, 15);
+  const videoUrls = videoResults.map((result: any) => result.videoUrl);
+  
+  // Fallback to keyword-based search if contextual search fails
+  if (videoUrls.length === 0) {
+    console.log('⚠️ Contextual search failed, falling back to keyword search');
+    // Convert keywords to video URLs using basic search
+    for (const keyword of keywords.slice(0, 15)) {
+      try {
+        const videoUrl = await searchPexelsVideo(keyword);
+        if (videoUrl) {
+          videoUrls.push(videoUrl);
+        }
+      } catch (error) {
+        console.error(`Failed to search for keyword "${keyword}":`, error.message);
+      }
     }
-
-    const response = await axios.get('https://api.pexels.com/videos/search', {
-      params: {
-        query: keyword,
-        per_page: 10,
-        size: 'medium',
-        orientation: 'portrait' // Prefer vertical videos for TikTok
-      },
-      headers: {
-        'Authorization': pexelsApiKey
-      },
-      timeout: 15000
-    });
-    
-    const videos = response.data.videos;
-    if (!videos || videos.length === 0) {
-      return null;
-    }
-    
-    // Filter videos by duration and quality
-    const suitableVideos = videos.filter((video: any) => {
-      const duration = video.duration || 0;
-      const hasGoodQuality = video.video_files.some((file: any) => 
-        file.quality === 'hd' || file.quality === 'sd'
-      );
-      
-      return duration >= 8 && hasGoodQuality;
-    });
-    
-    const candidateVideos = suitableVideos.length > 0 ? suitableVideos : videos;
-    const randomVideo = candidateVideos[Math.floor(Math.random() * candidateVideos.length)];
-    
-    // Prefer HD, then SD quality
-    let videoFile = randomVideo.video_files.find((file: { quality: string }) => 
-      file.quality === 'hd'
-    );
-    
-    if (!videoFile) {
-      videoFile = randomVideo.video_files.find((file: { quality: string }) => 
-        file.quality === 'sd'
-      );
-    }
-    
-    if (!videoFile && randomVideo.video_files.length > 0) {
-      videoFile = randomVideo.video_files[0];
-    }
-    
-    return videoFile ? videoFile.link : null;
-    
-  } catch (error) {
-    console.error(`Pexels API error for query "${keyword}":`, error);
-    return null;
   }
+  
+  // Use the main function with the fetched URLs
+  return createFFmpegVideoFromUrls(title, summary, videoUrls, options);
 }
 
 async function downloadVideo(url: string, outputPath: string): Promise<void> {

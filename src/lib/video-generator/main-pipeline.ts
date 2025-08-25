@@ -1,4 +1,4 @@
-import { extractContentDirect, summarizeForAudio } from '../content-extractor';
+import { extractContentFromUrl, summarizeForAudio } from '../content-extractor';
 import { createFFmpegVideoFromArticle } from './ffmpeg-video-generator';
 import { SocialMediaPoster, createSocialCaption, SocialPostResult } from './social-poster';
 import { getDbClient } from '../db';
@@ -27,19 +27,19 @@ export class VideoGenerationPipeline {
       const articleUrl = await this.getRandomNewsArticleUrl();
       console.log(`📰 Selected article: ${articleUrl}`);
 
-      // Step 2: Extract content using direct method (no ScrapingBee needed)
-      const extractedContent = await extractContentDirect(articleUrl);
+      // Step 2: Extract content using ScrapingBee for reliable extraction
+      const extractedContent = await extractContentFromUrl(articleUrl);
       console.log(`✅ Extracted: ${extractedContent.title}`);
 
       // Step 3: Create summary for video
       const videoSummary = await summarizeForAudio(extractedContent.text, 120, articleUrl);
       console.log(`📝 Created video summary (${videoSummary.length} chars)`);
 
-      // Step 4: Extract keywords for video footage
+      // Step 4: Extract keywords for video footage (used as fallback only)
       const keywords = await this.extractKeywords(extractedContent.title + ' ' + videoSummary);
 
-      // Step 5: Generate video using FFmpeg with frame freezing fixes
-      console.log('🎬 Creating video with FFmpeg (10 clips + TikTok captions)...');
+      // Step 5: Generate video using intelligent contextual search with frame freezing fixes
+      console.log('🎬 Creating video with ChatGPT-enhanced contextual video selection...');
       const videoResult = await createFFmpegVideoFromArticle(
         extractedContent.title,
         videoSummary,
