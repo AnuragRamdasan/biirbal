@@ -241,3 +241,25 @@ enum SubscriptionStatus {
   INCOMPLETE_EXPIRED
   UNPAID
 }
+
+model FeedArticle {
+  id              String   @id @default(cuid())
+  title           String
+  url             String   @unique
+  slug            String   @unique
+  extractedText   String?
+  summary         String?
+  audioFileUrl    String?
+  audioFileKey    String?
+  ogImage         String?
+  author          String?
+  publishedAt     DateTime
+  wordCount       Int?
+  source          String   @default("techmeme")
+  tags            String[] @default([])
+  isPublished     Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("feed_articles")
+}

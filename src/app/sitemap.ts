@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next'
 import { getBaseUrl } from '@/lib/config'
+import { getDbClient } from '@/lib/db'
 import path from 'path'
 import fs from 'fs'
 
@@ -37,6 +38,38 @@ async function getBlogPosts(): Promise<MetadataRoute.Sitemap> {
   }
 
   return blogPosts
+}
+
+// Function to get all feed articles dynamically
+async function getFeedArticles(): Promise<MetadataRoute.Sitemap> {
+  const baseUrl = getBaseUrl()
+  const feedArticles: MetadataRoute.Sitemap = []
+
+  try {
+    const db = await getDbClient()
+    const articles = await db.feedArticle.findMany({
+      where: { isPublished: true },
+      select: {
+        slug: true,
+        updatedAt: true
+      },
+      orderBy: { publishedAt: 'desc' },
+      take: 100 // Limit for sitemap performance
+    })
+
+    for (const article of articles) {
+      feedArticles.push({
+        url: `${baseUrl}/feed/${article.slug}`,
+        lastModified: article.updatedAt,
+        changeFrequency: 'monthly',
+        priority: 0.8,
+      })
+    }
+  } catch (error) {
+    console.warn('Failed to read feed articles for sitemap:', error)
+  }
+
+  return feedArticles
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -92,10 +125,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'yearly',
       priority: 0.4,
     },
+    {
+      url: `${baseUrl}/feed`,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.9,
+    },
   ]
 
-  // Get dynamic blog posts
+  // Get dynamic blog posts and feed articles
   const blogPosts = await getBlogPosts()
+  const feedArticles = await getFeedArticles()
 
-  return [...staticPages, ...blogPosts]
+  return [...staticPages, ...blogPosts, ...feedArticles]
 }

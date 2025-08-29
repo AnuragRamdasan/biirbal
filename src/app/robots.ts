@@ -16,6 +16,8 @@ export default function robots(): MetadataRoute.Robots {
           '/terms',
           '/blog',
           '/blog/*',
+          '/feed',
+          '/feed/*',
           '/auth/signin',
           '/success',
         ],
@@ -45,6 +47,8 @@ export default function robots(): MetadataRoute.Robots {
           '/terms',
           '/blog',
           '/blog/*',
+          '/feed',
+          '/feed/*',
         ],
         disallow: [
           '/team*',
@@ -66,6 +70,8 @@ export default function robots(): MetadataRoute.Robots {
           '/terms',
           '/blog',
           '/blog/*',
+          '/feed',
+          '/feed/*',
         ],
         disallow: [
           '/team*',
@@ -87,6 +93,8 @@ export default function robots(): MetadataRoute.Robots {
           '/terms',
           '/blog',
           '/blog/*',
+          '/feed',
+          '/feed/*',
         ],
         disallow: [
           '/team*',
