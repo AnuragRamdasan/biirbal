@@ -20,16 +20,21 @@ export class FFmpegVideoCreator {
     const targetClips = this.prepareClips(videoPaths, clipCount);
     const clipDuration = duration / clipCount; // 1/15th of total duration
     
-    // Step 1: Create video segments (resize to 1080x1920 and trim)
+    // Step 1: Get actual audio duration for precise caption sync
+    const actualAudioDuration = await this.getAudioDuration(audioPath);
+    console.log(`🎵 Audio duration: ${actualAudioDuration.toFixed(2)}s (expected: ${duration}s)`);
+    
+    // Step 2: Create video segments (resize to 1080x1920 and trim)
     const processedClips = await this.processClips(targetClips, clipDuration);
     
-    // Step 2: Concatenate video clips
+    // Step 3: Concatenate video clips
     const concatenatedVideo = await this.concatenateVideos(processedClips, duration);
     
-    // Step 3: Generate captions
-    const captionFile = await this.generateCaptions(summary, duration);
+    // Step 4: Generate captions with precise timing using the actual spoken text
+    const spokenText = `Here's a summary of ${title}: ${summary}`;
+    const captionFile = await this.generateCaptions(spokenText, actualAudioDuration);
     
-    // Step 4: Add captions and audio to create final video
+    // Step 5: Add captions and audio to create final video
     await this.createFinalVideo(concatenatedVideo, audioPath, captionFile, outputPath);
     
     // Cleanup temp files
@@ -117,38 +122,139 @@ export class FFmpegVideoCreator {
   private async generateCaptions(text: string, duration: number): Promise<string> {
     const captionFile = '/tmp/captions.ass';
     
-    // Split text into words for TikTok-style word-by-word captions
-    const words = text.split(' ');
-    const wordsPerCaption = 4; // Show 4 words at a time
-    const captionDuration = duration / Math.ceil(words.length / wordsPerCaption);
+    console.log(`🔤 Generating captions for text: "${text.substring(0, 50)}..." (${duration.toFixed(2)}s)`);
     
-    // ASS subtitle format for TikTok-style captions
+    // Calculate speech-based timing for better synchronization
+    const words = text.split(' ').filter(word => word.trim().length > 0);
+    const totalWords = words.length;
+    
+    // OpenAI TTS timing: ~2.8-3.2 words per second at normal speed
+    // With 1.1x speed: ~3.1-3.5 words per second
+    const baseWordsPerSecond = 3.2;
+    const ttsSpeedMultiplier = 1.1;
+    const adjustedWordsPerSecond = baseWordsPerSecond * ttsSpeedMultiplier;
+    
+    // Calculate expected vs actual duration ratio for scaling
+    const expectedDuration = totalWords / adjustedWordsPerSecond;
+    const durationRatio = duration / expectedDuration;
+    
+    console.log(`📊 Caption timing: ${totalWords} words, ${adjustedWordsPerSecond.toFixed(1)} wps, expected ${expectedDuration.toFixed(1)}s, actual ${duration.toFixed(1)}s, ratio ${durationRatio.toFixed(2)}`);
+    
+    // Group words into natural phrases for better readability
+    const captions = this.createCaptionGroups(words);
+    
+    // Calculate timing with improved precision
+    let currentTime = 0;
+    const captionTimings: Array<{text: string, start: number, end: number}> = [];
+    
+    for (let i = 0; i < captions.length; i++) {
+      const caption = captions[i];
+      const captionWords = caption.split(' ').length;
+      
+      // Base duration from word count
+      let baseDuration = captionWords / adjustedWordsPerSecond;
+      
+      // Add natural pauses for punctuation
+      if (caption.match(/[.!?]$/)) {
+        baseDuration += 0.4; // Longer pause for sentence endings
+      } else if (caption.match(/[,:;]$/)) {
+        baseDuration += 0.2; // Shorter pause for commas/semicolons
+      }
+      
+      // Scale by actual vs expected duration
+      const captionDuration = baseDuration * durationRatio;
+      
+      // Add slight overlap for smoother transitions
+      const overlap = 0.1;
+      const endTime = Math.min(currentTime + captionDuration + overlap, duration);
+      
+      captionTimings.push({
+        text: caption.toUpperCase(),
+        start: currentTime,
+        end: endTime
+      });
+      
+      console.log(`  Caption ${i + 1}: "${caption}" (${currentTime.toFixed(1)}s - ${endTime.toFixed(1)}s)`);
+      
+      currentTime += captionDuration;
+      
+      // Stop if we've reached the end of the audio
+      if (currentTime >= duration - 0.5) { // Leave 0.5s buffer at end
+        break;
+      }
+    }
+    
+    // ASS subtitle format with enhanced TikTok-style styling
     let assContent = `[Script Info]
 Title: TikTok Style Captions
 ScriptType: v4.00+
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: TikTok,Arial,16,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,1,3,3,2,50,50,80,1
+Style: TikTok,Arial Black,28,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,1,4,2,2,30,30,50,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 `;
 
-    for (let i = 0; i < Math.ceil(words.length / wordsPerCaption); i++) {
-      const startTime = i * captionDuration;
-      const endTime = Math.min((i + 1) * captionDuration, duration);
-      const captionWords = words.slice(i * wordsPerCaption, (i + 1) * wordsPerCaption);
-      const captionText = captionWords.join(' ').toUpperCase();
+    for (const caption of captionTimings) {
+      const startTimestamp = this.formatTimestamp(caption.start);
+      const endTimestamp = this.formatTimestamp(caption.end);
       
-      const startTimestamp = this.formatTimestamp(startTime);
-      const endTimestamp = this.formatTimestamp(endTime);
-      
-      assContent += `Dialogue: 0,${startTimestamp},${endTimestamp},TikTok,,0,0,0,,${captionText}\n`;
+      assContent += `Dialogue: 0,${startTimestamp},${endTimestamp},TikTok,,0,0,0,,${caption.text}\n`;
     }
     
     await fs.writeFile(captionFile, assContent);
+    console.log(`✅ Generated ${captionTimings.length} caption segments`);
     return captionFile;
+  }
+  
+  private createCaptionGroups(words: string[]): string[] {
+    const captions: string[] = [];
+    let currentCaption = '';
+    let wordCount = 0;
+    
+    for (let i = 0; i < words.length; i++) {
+      const word = words[i];
+      const nextWord = words[i + 1];
+      
+      // Add current word to caption
+      currentCaption += (currentCaption.length > 0 ? ' ' : '') + word;
+      wordCount++;
+      
+      // Determine if we should break after this word
+      const hasStrongPunctuation = word.match(/[.!?]$/);
+      const hasWeakPunctuation = word.match(/[,:;]$/);
+      const isLongEnough = wordCount >= 3;
+      const isTooLong = wordCount >= 6 || currentCaption.length > 45;
+      
+      // Natural break points for TikTok captions
+      const shouldBreak = isTooLong || 
+                         (hasStrongPunctuation && isLongEnough) ||
+                         (hasWeakPunctuation && wordCount >= 4) ||
+                         (wordCount >= 4 && nextWord && this.isNaturalBreakWord(nextWord));
+      
+      if (shouldBreak || i === words.length - 1) {
+        captions.push(currentCaption.trim());
+        currentCaption = '';
+        wordCount = 0;
+      }
+    }
+    
+    return captions.filter(caption => caption.length > 0);
+  }
+  
+  private isNaturalBreakWord(word: string): boolean {
+    // Words that naturally start new thoughts/sentences
+    const breakWords = [
+      'and', 'but', 'however', 'meanwhile', 'therefore', 'moreover',
+      'furthermore', 'additionally', 'consequently', 'nevertheless',
+      'the', 'this', 'that', 'these', 'those', 'here', 'there',
+      'now', 'then', 'later', 'first', 'second', 'finally',
+      'also', 'still', 'yet', 'so', 'because', 'since', 'while'
+    ];
+    
+    return breakWords.includes(word.toLowerCase().replace(/[^\w]/g, ''));
   }
   
   private formatTimestamp(seconds: number): string {
@@ -187,6 +293,39 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     await this.runFFmpeg(args);
   }
   
+  private async getAudioDuration(audioPath: string): Promise<number> {
+    return new Promise((resolve, reject) => {
+      // Use ffprobe to get exact audio duration
+      const ffprobe = spawn('ffprobe', [
+        '-v', 'quiet',
+        '-show_entries', 'format=duration',
+        '-of', 'csv=p=0',
+        audioPath
+      ]);
+      
+      let stdout = '';
+      ffprobe.stdout.on('data', (data) => {
+        stdout += data.toString();
+      });
+      
+      ffprobe.on('close', (code) => {
+        if (code === 0) {
+          const duration = parseFloat(stdout.trim());
+          resolve(duration);
+        } else {
+          // Fallback: estimate based on file size (rough approximation)
+          console.warn('Could not get audio duration, using estimation');
+          resolve(60); // Default fallback
+        }
+      });
+      
+      ffprobe.on('error', (error) => {
+        console.warn('FFprobe error, using estimation:', error.message);
+        resolve(60); // Default fallback
+      });
+    });
+  }
+
   private async runFFmpeg(args: string[]): Promise<void> {
     return new Promise((resolve, reject) => {
       const ffmpeg = spawn('ffmpeg', args);
