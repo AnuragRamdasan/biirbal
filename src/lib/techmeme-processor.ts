@@ -39,11 +39,18 @@ export async function extractOriginalUrl(techMemeUrl: string): Promise<string> {
     const dom = new JSDOM(response.data)
     const document = dom.window.document
     
-    // Look for the main article link - TechMeme has various patterns
+    // Look for the main article link - TechMeme has specific patterns
+    const blacklistedDomains = [
+      'techmeme.com', 'twitter.com', 'linkedin.com', 'facebook.com', 
+      'reddit.com', 'hacker-news.firebaseapp.com', 'techhub.social',
+      'mastodon.', 'threads.net', 'instagram.com'
+    ]
+    
+    // Priority selectors for TechMeme article links
     const selectors = [
-      'a[href*="://"][class*="ourlink"]', // TechMeme's main story links
-      'a[href*="://"][target="_blank"]',   // External links
-      '.ourlink',                          // TechMeme specific class
+      'a.ourlink',                         // TechMeme's main story class
+      'a[href*="://"][class*="ourlink"]',  // TechMeme's main story links
+      'td.c a[href*="://"]',               // Content cell links
       'a[href*="://"]'                     // Fallback to any external link
     ]
     
@@ -52,13 +59,15 @@ export async function extractOriginalUrl(techMemeUrl: string): Promise<string> {
       
       for (const link of links) {
         const href = link.getAttribute('href')
-        if (href && 
-            !href.includes('techmeme.com') && 
-            !href.includes('twitter.com') && 
-            !href.includes('linkedin.com') &&
-            (href.startsWith('http') || href.startsWith('https'))) {
-          logger.info(`Found original URL: ${href}`)
-          return href
+        if (href && (href.startsWith('http') || href.startsWith('https'))) {
+          // Check if this is a valid news article URL
+          const isBlacklisted = blacklistedDomains.some(domain => href.includes(domain))
+          const isNewsSource = href.match(/\.(com|org|net|co\.uk|co|io)\//)
+          
+          if (!isBlacklisted && isNewsSource) {
+            logger.info(`Found original URL: ${href}`)
+            return href
+          }
         }
       }
     }
@@ -144,11 +153,29 @@ export async function processTechMemeArticle(article: TechMemeArticle): Promise<
     // Extract the original article URL from TechMeme
     const originalUrl = await extractOriginalUrl(article.link)
     
-    // Extract content from the original article URL
-    const content = await extractContentFromUrl(originalUrl)
+    // Extract content from the original article URL with fallback
+    let content
+    try {
+      content = await extractContentFromUrl(originalUrl)
+    } catch (error: any) {
+      logger.warn(`Content extraction failed for ${originalUrl}, trying TechMeme URL:`, error.message)
+      try {
+        // Fallback to TechMeme URL if original fails
+        content = await extractContentFromUrl(article.link)
+      } catch (fallbackError: any) {
+        logger.error(`Both original and TechMeme URL extraction failed for: ${article.title}`)
+        throw new Error(`Content extraction failed for both URLs: ${fallbackError.message}`)
+      }
+    }
+
+    // Check if we have sufficient content
+    if (!content.text || content.text.length < 200) {
+      throw new Error(`Insufficient content extracted: only ${content.text?.length || 0} characters`)
+    }
     
-    // Generate summary for audio using the original article URL
-    const summary = await summarizeForAudio(content.text, 150, originalUrl)
+    // Generate summary for audio using the best available URL
+    const summaryUrl = originalUrl !== article.link ? originalUrl : article.link
+    const summary = await summarizeForAudio(content.text, 150, summaryUrl)
     
     // Create unique slug
     let baseSlug = createSlug(article.title)
@@ -168,7 +195,7 @@ export async function processTechMemeArticle(article: TechMemeArticle): Promise<
     const feedArticle = await db.feedArticle.create({
       data: {
         title: content.title,
-        url: originalUrl,
+        url: summaryUrl,
         slug,
         extractedText: content.text,
         summary,
@@ -187,7 +214,7 @@ export async function processTechMemeArticle(article: TechMemeArticle): Promise<
     return {
       id: feedArticle.id,
       title: feedArticle.title,
-      url: originalUrl,
+      url: summaryUrl,
       slug: feedArticle.slug,
       summary: feedArticle.summary!,
       audioFileUrl: feedArticle.audioFileUrl!,
