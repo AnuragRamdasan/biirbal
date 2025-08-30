@@ -33,14 +33,21 @@ export async function GET() {
     // Try to process recent articles until one succeeds (to handle failures gracefully)
     let processedArticle = null
     let attempts = 0
-    const maxAttempts = Math.min(3, articles.length)
+    const maxAttempts = Math.min(5, articles.length) // Try more articles
 
     for (const article of articles.slice(0, maxAttempts)) {
       attempts++
       logger.info(`Processing article ${attempts}/${maxAttempts}: ${article.title}`)
       
       try {
-        processedArticle = await processTechMemeArticle(article)
+        // Add timeout wrapper for individual article processing
+        const articlePromise = processTechMemeArticle(article)
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Article processing timeout')), 25000)
+        )
+        
+        processedArticle = await Promise.race([articlePromise, timeoutPromise]) as any
+        
         if (processedArticle) {
           logger.info(`✅ Successfully processed: ${processedArticle.title}`)
           break

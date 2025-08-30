@@ -30,7 +30,7 @@ export async function extractOriginalUrl(techMemeUrl: string): Promise<string> {
     logger.info(`Extracting original URL from: ${techMemeUrl}`)
     
     const response = await axios.get(techMemeUrl, {
-      timeout: 15000,
+      timeout: 8000, // Reduced timeout
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; Biirbal/1.0; +https://www.biirbal.com)'
       }
@@ -106,11 +106,21 @@ export async function fetchTechMemeFeed(): Promise<TechMemeArticle[]> {
       const description = item.querySelector('description')?.textContent
 
       if (title && link && pubDate) {
+        // Try to extract original URL from description if available
+        let originalUrl = undefined
+        if (description) {
+          const urlMatch = description.match(/https?:\/\/[^\s<>"]+/)
+          if (urlMatch && !urlMatch[0].includes('techmeme.com')) {
+            originalUrl = urlMatch[0]
+          }
+        }
+        
         articles.push({
           title: title.trim(),
           link: link.trim(),
           pubDate,
-          description: description?.trim()
+          description: description?.trim(),
+          originalUrl
         })
       }
     })
@@ -150,8 +160,18 @@ export async function processTechMemeArticle(article: TechMemeArticle): Promise<
 
     logger.info(`Processing new article: ${article.title}`)
 
-    // Extract the original article URL from TechMeme
-    const originalUrl = await extractOriginalUrl(article.link)
+    // Use pre-extracted URL from RSS if available, otherwise extract from page
+    let originalUrl = article.originalUrl
+    if (!originalUrl) {
+      try {
+        originalUrl = await extractOriginalUrl(article.link)
+      } catch (error: any) {
+        logger.warn(`URL extraction failed, using TechMeme URL:`, error.message)
+        originalUrl = article.link
+      }
+    } else {
+      logger.info(`Using pre-extracted URL: ${originalUrl}`)
+    }
     
     // Extract content from the original article URL with fallback
     let content
