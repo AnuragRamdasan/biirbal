@@ -59,7 +59,7 @@ async function getFeedArticles(): Promise<MetadataRoute.Sitemap> {
 
     for (const article of articles) {
       feedArticles.push({
-        url: `${baseUrl}/feed/${article.slug}`,
+        url: `${baseUrl}/newsroom/${article.slug}`,
         lastModified: article.updatedAt,
         changeFrequency: 'monthly',
         priority: 0.8,
@@ -126,7 +126,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.4,
     },
     {
-      url: `${baseUrl}/feed`,
+      url: `${baseUrl}/newsroom`,
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 0.9,

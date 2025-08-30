@@ -12,7 +12,7 @@ import { useBrowserDetection } from '@/hooks/useBrowserDetection'
 interface HeaderProps {
   className?: string
   showNavigation?: boolean
-  currentPage?: 'home' | 'dashboard' | 'profile' | 'pricing' | 'blog'
+  currentPage?: 'home' | 'dashboard' | 'profile' | 'pricing' | 'blog' | 'newsroom'
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -124,6 +124,15 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
               >
                 Blog
+              </Link>
+              <Link
+                href="/newsroom"
+                className={cn(
+                  'text-white/80 hover:text-white transition-colors text-sm font-medium',
+                  currentPage === 'newsroom' && 'text-white font-semibold'
+                )}
+              >
+                Newsroom
               </Link>
               {isAuthenticated ? (
                 <Button 
