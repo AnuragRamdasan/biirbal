@@ -30,19 +30,36 @@ export async function GET() {
       })
     }
 
-    // Process only the most recent article (to avoid overwhelming the system)
-    const recentArticle = articles[0]
-    logger.info(`Processing most recent article: ${recentArticle.title}`)
+    // Try to process recent articles until one succeeds (to handle failures gracefully)
+    let processedArticle = null
+    let attempts = 0
+    const maxAttempts = Math.min(3, articles.length)
 
-    const processedArticle = await processTechMemeArticle(recentArticle)
+    for (const article of articles.slice(0, maxAttempts)) {
+      attempts++
+      logger.info(`Processing article ${attempts}/${maxAttempts}: ${article.title}`)
+      
+      try {
+        processedArticle = await processTechMemeArticle(article)
+        if (processedArticle) {
+          logger.info(`✅ Successfully processed: ${processedArticle.title}`)
+          break
+        }
+      } catch (error: any) {
+        logger.error(`❌ Failed to process article "${article.title}":`, error.message)
+        // Continue to next article
+        continue
+      }
+    }
     
     const result = {
       success: true,
       processed: processedArticle ? 1 : 0,
+      attempts,
       article: processedArticle ? {
         title: processedArticle.title,
         slug: processedArticle.slug,
-        url: `/feed/${processedArticle.slug}`
+        url: `/newsroom/${processedArticle.slug}`
       } : null,
       totalAvailable: articles.length,
       timestamp: new Date().toISOString()

@@ -10,6 +10,7 @@ interface TechMemeArticle {
   link: string
   pubDate: string
   description?: string
+  originalUrl?: string
 }
 
 interface ProcessedFeedArticle {
@@ -22,6 +23,54 @@ interface ProcessedFeedArticle {
   publishedAt: Date
   wordCount: number
   ogImage?: string
+}
+
+export async function extractOriginalUrl(techMemeUrl: string): Promise<string> {
+  try {
+    logger.info(`Extracting original URL from: ${techMemeUrl}`)
+    
+    const response = await axios.get(techMemeUrl, {
+      timeout: 15000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; Biirbal/1.0; +https://www.biirbal.com)'
+      }
+    })
+
+    const dom = new JSDOM(response.data)
+    const document = dom.window.document
+    
+    // Look for the main article link - TechMeme has various patterns
+    const selectors = [
+      'a[href*="://"][class*="ourlink"]', // TechMeme's main story links
+      'a[href*="://"][target="_blank"]',   // External links
+      '.ourlink',                          // TechMeme specific class
+      'a[href*="://"]'                     // Fallback to any external link
+    ]
+    
+    for (const selector of selectors) {
+      const links = document.querySelectorAll(selector)
+      
+      for (const link of links) {
+        const href = link.getAttribute('href')
+        if (href && 
+            !href.includes('techmeme.com') && 
+            !href.includes('twitter.com') && 
+            !href.includes('linkedin.com') &&
+            (href.startsWith('http') || href.startsWith('https'))) {
+          logger.info(`Found original URL: ${href}`)
+          return href
+        }
+      }
+    }
+    
+    // Fallback: return the TechMeme URL if we can't find the original
+    logger.warn(`Could not extract original URL from ${techMemeUrl}, using TechMeme URL`)
+    return techMemeUrl
+    
+  } catch (error: any) {
+    logger.error(`Failed to extract original URL from ${techMemeUrl}:`, error.message)
+    return techMemeUrl
+  }
 }
 
 export async function fetchTechMemeFeed(): Promise<TechMemeArticle[]> {
@@ -92,14 +141,14 @@ export async function processTechMemeArticle(article: TechMemeArticle): Promise<
 
     logger.info(`Processing new article: ${article.title}`)
 
-    // Extract content
-    const content = await extractContentFromUrl(article.link)
+    // Extract the original article URL from TechMeme
+    const originalUrl = await extractOriginalUrl(article.link)
     
-    // Generate summary for audio
-    const summary = await summarizeForAudio(content.text, 150, article.link)
+    // Extract content from the original article URL
+    const content = await extractContentFromUrl(originalUrl)
     
-    // Generate audio
-    const audioBuffer = await generateAudioSummary(summary)
+    // Generate summary for audio using the original article URL
+    const summary = await summarizeForAudio(content.text, 150, originalUrl)
     
     // Create unique slug
     let baseSlug = createSlug(article.title)
@@ -111,20 +160,20 @@ export async function processTechMemeArticle(article: TechMemeArticle): Promise<
       counter++
     }
 
-    // Upload audio
-    const audioKey = `feed-audio/${slug}-${Date.now()}.mp3`
-    const audioUrl = await uploadAudioToStorage(audioBuffer, audioKey)
+    // Generate audio with proper function signature
+    const audioResult = await generateAudioSummary(summary, article.title)
+    const audioUrl = await uploadAudioToStorage(audioResult.audioBuffer, audioResult.fileName)
 
     // Save to database
     const feedArticle = await db.feedArticle.create({
       data: {
         title: content.title,
-        url: article.link,
+        url: originalUrl,
         slug,
         extractedText: content.text,
         summary,
         audioFileUrl: audioUrl,
-        audioFileKey: audioKey,
+        audioFileKey: audioResult.fileName,
         ogImage: content.ogImage,
         publishedAt: new Date(article.pubDate),
         wordCount: content.wordCount,
@@ -138,7 +187,7 @@ export async function processTechMemeArticle(article: TechMemeArticle): Promise<
     return {
       id: feedArticle.id,
       title: feedArticle.title,
-      url: feedArticle.url,
+      url: originalUrl,
       slug: feedArticle.slug,
       summary: feedArticle.summary!,
       audioFileUrl: feedArticle.audioFileUrl!,
