@@ -16,7 +16,6 @@ interface FeedPageProps {
 export default function FeedPage({ searchParams }: FeedPageProps) {
   const [articles, setArticles] = useState([])
   const [loading, setLoading] = useState(true)
-
   useEffect(() => {
     const fetchArticles = async () => {
       try {
@@ -113,6 +112,7 @@ export default function FeedPage({ searchParams }: FeedPageProps) {
             </Col>
           </Row>
         </Card>
+
 
         {/* Articles List - Row-based Cards */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
