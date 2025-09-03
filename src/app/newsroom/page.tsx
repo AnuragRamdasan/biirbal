@@ -1,22 +1,37 @@
-import { Metadata } from 'next'
+'use client'
+
 import Link from 'next/link'
 import { getLatestFeedArticles } from '@/lib/techmeme-processor'
-import { newsroomMetadata } from './metadata'
 import { Header } from '@/components/layout/Header'
-import { Row, Col, Card, Typography, Space, Empty } from 'antd'
+import { Row, Col, Card, Typography, Space, Empty, Spin } from 'antd'
 import { SoundOutlined, GlobalOutlined, CalendarOutlined } from '@ant-design/icons'
+import { useEffect, useState } from 'react'
 
 const { Title, Text } = Typography
-
-export const metadata: Metadata = newsroomMetadata
 
 interface FeedPageProps {
   searchParams: { page?: string }
 }
 
-export default async function FeedPage({ searchParams }: FeedPageProps) {
-  const page = parseInt(searchParams.page || '1')
-  const articles = await getLatestFeedArticles(20)
+export default function FeedPage({ searchParams }: FeedPageProps) {
+  const [articles, setArticles] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchArticles = async () => {
+      try {
+        const response = await fetch('/api/newsroom/articles?limit=20')
+        const data = await response.json()
+        setArticles(data.articles || [])
+      } catch (error) {
+        console.error('Failed to fetch articles:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchArticles()
+  }, [])
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -101,7 +116,13 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
 
         {/* Articles List - Row-based Cards */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {articles.length === 0 ? (
+          {loading ? (
+            <Card>
+              <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                <Spin size="large" />
+              </div>
+            </Card>
+          ) : articles.length === 0 ? (
             <Card>
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
