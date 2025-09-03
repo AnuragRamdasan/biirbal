@@ -3,11 +3,11 @@
 import Link from 'next/link'
 import { getLatestFeedArticles } from '@/lib/techmeme-processor'
 import { Header } from '@/components/layout/Header'
-import { Row, Col, Card, Typography, Space, Empty, Spin } from 'antd'
-import { SoundOutlined, GlobalOutlined, CalendarOutlined } from '@ant-design/icons'
+import { Typography, Empty, Spin, Button } from 'antd'
+import { PlayCircleOutlined, ClockCircleOutlined } from '@ant-design/icons'
 import { useEffect, useState } from 'react'
 
-const { Title, Text } = Typography
+const { Title, Text, Paragraph } = Typography
 
 interface FeedPageProps {
   searchParams: { page?: string }
@@ -83,112 +83,196 @@ export default function FeedPage({ searchParams }: FeedPageProps) {
       />
       
       <Header currentPage="newsroom" />
-      <div style={{ 
-        padding: '16px 24px', 
-        maxWidth: 1400, 
-        margin: '0 auto'
+      
+      {/* Modern Hero Section */}
+      <div style={{
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        padding: '80px 0 60px',
+        textAlign: 'center'
       }}>
-        {/* Compact Header */}
-        <Card size="small" style={{ marginBottom: 16 }}>
-          <Row justify="space-between" align="middle">
-            <Col>
-              <Title level={3} style={{ margin: 0, fontSize: 18 }}>
-                <Space size="small">
-                  <GlobalOutlined />
-                  Newsroom
-                </Space>
-              </Title>
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                Latest technology news with AI-generated 59-second audio summaries
-              </Text>
-            </Col>
-            <Col>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 16, fontWeight: 'bold', color: '#1890ff' }}>
-                  {articles.length}
-                </div>
-                <Text type="secondary" style={{ fontSize: 10 }}>Articles</Text>
-              </div>
-            </Col>
-          </Row>
-        </Card>
+        <div style={{ maxWidth: 800, margin: '0 auto', padding: '0 24px' }}>
+          <Title 
+            level={1} 
+            style={{ 
+              color: 'white', 
+              fontSize: '3.5rem', 
+              fontWeight: 700,
+              margin: 0,
+              lineHeight: 1.1
+            }}
+          >
+            Newsroom
+          </Title>
+          <Paragraph 
+            style={{ 
+              color: 'rgba(255,255,255,0.9)', 
+              fontSize: '1.25rem',
+              margin: '20px 0 0',
+              fontWeight: 300
+            }}
+          >
+            Latest technology news with AI-generated 59-second audio summaries
+          </Paragraph>
+          <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: '1rem' }}>
+            {articles.length} articles available
+          </Text>
+        </div>
+      </div>
 
-
-        {/* Articles List - Row-based Cards */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {loading ? (
-            <Card>
-              <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                <Spin size="large" />
-              </div>
-            </Card>
-          ) : articles.length === 0 ? (
-            <Card>
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="No articles available yet. Check back soon!"
-                style={{ padding: '20px 0' }}
-              />
-            </Card>
-          ) : (
-            articles.map((article) => (
-              <Card key={article.id} size="small" hoverable>
-                <Row gutter={16} align="middle">
-                  {article.ogImage && (
-                    <Col xs={24} sm={6} md={4}>
-                      <div style={{ aspectRatio: '16/9', overflow: 'hidden', borderRadius: 6 }}>
-                        <img
-                          src={article.ogImage}
-                          alt={article.title}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          loading="lazy"
-                        />
-                      </div>
-                    </Col>
-                  )}
+      {/* Content Container */}
+      <div style={{
+        maxWidth: 800,
+        margin: '0 auto',
+        padding: '60px 24px',
+        background: '#fafafa'
+      }}>
+        {/* Articles List */}
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '80px 0' }}>
+            <Spin size="large" />
+            <div style={{ marginTop: 16, color: '#666' }}>Loading articles...</div>
+          </div>
+        ) : articles.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '80px 0' }}>
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description="No articles available yet. Check back soon!"
+            />
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 48 }}>
+            {articles.map((article, index) => (
+              <article 
+                key={article.id} 
+                style={{
+                  background: 'white',
+                  borderRadius: 12,
+                  padding: 0,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                  border: '1px solid #f0f0f0',
+                  overflow: 'hidden',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)'
+                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.08)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)'
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)'
+                }}
+              >
+                {/* Image Header */}
+                {article.ogImage && (
+                  <div style={{ height: 240, overflow: 'hidden' }}>
+                    <img
+                      src={article.ogImage}
+                      alt={article.title}
+                      style={{ 
+                        width: '100%', 
+                        height: '100%', 
+                        objectFit: 'cover',
+                        transition: 'transform 0.3s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'scale(1.02)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'scale(1)'
+                      }}
+                    />
+                  </div>
+                )}
+                
+                {/* Content */}
+                <div style={{ padding: '32px' }}>
+                  <Link 
+                    href={`/newsroom/${article.slug}`}
+                    style={{ textDecoration: 'none' }}
+                  >
+                    <Title 
+                      level={2} 
+                      style={{ 
+                        margin: 0,
+                        fontSize: '1.75rem',
+                        lineHeight: 1.3,
+                        color: '#1a1a1a',
+                        fontWeight: 600,
+                        marginBottom: 16
+                      }}
+                    >
+                      {article.title}
+                    </Title>
+                  </Link>
                   
-                  <Col xs={24} sm={article.ogImage ? 18 : 24} md={article.ogImage ? 20 : 24}>
-                    <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                      <Link href={`/newsroom/${article.slug}`}>
-                        <Title level={5} style={{ margin: 0, fontSize: 14, lineHeight: '1.4' }}>
-                          {article.title}
-                        </Title>
-                      </Link>
-                      
-                      <Text type="secondary" style={{ fontSize: 12, display: 'block' }} ellipsis={{ rows: 2 }}>
-                        {article.summary}
-                      </Text>
-                      
-                      <Row justify="space-between" align="middle">
-                        <Col>
-                          <Space size={8}>
-                            <Text type="secondary" style={{ fontSize: 11 }}>
-                              <CalendarOutlined style={{ marginRight: 4 }} />
-                              {new Date(article.publishedAt).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric'
-                              })}
-                            </Text>
-                            <Text type="secondary" style={{ fontSize: 11 }}>
-                              {article.wordCount} words
-                            </Text>
-                          </Space>
-                        </Col>
-                        <Col>
-                          <Link href={`/newsroom/${article.slug}`}>
-                            <Space size={4}>
-                              <SoundOutlined style={{ color: '#1890ff' }} />
-                              <Text style={{ fontSize: 12, color: '#1890ff' }}>Listen</Text>
-                            </Space>
-                          </Link>
-                        </Col>
-                      </Row>
-                    </Space>
-                  </Col>
-                </Row>
-              </Card>
+                  <Paragraph 
+                    style={{ 
+                      fontSize: '1.1rem',
+                      lineHeight: 1.6,
+                      color: '#4a5568',
+                      margin: '16px 0 24px',
+                      fontWeight: 300
+                    }}
+                  >
+                    {article.summary}
+                  </Paragraph>
+                  
+                  {/* Meta Info */}
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    marginBottom: 24,
+                    padding: '16px 0',
+                    borderTop: '1px solid #f0f0f0'
+                  }}>
+                    <div style={{ display: 'flex', gap: 24 }}>
+                      <span style={{ 
+                        color: '#718096', 
+                        fontSize: '0.9rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6
+                      }}>
+                        <ClockCircleOutlined />
+                        59 sec listen
+                      </span>
+                      <span style={{ color: '#718096', fontSize: '0.9rem' }}>
+                        {new Date(article.publishedAt).toLocaleDateString('en-US', {
+                          month: 'long',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                      </span>
+                      <span style={{ color: '#718096', fontSize: '0.9rem' }}>
+                        {article.wordCount} words
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* CTA Button */}
+                  <Link href={`/newsroom/${article.slug}`}>
+                    <Button 
+                      type="primary" 
+                      size="large"
+                      icon={<PlayCircleOutlined />}
+                      style={{
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        border: 'none',
+                        borderRadius: 8,
+                        height: 48,
+                        fontSize: '1rem',
+                        fontWeight: 500,
+                        boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+                      }}
+                      block
+                    >
+                      Listen to Summary
+                    </Button>
+                  </Link>
+                </div>
+              </article>
             ))
-          )}
         </div>
       </div>
     </>
