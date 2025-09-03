@@ -141,18 +141,19 @@ export default function FeedPage({ searchParams }: FeedPageProps) {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {articles.map((article) => (
-              <Card 
-                key={article.id} 
-                hoverable
-                style={{
-                  borderRadius: 12,
-                  border: '1px solid #f0f0f0',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                  transition: 'all 0.3s ease'
-                }}
-                bodyStyle={{ padding: '20px' }}
-              >
-                <Row gutter={[20, 16]} align="middle">
+              <Link key={article.id} href={`/newsroom/${article.slug}`} style={{ textDecoration: 'none' }}>
+                <Card 
+                  hoverable
+                  style={{
+                    borderRadius: 12,
+                    border: '1px solid #f0f0f0',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                    transition: 'all 0.3s ease',
+                    cursor: 'pointer'
+                  }}
+                  bodyStyle={{ padding: '20px' }}
+                >
+                  <Row gutter={[20, 16]} align="middle">
                   {/* Image */}
                   {article.ogImage && (
                     <Col xs={24} sm={8} md={6}>
@@ -179,24 +180,19 @@ export default function FeedPage({ searchParams }: FeedPageProps) {
                   {/* Content */}
                   <Col xs={24} sm={article.ogImage ? 16 : 24} md={article.ogImage ? 18 : 24}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
-                      <Link 
-                        href={`/newsroom/${article.slug}`}
-                        style={{ textDecoration: 'none' }}
+                      <Title 
+                        level={4} 
+                        style={{ 
+                          margin: 0,
+                          fontSize: '1.25rem',
+                          lineHeight: 1.3,
+                          color: '#1a1a1a',
+                          fontWeight: 600,
+                          marginBottom: 8
+                        }}
                       >
-                        <Title 
-                          level={4} 
-                          style={{ 
-                            margin: 0,
-                            fontSize: '1.25rem',
-                            lineHeight: 1.3,
-                            color: '#1a1a1a',
-                            fontWeight: 600,
-                            marginBottom: 8
-                          }}
-                        >
-                          {article.title}
-                        </Title>
-                      </Link>
+                        {article.title}
+                      </Title>
                       
                       <Text 
                         style={{ 
@@ -236,28 +232,28 @@ export default function FeedPage({ searchParams }: FeedPageProps) {
                           </div>
                         </Col>
                         <Col>
-                          <Link href={`/newsroom/${article.slug}`}>
-                            <Button 
-                              type="primary" 
-                              icon={<SoundOutlined />}
-                              style={{
-                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                border: 'none',
-                                borderRadius: 6,
-                                height: 36,
-                                fontSize: '0.9rem',
-                                fontWeight: 500
-                              }}
-                            >
-                              Listen
-                            </Button>
-                          </Link>
+                          <Button 
+                            type="primary" 
+                            icon={<SoundOutlined />}
+                            style={{
+                              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                              border: 'none',
+                              borderRadius: 6,
+                              height: 36,
+                              fontSize: '0.9rem',
+                              fontWeight: 500,
+                              pointerEvents: 'none'
+                            }}
+                          >
+                            Listen
+                          </Button>
                         </Col>
                       </Row>
                     </div>
                   </Col>
-                </Row>
-              </Card>
+                  </Row>
+                </Card>
+              </Link>
             ))}
           </div>
         )}
