@@ -3,6 +3,10 @@ import Link from 'next/link'
 import { getLatestFeedArticles } from '@/lib/techmeme-processor'
 import { newsroomMetadata } from './metadata'
 import { Header } from '@/components/layout/Header'
+import { Row, Col, Card, Typography, Space, Empty } from 'antd'
+import { SoundOutlined, GlobalOutlined, CalendarOutlined } from '@ant-design/icons'
+
+const { Title, Text } = Typography
 
 export const metadata: Metadata = newsroomMetadata
 
@@ -65,99 +69,105 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
       />
       
       <Header currentPage="newsroom" />
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          {/* Breadcrumbs */}
-          <nav className="mb-6" aria-label="Breadcrumb">
-            <ol className="flex items-center space-x-2 text-sm text-gray-600">
-              <li>
-                <Link href="/" className="hover:text-blue-600">
-                  Home
-                </Link>
-              </li>
-              <li>
-                <span className="mx-2">/</span>
-              </li>
-              <li className="text-gray-900 font-medium">
-                Newsroom
-              </li>
-            </ol>
-          </nav>
-
-          {/* Header */}
-          <header className="mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              Newsroom
-            </h1>
-            <p className="text-xl text-gray-600 max-w-2xl">
-              Latest technology news from TechMeme with AI-generated 59-second audio summaries. 
-              Stay updated with trending tech stories.
-            </p>
-          </header>
-
-          {/* Articles Grid */}
-          <main>
-            {articles.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-600">No articles available yet. Check back soon!</p>
+      <div style={{ 
+        padding: '16px 24px', 
+        maxWidth: 1400, 
+        margin: '0 auto'
+      }}>
+        {/* Compact Header */}
+        <Card size="small" style={{ marginBottom: 16 }}>
+          <Row justify="space-between" align="middle">
+            <Col>
+              <Title level={3} style={{ margin: 0, fontSize: 18 }}>
+                <Space size="small">
+                  <GlobalOutlined />
+                  Newsroom
+                </Space>
+              </Title>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Latest technology news with AI-generated 59-second audio summaries
+              </Text>
+            </Col>
+            <Col>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 16, fontWeight: 'bold', color: '#1890ff' }}>
+                  {articles.length}
+                </div>
+                <Text type="secondary" style={{ fontSize: 10 }}>Articles</Text>
               </div>
-            ) : (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {articles.map((article) => (
-                  <article key={article.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                    {article.ogImage && (
-                      <div className="aspect-video overflow-hidden">
+            </Col>
+          </Row>
+        </Card>
+
+        {/* Articles List - Row-based Cards */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {articles.length === 0 ? (
+            <Card>
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="No articles available yet. Check back soon!"
+                style={{ padding: '20px 0' }}
+              />
+            </Card>
+          ) : (
+            articles.map((article) => (
+              <Card key={article.id} size="small" hoverable>
+                <Row gutter={16} align="middle">
+                  {article.ogImage && (
+                    <Col xs={24} sm={6} md={4}>
+                      <div style={{ aspectRatio: '16/9', overflow: 'hidden', borderRadius: 6 }}>
                         <img
                           src={article.ogImage}
                           alt={article.title}
-                          className="w-full h-full object-cover"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                           loading="lazy"
                         />
                       </div>
-                    )}
-                    
-                    <div className="p-6">
-                      <h2 className="text-xl font-semibold text-gray-900 mb-3 line-clamp-2">
-                        <Link 
-                          href={`/newsroom/${article.slug}`}
-                          className="hover:text-blue-600 transition-colors"
-                        >
+                    </Col>
+                  )}
+                  
+                  <Col xs={24} sm={article.ogImage ? 18 : 24} md={article.ogImage ? 20 : 24}>
+                    <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                      <Link href={`/newsroom/${article.slug}`}>
+                        <Title level={5} style={{ margin: 0, fontSize: 14, lineHeight: '1.4' }}>
                           {article.title}
-                        </Link>
-                      </h2>
+                        </Title>
+                      </Link>
                       
-                      <p className="text-gray-600 mb-4 line-clamp-3">
+                      <Text type="secondary" style={{ fontSize: 12, display: 'block' }} ellipsis={{ rows: 2 }}>
                         {article.summary}
-                      </p>
+                      </Text>
                       
-                      <div className="flex items-center justify-between text-sm text-gray-500">
-                        <time dateTime={article.publishedAt.toISOString()}>
-                          {new Date(article.publishedAt).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
-                        </time>
-                        
-                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-                          {article.wordCount} words
-                        </span>
-                      </div>
-                      
-                      <div className="mt-4">
-                        <Link
-                          href={`/newsroom/${article.slug}`}
-                          className="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium"
-                        >
-                          Listen to Summary →
-                        </Link>
-                      </div>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </main>
+                      <Row justify="space-between" align="middle">
+                        <Col>
+                          <Space size={8}>
+                            <Text type="secondary" style={{ fontSize: 11 }}>
+                              <CalendarOutlined style={{ marginRight: 4 }} />
+                              {new Date(article.publishedAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric'
+                              })}
+                            </Text>
+                            <Text type="secondary" style={{ fontSize: 11 }}>
+                              {article.wordCount} words
+                            </Text>
+                          </Space>
+                        </Col>
+                        <Col>
+                          <Link href={`/newsroom/${article.slug}`}>
+                            <Space size={4}>
+                              <SoundOutlined style={{ color: '#1890ff' }} />
+                              <Text style={{ fontSize: 12, color: '#1890ff' }}>Listen</Text>
+                            </Space>
+                          </Link>
+                        </Col>
+                      </Row>
+                    </Space>
+                  </Col>
+                </Row>
+              </Card>
+            ))
+          )}
         </div>
       </div>
     </>

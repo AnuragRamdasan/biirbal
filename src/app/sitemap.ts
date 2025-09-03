@@ -48,13 +48,16 @@ async function getFeedArticles(): Promise<MetadataRoute.Sitemap> {
   try {
     const db = await getDbClient()
     const articles = await db.feedArticle.findMany({
-      where: { isPublished: true },
+      where: { 
+        isPublished: true,
+        audioFileUrl: { not: null }
+      },
       select: {
         slug: true,
         updatedAt: true
       },
       orderBy: { publishedAt: 'desc' },
-      take: 100 // Limit for sitemap performance
+      take: 1000 // Include all published articles with audio
     })
 
     for (const article of articles) {

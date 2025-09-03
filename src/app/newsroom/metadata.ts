@@ -2,13 +2,12 @@ import { Metadata } from 'next'
 
 export const newsroomMetadata: Metadata = {
   title: 'Newsroom - AI-Generated Audio Summaries | Biirbal',
-  description: 'Listen to the latest tech news with AI-generated 59-second audio summaries from TechMeme. Stay updated with trending technology stories.',
+  description: 'Listen to the latest tech news with AI-generated 59-second audio summaries. Stay updated with trending technology stories.',
   keywords: [
     'tech news',
     'audio summaries', 
     'ai generated',
     'technology newsroom',
-    'techmeme',
     'startup news',
     'tech updates',
     'audio news',
