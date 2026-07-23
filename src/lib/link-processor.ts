@@ -362,6 +362,30 @@ export async function processLink(params: ProcessLinkParams, updateProgress?: (p
 
   } catch (error) {
     console.error('Link processing failed:', error)
+
+    // FIX Bug 3: Mark the processedLink record as FAILED so it does not stay
+    // stuck permanently as PROCESSING. Previously the catch block only logged
+    // and re-threw, leaving the record in PROCESSING forever. This caused:
+    // - Jobs to appear as eternally in-progress in dashboards
+    // - Deduplication (filtered on COMPLETED) to miss stuck records
+    // We wrap the DB update in its own try/catch so a secondary DB failure
+    // does not mask the original processing error.
+    if (context.processedLink?.id) {
+      try {
+        const db = await getDbClient()
+        await db.processedLink.update({
+          where: { id: context.processedLink.id },
+          data: {
+            processingStatus: 'FAILED',
+            errorMessage: error instanceof Error ? error.message : String(error),
+            updatedAt: new Date()
+          }
+        })
+        console.log(`📛 Marked link ${context.processedLink.id} as FAILED`)
+      } catch (dbError) {
+        console.error('Failed to mark processedLink as FAILED — original error preserved:', dbError)
+      }
+    }
     
     if (context.subscriptionTeamId) {
       trackProcessingMetrics(context as ProcessingContext, false)
@@ -370,4 +394,3 @@ export async function processLink(params: ProcessLinkParams, updateProgress?: (p
     throw error
   }
 }
-
