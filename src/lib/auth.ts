@@ -15,15 +15,25 @@ console.log('🔧 Setting up NextAuth with unified database client...')
 // Create custom adapter that truly allows email linking
 const customAdapter = PrismaAdapter(prisma)
 
-// Override getUserByEmail to never throw on existing users
+// FIX Bug 1: Removed the blanket getUserByEmail catch that swallowed ALL errors.
+// Prisma's findUnique returns null on not-found — it does NOT throw.
+// The original catch only ever triggered on real infrastructure errors (DB
+// connection failure, network timeout, Prisma schema error), which it then
+// masked by returning null. NextAuth interprets null as "user does not exist"
+// and creates a duplicate user record, causing silent data corruption.
+// We now re-throw all errors except Prisma P2002 unique-constraint conflicts.
 const originalGetUserByEmail = customAdapter.getUserByEmail!
 customAdapter.getUserByEmail = async (email: string) => {
   try {
     return await originalGetUserByEmail(email)
-  } catch (error) {
-    // If user exists but with different provider, return null to allow linking
-    console.log(`🔗 Allowing account linking for email: ${email}`)
-    return null
+  } catch (error: any) {
+    // Only suppress genuine uniqueness / account-linking conflicts
+    if (error?.code === 'P2002') {
+      console.log(`🔗 Allowing account linking for email: ${email}`)
+      return null
+    }
+    // Re-throw all other errors (DB failures, network, schema) so they surface
+    throw error
   }
 }
 
@@ -378,12 +388,16 @@ export const authOptions: NextAuthOptions = {
               }
             })
 
-            let userSeatAllowed = true
+            // FIX Bug 2: Block sign-in for new users when seat limit is exceeded.
+            // Previously the code set isActive:false on the membership but still
+            // returned true, giving the user a valid session with no team context.
+            // Downstream code accessing session.user.currentTeam.id then crashed
+            // with a runtime null dereference.
             if (!existingMembership) {
               const canAdd = await canAddNewUser(teamId)
               if (!canAdd.allowed) {
-                console.log('Cannot add new user due to seat limit:', canAdd.reason)
-                userSeatAllowed = false
+                console.log('Blocking sign-in: seat limit exceeded for new user:', canAdd.reason)
+                return '/auth/error?error=SeatLimitExceeded'
               }
             }
 
@@ -404,7 +418,7 @@ export const authOptions: NextAuthOptions = {
                 profileImage48: slackProfile.profileImage48,
                 title: slackProfile.title,
                 userAccessToken,
-                isActive: userSeatAllowed,
+                isActive: true,
                 updatedAt: new Date()
               },
               create: {
@@ -419,7 +433,7 @@ export const authOptions: NextAuthOptions = {
                 title: slackProfile.title,
                 userAccessToken,
                 role: 'member',
-                isActive: userSeatAllowed
+                isActive: true
               }
             })
 
@@ -503,6 +517,9 @@ export const authOptions: NextAuthOptions = {
           )
           const defaultTeam = personalTeam || dbUser.memberships[0]
           
+          // FIX Bug 2 (session guard): If the user has no active memberships
+          // (e.g. over seat limit), surface a clear noTeamAccess flag instead
+          // of leaving currentTeam undefined and crashing downstream code.
           if (defaultTeam) {
             session.user.currentTeam = {
               id: defaultTeam.team.id,
@@ -525,6 +542,10 @@ export const authOptions: NextAuthOptions = {
             if (defaultTeam.slackUserId) {
               session.user.slackUserId = defaultTeam.slackUserId
             }
+          } else {
+            // User authenticated but has no active team — prevents downstream null dereferences
+            console.warn(`⚠️ User ${user.id} has no active team memberships`)
+            session.user.noTeamAccess = true
           }
         }
       }
