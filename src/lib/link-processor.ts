@@ -366,8 +366,20 @@ export async function processLink(params: ProcessLinkParams, updateProgress?: (p
     if (context.subscriptionTeamId) {
       trackProcessingMetrics(context as ProcessingContext, false)
     }
+
+    // Mark the processedLink as FAILED so it doesn't stay as PROCESSING forever (zombie records)
+    if (context.processedLink?.id) {
+      try {
+        const db = await getDbClient()
+        await db.processedLink.update({
+          where: { id: context.processedLink.id },
+          data: { processingStatus: 'FAILED', errorMessage: String(error) }
+        })
+      } catch (updateError) {
+        console.error('Failed to update processedLink status to FAILED:', updateError)
+      }
+    }
     
     throw error
   }
 }
-
