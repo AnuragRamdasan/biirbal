@@ -265,11 +265,23 @@ export async function canUserListen(teamId: string, userId?: string): Promise<{ 
   }
 }
 
+// FIX Bug 5: Accept an optional currentPeriodEnd from the Stripe subscription
+// object so callers can pass the real billing period end rather than the
+// hardcoded 30-day fallback that was previously unconditional.
+//
+// Root cause: The original function always set currentPeriodEnd to
+// Date.now() + 30 days. Annual subscribers would show as expired 30 days into
+// their 365-day billing period because 30 days << actual billing period.
+//
+// Migration: Pass `new Date(stripeSubscription.current_period_end * 1000)` as
+// the fifth argument from any Stripe webhook / checkout handler. Callers that
+// omit the argument retain the 30-day fallback for backward compatibility.
 export async function updateSubscriptionFromStripe(
   teamId: string,
   stripeSubscriptionId: string,
   planId: string,
-  status: string
+  status: string,
+  currentPeriodEnd?: Date   // NEW: real billing period end from Stripe
 ) {
   const db = await getDbClient()
   const plan = getPlanById(planId)
@@ -283,6 +295,10 @@ export async function updateSubscriptionFromStripe(
     where: { teamId }
   })
 
+  // Use the caller-supplied period end when available; fall back to 30 days
+  // only when the real value cannot be determined (e.g. test environments).
+  const resolvedPeriodEnd = currentPeriodEnd ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+
   await db.subscription.upsert({
     where: { teamId },
     update: {
@@ -291,7 +307,7 @@ export async function updateSubscriptionFromStripe(
       status: mapStripeStatusToSubscriptionStatus(status),
       monthlyLinkLimit: plan.monthlyLinkLimit,
       userLimit: plan.userLimit,
-      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+      currentPeriodEnd: resolvedPeriodEnd
     },
     create: {
       teamId,
@@ -300,7 +316,7 @@ export async function updateSubscriptionFromStripe(
       status: mapStripeStatusToSubscriptionStatus(status),
       monthlyLinkLimit: plan.monthlyLinkLimit,
       userLimit: plan.userLimit,
-      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      currentPeriodEnd: resolvedPeriodEnd
     }
   })
 
