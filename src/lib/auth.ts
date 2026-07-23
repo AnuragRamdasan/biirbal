@@ -20,10 +20,14 @@ const originalGetUserByEmail = customAdapter.getUserByEmail!
 customAdapter.getUserByEmail = async (email: string) => {
   try {
     return await originalGetUserByEmail(email)
-  } catch (error) {
-    // If user exists but with different provider, return null to allow linking
-    console.log(`🔗 Allowing account linking for email: ${email}`)
-    return null
+  } catch (error: any) {
+    // Only return null for Prisma unique constraint errors (P2002) to allow account linking.
+    // Re-throw all other errors (DB connection issues, etc.) so they surface properly.
+    if (error?.code === 'P2002') {
+      console.log(`🔗 Allowing account linking for email: ${email}`)
+      return null
+    }
+    throw error
   }
 }
 
@@ -383,7 +387,7 @@ export const authOptions: NextAuthOptions = {
               const canAdd = await canAddNewUser(teamId)
               if (!canAdd.allowed) {
                 console.log('Cannot add new user due to seat limit:', canAdd.reason)
-                userSeatAllowed = false
+                return '/auth/error?error=SeatLimitExceeded'
               }
             }
 
@@ -503,6 +507,10 @@ export const authOptions: NextAuthOptions = {
           )
           const defaultTeam = personalTeam || dbUser.memberships[0]
           
+          if (!defaultTeam) {
+            session.user.noTeamAccess = true
+          }
+
           if (defaultTeam) {
             session.user.currentTeam = {
               id: defaultTeam.team.id,
