@@ -269,7 +269,12 @@ export async function updateSubscriptionFromStripe(
   teamId: string,
   stripeSubscriptionId: string,
   planId: string,
-  status: string
+  status: string,
+  // FIX (Bug 5): Accept the actual period end from Stripe instead of
+  // hardcoding 30 days from now. The old code always used Date.now()+30d,
+  // so annual plans showed a 30-day expiry and period changes after
+  // renewals were silently wrong.
+  currentPeriodEnd?: Date
 ) {
   const db = await getDbClient()
   const plan = getPlanById(planId)
@@ -291,7 +296,7 @@ export async function updateSubscriptionFromStripe(
       status: mapStripeStatusToSubscriptionStatus(status),
       monthlyLinkLimit: plan.monthlyLinkLimit,
       userLimit: plan.userLimit,
-      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+      currentPeriodEnd: currentPeriodEnd ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
     },
     create: {
       teamId,
@@ -300,7 +305,7 @@ export async function updateSubscriptionFromStripe(
       status: mapStripeStatusToSubscriptionStatus(status),
       monthlyLinkLimit: plan.monthlyLinkLimit,
       userLimit: plan.userLimit,
-      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      currentPeriodEnd: currentPeriodEnd ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
     }
   })
 
