@@ -20,10 +20,16 @@ const originalGetUserByEmail = customAdapter.getUserByEmail!
 customAdapter.getUserByEmail = async (email: string) => {
   try {
     return await originalGetUserByEmail(email)
-  } catch (error) {
-    // If user exists but with different provider, return null to allow linking
-    console.log(`🔗 Allowing account linking for email: ${email}`)
-    return null
+  } catch (error: any) {
+    // Only suppress P2002 (unique constraint) — that is the legitimate
+    // cross-provider account-linking case. All other errors (DB timeouts,
+    // connection failures, etc.) must be rethrown so NextAuth fails safely
+    // instead of silently creating a duplicate user record.
+    if (error?.code === 'P2002') {
+      console.log(`🔗 Allowing account linking for email: ${email}`)
+      return null
+    }
+    throw error
   }
 }
 
@@ -36,7 +42,7 @@ customAdapter.createUser = async (user) => {
   const newUser = await originalCreateUser(user)
   
   // For Google/Email sign-ins, create a personal team and membership
-  console.log(`🏢 Creating personal team for new user: ${user.email}`)
+  console.log(`🏃 Creating personal team for new user: ${user.email}`)
   const webTeamId = `web_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
   
   try {
@@ -274,7 +280,7 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user, account, profile }) {
-      console.log(`🔐 Sign in attempt: ${user.email} via ${account?.provider}`)
+      console.log(`📧 Sign in attempt: ${user.email} via ${account?.provider}`)
       
       // Handle Slack OAuth team and user creation
       if (account?.provider === 'slack' && profile) {
@@ -383,7 +389,8 @@ export const authOptions: NextAuthOptions = {
               const canAdd = await canAddNewUser(teamId)
               if (!canAdd.allowed) {
                 console.log('Cannot add new user due to seat limit:', canAdd.reason)
-                userSeatAllowed = false
+                // Return a redirect URL to deny sign-in with a clear error
+                return '/auth/error?error=SeatLimitExceeded'
               }
             }
 
@@ -525,6 +532,10 @@ export const authOptions: NextAuthOptions = {
             if (defaultTeam.slackUserId) {
               session.user.slackUserId = defaultTeam.slackUserId
             }
+          } else {
+            // No active team memberships — signal this to the client so it can
+            // redirect to onboarding rather than crashing on undefined teamId.
+            session.user.noTeamAccess = true
           }
         }
       }
