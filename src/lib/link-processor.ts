@@ -12,7 +12,7 @@ interface ProcessLinkParams {
   url: string
   messageTs: string
   channelId: string
-  teamId: string        // Internal database ID
+  teamId: string       // Internal database ID
   slackTeamId?: string  // Slack team ID - used for subscription checks
   linkId?: string       // Optional - for restarting existing stuck jobs
 }
@@ -114,7 +114,7 @@ async function setupChannelAndRecord({
     })
     
     if (existingLink) {
-      console.log(`🔁 Found existing processed link for URL: ${existingLink.id}`)
+      console.log(`💡 Found existing processed link for URL: ${existingLink.id}`)
     }
   }
 
@@ -215,7 +215,7 @@ async function notifySlack(
   
   // Skip Slack notifications for web-only teams (no Slack integration)
   if (!team.accessToken || !team.slackTeamId || team.slackTeamId.startsWith('web_')) {
-    console.log(`📧 Skipping Slack notification for web-only team: ${team.slackTeamId || team.id}`)
+    console.log(`📣 Skipping Slack notification for web-only team: ${team.slackTeamId || team.id}`)
     if (updateProgress) await updateProgress(100)
     return
   }
@@ -367,7 +367,27 @@ export async function processLink(params: ProcessLinkParams, updateProgress?: (p
       trackProcessingMetrics(context as ProcessingContext, false)
     }
     
+    // FIX (Bug 3): Update processedLink to FAILED so records don't remain stuck
+    // as PROCESSING indefinitely. Previously the catch block tracked metrics and
+    // rethrew without ever persisting the failure state to the database.
+    // Wrapped in its own try/catch so a DB write failure doesn't mask the
+    // original processing error when it propagates to the caller.
+    if (context.processedLink?.id) {
+      try {
+        const db = await getDbClient()
+        await db.processedLink.update({
+          where: { id: context.processedLink.id },
+          data: {
+            processingStatus: 'FAILED',
+            errorMessage: error instanceof Error ? error.message : String(error),
+            updatedAt: new Date()
+          }
+        })
+      } catch (updateError) {
+        console.error('Failed to update processedLink status to FAILED:', updateError)
+      }
+    }
+    
     throw error
   }
 }
-

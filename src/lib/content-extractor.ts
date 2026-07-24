@@ -18,7 +18,7 @@ export async function extractContentFromUrl(url: string): Promise<ExtractedConte
   }
 
   try {
-    console.log(`🕷️ Extracting content from: ${url}`)
+    console.log(`🗷️ Extracting content from: ${url}`)
     
     const response = await axios.get('https://app.scrapingbee.com/api/v1/', {
       params: {
@@ -88,7 +88,7 @@ async function handleExtractionError(error: any, url: string): Promise<Extracted
     
     throw new Error(createErrorMessage(status, statusText))
   }
-  
+ 
   if (isTimeoutError(error)) {
     console.error('🚨 ScrapingBee timeout - trying fallback')
     return await extractContentWithFallback(url)
@@ -229,9 +229,14 @@ export async function summarizeForAudio(text: string, maxWords: number = 150, so
 
     const summary = response.choices[0]?.message?.content?.trim()
     if (summary) return summary
+    // FIX (Bug 4): When OpenAI returns an empty string the `if (summary)` guard
+    // is falsy, so without this throw execution silently falls through to the
+    // long-text path below — making a second paid API call for no reason.
+    // Throw explicitly so the caller gets a clear error rather than a duplicate charge.
+    throw new Error('OpenAI returned empty summary for short text content')
   }
 
-  console.log(`🤖 Summarizing ${words.length} words to ${maxWords} words with storytelling format`)
+  console.log(`🦜 Summarizing ${words.length} words to ${maxWords} words with storytelling format`)
 
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
@@ -356,4 +361,3 @@ export async function extractContentDirect(url: string): Promise<ExtractedConten
     throw new Error(`Direct content extraction failed: ${error.message}`)
   }
 }
-

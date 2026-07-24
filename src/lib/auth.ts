@@ -20,10 +20,17 @@ const originalGetUserByEmail = customAdapter.getUserByEmail!
 customAdapter.getUserByEmail = async (email: string) => {
   try {
     return await originalGetUserByEmail(email)
-  } catch (error) {
-    // If user exists but with different provider, return null to allow linking
-    console.log(`🔗 Allowing account linking for email: ${email}`)
-    return null
+  } catch (error: any) {
+    // FIX (Bug 1): Only swallow Prisma unique constraint violations (P2002).
+    // Prisma findUnique never throws on not-found — it returns null natively.
+    // The catch block only fires on real infrastructure errors (timeouts,
+    // connection failures). Previously ALL errors were swallowed, causing
+    // NextAuth to treat DB outages as "user not found" and create duplicates.
+    if (error?.code === 'P2002') {
+      console.log(`🔗 Allowing account linking for email: ${email}`)
+      return null
+    }
+    throw error
   }
 }
 
@@ -36,7 +43,7 @@ customAdapter.createUser = async (user) => {
   const newUser = await originalCreateUser(user)
   
   // For Google/Email sign-ins, create a personal team and membership
-  console.log(`🏢 Creating personal team for new user: ${user.email}`)
+  console.log(`🏠 Creating personal team for new user: ${user.email}`)
   const webTeamId = `web_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
   
   try {
@@ -258,7 +265,7 @@ export const authOptions: NextAuthOptions = {
           <div class="footer">
             <p class="footer-text">
               This sign-in link was sent to ${email}. If you didn't request this, you can safely ignore this email.<br><br>
-              © 2025 Biirbal. All rights reserved.
+              &copy; 2025 Biirbal. All rights reserved.
             </p>
           </div>
         </div>
@@ -274,7 +281,7 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user, account, profile }) {
-      console.log(`🔐 Sign in attempt: ${user.email} via ${account?.provider}`)
+      console.log(`📧 Sign in attempt: ${user.email} via ${account?.provider}`)
       
       // Handle Slack OAuth team and user creation
       if (account?.provider === 'slack' && profile) {
@@ -378,12 +385,15 @@ export const authOptions: NextAuthOptions = {
               }
             })
 
-            let userSeatAllowed = true
+            // FIX (Bug 2a): Return early with an error redirect when the seat limit is
+            // exceeded for new members. Previously userSeatAllowed was set to false but
+            // execution always fell through to `return true` at the end of the callback,
+            // granting a valid session to users who should have been blocked.
             if (!existingMembership) {
               const canAdd = await canAddNewUser(teamId)
               if (!canAdd.allowed) {
                 console.log('Cannot add new user due to seat limit:', canAdd.reason)
-                userSeatAllowed = false
+                return '/auth/error?error=SeatLimitExceeded'
               }
             }
 
@@ -404,7 +414,7 @@ export const authOptions: NextAuthOptions = {
                 profileImage48: slackProfile.profileImage48,
                 title: slackProfile.title,
                 userAccessToken,
-                isActive: userSeatAllowed,
+                isActive: true,
                 updatedAt: new Date()
               },
               create: {
@@ -419,7 +429,7 @@ export const authOptions: NextAuthOptions = {
                 title: slackProfile.title,
                 userAccessToken,
                 role: 'member',
-                isActive: userSeatAllowed
+                isActive: true
               }
             })
 
@@ -525,6 +535,12 @@ export const authOptions: NextAuthOptions = {
             if (defaultTeam.slackUserId) {
               session.user.slackUserId = defaultTeam.slackUserId
             }
+          } else {
+            // FIX (Bug 2b): Users with zero active team memberships must have
+            // noTeamAccess = true so the UI can redirect them to onboarding.
+            // Previously this else branch was absent, leaving sessions in a
+            // broken/undefined state with no currentTeam and no error signal.
+            session.user.noTeamAccess = true
           }
         }
       }
