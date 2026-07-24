@@ -114,7 +114,7 @@ async function setupChannelAndRecord({
     })
     
     if (existingLink) {
-      console.log(`🔁 Found existing processed link for URL: ${existingLink.id}`)
+      console.log(`💡 Found existing processed link for URL: ${existingLink.id}`)
     }
   }
 
@@ -215,7 +215,7 @@ async function notifySlack(
   
   // Skip Slack notifications for web-only teams (no Slack integration)
   if (!team.accessToken || !team.slackTeamId || team.slackTeamId.startsWith('web_')) {
-    console.log(`📧 Skipping Slack notification for web-only team: ${team.slackTeamId || team.id}`)
+    console.log(`📣 Skipping Slack notification for web-only team: ${team.slackTeamId || team.id}`)
     if (updateProgress) await updateProgress(100)
     return
   }
@@ -363,6 +363,28 @@ export async function processLink(params: ProcessLinkParams, updateProgress?: (p
   } catch (error) {
     console.error('Link processing failed:', error)
     
+    // FIX Bug 3: Failed links were stuck as PROCESSING forever.
+    // The catch block previously only tracked metrics and rethrew — it never
+    // updated processingStatus to FAILED. Records accumulated indefinitely in
+    // PROCESSING with no way to diagnose or retry them.
+    // Fixed: write FAILED + errorMessage to the DB before rethrowing.
+    if (context.processedLink?.id) {
+      try {
+        const db = await getDbClient()
+        await db.processedLink.update({
+          where: { id: context.processedLink.id },
+          data: {
+            processingStatus: 'FAILED',
+            errorMessage: error instanceof Error ? error.message : String(error),
+            updatedAt: new Date()
+          }
+        })
+      } catch (updateError) {
+        // Log but don't mask the original error
+        console.error('Failed to mark processedLink as FAILED:', updateError)
+      }
+    }
+    
     if (context.subscriptionTeamId) {
       trackProcessingMetrics(context as ProcessingContext, false)
     }
@@ -370,4 +392,3 @@ export async function processLink(params: ProcessLinkParams, updateProgress?: (p
     throw error
   }
 }
-

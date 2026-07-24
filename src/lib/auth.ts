@@ -20,10 +20,22 @@ const originalGetUserByEmail = customAdapter.getUserByEmail!
 customAdapter.getUserByEmail = async (email: string) => {
   try {
     return await originalGetUserByEmail(email)
-  } catch (error) {
-    // If user exists but with different provider, return null to allow linking
-    console.log(`🔗 Allowing account linking for email: ${email}`)
-    return null
+  } catch (error: any) {
+    // FIX Bug 1: Only swallow Prisma P2002 (unique-constraint) errors.
+    // Those fire when the same email is used by a second OAuth provider and
+    // NextAuth is attempting to link accounts — returning null is the correct
+    // signal so NextAuth proceeds with linking.
+    //
+    // Any other error (DB timeout, connection failure, schema mismatch, etc.)
+    // must be rethrown. Previously the blanket catch returned null for ALL errors,
+    // so NextAuth treated infrastructure outages as "user not found" and created
+    // duplicate user records on every failed DB call.
+    if (error?.code === 'P2002') {
+      console.log(`🔗 Allowing account linking for email: ${email}`)
+      return null
+    }
+    console.error(`❌ getUserByEmail failed for ${email}:`, error)
+    throw error
   }
 }
 
@@ -378,12 +390,16 @@ export const authOptions: NextAuthOptions = {
               }
             })
 
-            let userSeatAllowed = true
+            // FIX Bug 2a: Seat limit check was a no-op.
+            // Previously, userSeatAllowed was set to false but execution always
+            // continued to `return true`, granting valid sessions to users who
+            // exceeded the team's seat limit.
+            // Fixed: return the error URL immediately when the limit is hit.
             if (!existingMembership) {
               const canAdd = await canAddNewUser(teamId)
               if (!canAdd.allowed) {
                 console.log('Cannot add new user due to seat limit:', canAdd.reason)
-                userSeatAllowed = false
+                return '/auth/error?error=SeatLimitExceeded'
               }
             }
 
@@ -404,7 +420,7 @@ export const authOptions: NextAuthOptions = {
                 profileImage48: slackProfile.profileImage48,
                 title: slackProfile.title,
                 userAccessToken,
-                isActive: userSeatAllowed,
+                isActive: true,
                 updatedAt: new Date()
               },
               create: {
@@ -419,7 +435,7 @@ export const authOptions: NextAuthOptions = {
                 title: slackProfile.title,
                 userAccessToken,
                 role: 'member',
-                isActive: userSeatAllowed
+                isActive: true
               }
             })
 
@@ -525,6 +541,13 @@ export const authOptions: NextAuthOptions = {
             if (defaultTeam.slackUserId) {
               session.user.slackUserId = defaultTeam.slackUserId
             }
+          } else {
+            // FIX Bug 2b: Users with no active team memberships previously got
+            // sessions with undefined teamId / currentTeam, causing downstream
+            // crashes in any page that assumed these fields were populated.
+            // Fixed: signal the no-team state explicitly so the UI can redirect
+            // the user to an onboarding or error screen gracefully.
+            session.user.noTeamAccess = true
           }
         }
       }
