@@ -20,10 +20,16 @@ const originalGetUserByEmail = customAdapter.getUserByEmail!
 customAdapter.getUserByEmail = async (email: string) => {
   try {
     return await originalGetUserByEmail(email)
-  } catch (error) {
-    // If user exists but with different provider, return null to allow linking
-    console.log(`🔗 Allowing account linking for email: ${email}`)
-    return null
+  } catch (error: any) {
+    // Bug 1 fix: Only swallow P2002 (unique constraint) — the one case where
+    // returning null is intentional (allows account linking). All other errors
+    // (DB timeouts, connection failures, schema errors) must surface so they
+    // don't silently corrupt the database by triggering duplicate-user creation.
+    if (error?.code === 'P2002') {
+      console.log(`🔗 Allowing account linking for email: ${email}`)
+      return null
+    }
+    throw error
   }
 }
 
@@ -378,12 +384,15 @@ export const authOptions: NextAuthOptions = {
               }
             })
 
-            let userSeatAllowed = true
+            // Bug 2a fix: Return early redirect instead of setting a flag that has no effect.
+            // Previously userSeatAllowed = false was set but the upsert below still wrote
+            // the record with isActive: false and returned true — giving an over-limit user
+            // a valid session. Now we block the session entirely.
             if (!existingMembership) {
               const canAdd = await canAddNewUser(teamId)
               if (!canAdd.allowed) {
                 console.log('Cannot add new user due to seat limit:', canAdd.reason)
-                userSeatAllowed = false
+                return '/auth/error?error=SeatLimitExceeded'
               }
             }
 
@@ -404,7 +413,7 @@ export const authOptions: NextAuthOptions = {
                 profileImage48: slackProfile.profileImage48,
                 title: slackProfile.title,
                 userAccessToken,
-                isActive: userSeatAllowed,
+                isActive: true,
                 updatedAt: new Date()
               },
               create: {
@@ -419,7 +428,7 @@ export const authOptions: NextAuthOptions = {
                 title: slackProfile.title,
                 userAccessToken,
                 role: 'member',
-                isActive: userSeatAllowed
+                isActive: true
               }
             })
 
@@ -525,6 +534,12 @@ export const authOptions: NextAuthOptions = {
             if (defaultTeam.slackUserId) {
               session.user.slackUserId = defaultTeam.slackUserId
             }
+          } else {
+            // Bug 2b fix: Users with no active team memberships previously got a
+            // half-populated session with undefined currentTeam. Client code checking
+            // session.user.currentTeam.id would crash. Now we signal noTeamAccess
+            // so the UI can redirect to onboarding instead of crashing.
+            session.user.noTeamAccess = true
           }
         }
       }

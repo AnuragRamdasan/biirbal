@@ -363,6 +363,27 @@ export async function processLink(params: ProcessLinkParams, updateProgress?: (p
   } catch (error) {
     console.error('Link processing failed:', error)
     
+    // Bug 3 fix: The original catch block re-threw without updating the DB record.
+    // Records created at the start of processing stayed PROCESSING forever, causing
+    // dashboards to show zombie jobs and breaking dedup logic (which only checks
+    // COMPLETED). Now update to FAILED with the error message before re-throwing.
+    if (context.processedLink?.id) {
+      try {
+        const db = await getDbClient()
+        await db.processedLink.update({
+          where: { id: context.processedLink.id },
+          data: {
+            processingStatus: 'FAILED',
+            errorMessage: error instanceof Error ? error.message : String(error),
+            updatedAt: new Date()
+          }
+        })
+      } catch (dbError) {
+        // Don't suppress the original error if the DB update itself fails
+        console.error('Failed to update processedLink status to FAILED:', dbError)
+      }
+    }
+    
     if (context.subscriptionTeamId) {
       trackProcessingMetrics(context as ProcessingContext, false)
     }
@@ -370,4 +391,3 @@ export async function processLink(params: ProcessLinkParams, updateProgress?: (p
     throw error
   }
 }
-

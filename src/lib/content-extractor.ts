@@ -229,6 +229,12 @@ export async function summarizeForAudio(text: string, maxWords: number = 150, so
 
     const summary = response.choices[0]?.message?.content?.trim()
     if (summary) return summary
+
+    // Bug 4 fix: When OpenAI returns an empty/falsy response in the short-text branch,
+    // the original code fell through silently to the long-text code path below, triggering
+    // a second paid API call with different parameters. This wastes API credits and
+    // produces inconsistent results. Throw explicitly so the error surfaces to the caller.
+    throw new Error('OpenAI returned an empty summary for short text content')
   }
 
   console.log(`🤖 Summarizing ${words.length} words to ${maxWords} words with storytelling format`)
@@ -356,4 +362,3 @@ export async function extractContentDirect(url: string): Promise<ExtractedConten
     throw new Error(`Direct content extraction failed: ${error.message}`)
   }
 }
-
