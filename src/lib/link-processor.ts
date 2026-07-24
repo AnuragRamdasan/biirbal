@@ -114,7 +114,7 @@ async function setupChannelAndRecord({
     })
     
     if (existingLink) {
-      console.log(`🔁 Found existing processed link for URL: ${existingLink.id}`)
+      console.log(`💡 Found existing processed link for URL: ${existingLink.id}`)
     }
   }
 
@@ -215,7 +215,7 @@ async function notifySlack(
   
   // Skip Slack notifications for web-only teams (no Slack integration)
   if (!team.accessToken || !team.slackTeamId || team.slackTeamId.startsWith('web_')) {
-    console.log(`📧 Skipping Slack notification for web-only team: ${team.slackTeamId || team.id}`)
+    console.log(`📣 Skipping Slack notification for web-only team: ${team.slackTeamId || team.id}`)
     if (updateProgress) await updateProgress(100)
     return
   }
@@ -360,14 +360,31 @@ export async function processLink(params: ProcessLinkParams, updateProgress?: (p
       trackProcessingMetrics(context as ProcessingContext, true, extractedContent)
     }
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Link processing failed:', error)
     
     if (context.subscriptionTeamId) {
       trackProcessingMetrics(context as ProcessingContext, false)
     }
+
+    // Mark the record as FAILED so it is visible on dashboards and eligible
+    // for retry logic. Wrap in its own try/catch so a secondary DB failure
+    // does not mask the original error.
+    if (context.processedLink?.id) {
+      try {
+        const db = await getDbClient()
+        await db.processedLink.update({
+          where: { id: context.processedLink.id },
+          data: {
+            processingStatus: 'FAILED',
+            errorMessage: error?.message ?? 'Unknown error'
+          }
+        })
+      } catch (updateError) {
+        console.error('Failed to mark processedLink as FAILED:', updateError)
+      }
+    }
     
     throw error
   }
 }
-
