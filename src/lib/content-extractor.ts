@@ -229,10 +229,9 @@ export async function summarizeForAudio(text: string, maxWords: number = 150, so
 
     const summary = response.choices[0]?.message?.content?.trim()
     if (summary) return summary
-    // FIX (Bug 4): If OpenAI returns an empty response for short text, throw
-    // immediately instead of falling through to the long-text path below.
-    // Previously an empty short-text response silently triggered a second
-    // paid API call on the long-text branch, doubling API costs.
+    // Short-text path must not fall through to the long-text path below.
+    // An empty response here is an API anomaly; throw so the caller can retry
+    // rather than silently making a second paid API call with different params.
     throw new Error('OpenAI returned empty summary for short text content')
   }
 

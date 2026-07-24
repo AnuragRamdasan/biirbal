@@ -21,15 +21,12 @@ customAdapter.getUserByEmail = async (email: string) => {
   try {
     return await originalGetUserByEmail(email)
   } catch (error: any) {
-    // FIX (Bug 1): Only swallow Prisma unique constraint violations (P2002).
-    // All other errors (DB timeouts, connection failures, schema mismatches)
-    // must be rethrown — previously they were silently caught and returned null,
-    // causing NextAuth to create a duplicate user record on any DB error.
+    // Only swallow Prisma unique-constraint violations (P2002).
+    // All other errors (network, schema, etc.) must propagate.
     if (error?.code === 'P2002') {
-      console.log(`🔗 Allowing account linking for email: ${email} (P2002 unique constraint)`)
+      console.log(`🔗 Allowing account linking for email: ${email}`)
       return null
     }
-    console.error(`❌ getUserByEmail error for ${email}:`, error)
     throw error
   }
 }
@@ -385,14 +382,10 @@ export const authOptions: NextAuthOptions = {
               }
             })
 
-            let userSeatAllowed = true
+            // Enforce seat limit: block sign-in immediately if limit is exceeded
             if (!existingMembership) {
               const canAdd = await canAddNewUser(teamId)
               if (!canAdd.allowed) {
-                // FIX (Bug 2a): Return an error redirect immediately so NextAuth
-                // blocks the sign-in. Previously userSeatAllowed was set false but
-                // execution continued, inserting isActive=false and still returning
-                // true — granting the over-limit user a valid session.
                 console.log('Cannot add new user due to seat limit:', canAdd.reason)
                 return '/auth/error?error=SeatLimitExceeded'
               }
@@ -415,7 +408,7 @@ export const authOptions: NextAuthOptions = {
                 profileImage48: slackProfile.profileImage48,
                 title: slackProfile.title,
                 userAccessToken,
-                isActive: userSeatAllowed,
+                isActive: true,
                 updatedAt: new Date()
               },
               create: {
@@ -430,7 +423,7 @@ export const authOptions: NextAuthOptions = {
                 title: slackProfile.title,
                 userAccessToken,
                 role: 'member',
-                isActive: userSeatAllowed
+                isActive: true
               }
             })
 
@@ -537,10 +530,7 @@ export const authOptions: NextAuthOptions = {
               session.user.slackUserId = defaultTeam.slackUserId
             }
           } else {
-            // FIX (Bug 2b): Signal to the client that this user has no active
-            // team memberships. Previously the else branch was missing entirely,
-            // so session.user.noTeamAccess was never set and the UI had no way
-            // to detect the teamless state and show an onboarding flow.
+            // User has no active team memberships — flag for UI handling
             session.user.noTeamAccess = true
           }
         }

@@ -367,9 +367,8 @@ export async function processLink(params: ProcessLinkParams, updateProgress?: (p
       trackProcessingMetrics(context as ProcessingContext, false)
     }
 
-    // FIX (Bug 3): Update processedLink status to FAILED before rethrowing.
-    // Previously the record stayed in PROCESSING forever, causing stuck jobs
-    // that block retries and pollute the dashboard with phantom processing states.
+    // Mark the processedLink record as FAILED so stuck jobs are visible and
+    // can be retried — without this the record stays in PROCESSING forever.
     if (context.processedLink?.id) {
       try {
         const db = await getDbClient()
@@ -377,11 +376,11 @@ export async function processLink(params: ProcessLinkParams, updateProgress?: (p
           where: { id: context.processedLink.id },
           data: {
             processingStatus: 'FAILED',
-            errorMessage: error instanceof Error ? error.message : String(error),
-          },
+            errorMessage: error instanceof Error ? error.message : String(error)
+          }
         })
       } catch (dbError) {
-        console.error('Failed to mark link as FAILED in DB:', dbError)
+        console.error('Failed to update processedLink to FAILED:', dbError)
       }
     }
     
