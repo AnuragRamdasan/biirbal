@@ -269,7 +269,8 @@ export async function updateSubscriptionFromStripe(
   teamId: string,
   stripeSubscriptionId: string,
   planId: string,
-  status: string
+  status: string,
+  currentPeriodEnd?: Date  // When provided, use Stripe's actual period end; otherwise fall back to 30-day estimate
 ) {
   const db = await getDbClient()
   const plan = getPlanById(planId)
@@ -283,6 +284,10 @@ export async function updateSubscriptionFromStripe(
     where: { teamId }
   })
 
+  // Resolve the period end: prefer the real Stripe date; fall back to a
+  // 30-day estimate only when the caller does not supply it.
+  const resolvedPeriodEnd = currentPeriodEnd ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+
   await db.subscription.upsert({
     where: { teamId },
     update: {
@@ -291,7 +296,7 @@ export async function updateSubscriptionFromStripe(
       status: mapStripeStatusToSubscriptionStatus(status),
       monthlyLinkLimit: plan.monthlyLinkLimit,
       userLimit: plan.userLimit,
-      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+      currentPeriodEnd: resolvedPeriodEnd
     },
     create: {
       teamId,
@@ -300,7 +305,7 @@ export async function updateSubscriptionFromStripe(
       status: mapStripeStatusToSubscriptionStatus(status),
       monthlyLinkLimit: plan.monthlyLinkLimit,
       userLimit: plan.userLimit,
-      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      currentPeriodEnd: resolvedPeriodEnd
     }
   })
 
