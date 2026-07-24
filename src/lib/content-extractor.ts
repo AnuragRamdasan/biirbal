@@ -1,10 +1,13 @@
-import axios from 'axios'
-import { Readability } from '@mozilla/readability'
-import { JSDOM } from 'jsdom'
 import OpenAI from 'openai'
-import { PROMPTS } from './prompts'
+import { JSDOM } from 'jsdom'
+import { Readability } from '@mozilla/readability'
+import { logger } from './logger'
 
-export interface ExtractedContent {
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+})
+
+interface ExtractedContent {
   title: string
   text: string
   url: string
@@ -13,347 +16,204 @@ export interface ExtractedContent {
 }
 
 export async function extractContentFromUrl(url: string): Promise<ExtractedContent> {
-  if (!process.env.SCRAPINGBEE_API_KEY) {
-    throw new Error('SCRAPINGBEE_API_KEY is required')
-  }
+  const contentLogger = logger.child('content-extractor')
+  contentLogger.info('Extracting content from URL', { url })
 
   try {
-    console.log(`🕷️ Extracting content from: ${url}`)
-    
-    const response = await axios.get('https://app.scrapingbee.com/api/v1/', {
-      params: {
-        api_key: process.env.SCRAPINGBEE_API_KEY,
-        url: url,
-        render_js: '0',
-        wait: '1000'
-      },
-      timeout: 35000,
-      responseType: 'arraybuffer'
-    })
-
-    if (response.status !== 200) {
-      throw new Error(`ScrapingBee returned status ${response.status}`)
-    }
-
-    const html = response.data.toString()
-    const dom = new JSDOM(html, { url })
-    const reader = new Readability(dom.window.document)
-    const article = reader.parse()
-
-    if (!article || !article.textContent || article.textContent.length < 100) {
-      throw new Error('Insufficient content extracted')
-    }
-
-    const cleanText = cleanContent(article.textContent)
-    const wordCount = calculateWordCount(cleanText)
-    const title = article.title || 'Untitled Article'
-    const ogImage = extractOgImage(dom.window.document, url)
-
-    console.log(`✅ Extracted ${cleanText.length} characters (${wordCount} words) from: ${title}`)
-
-    return {
-      title: cleanTitle(title),
-      ogImage,
-      text: cleanText,
-      wordCount,
-      url
-    }
-  } catch (error: any) {
-    console.error('Content extraction failed:', error)
-    return await handleExtractionError(error, url)
-  }
-}
-
-function isTimeoutError(error: any): boolean {
-  return error.code === 'ECONNABORTED' || error.message.includes('timeout')
-}
-
-function createErrorMessage(status: number, statusText: string): string {
-  if (status === 429) return 'Rate limit exceeded. Please try again later.'
-  if (status >= 400 && status < 500) return `Content extraction failed: Invalid request (${status})`
-  return `Content extraction failed: Service error (${status})`
-}
-
-async function handleExtractionError(error: any, url: string): Promise<ExtractedContent> {
-  if (error.response) {
-    const status = error.response.status
-    const statusText = error.response.statusText || 'Unknown error'
-    
-    console.error(`🚨 ScrapingBee error (${status}): ${statusText}`)
-    
-    if (status === 500 || isTimeoutError(error)) {
-      console.error('🚨 Retrying with fallback strategy')
-      return await extractContentWithFallback(url)
-    }
-    
-    throw new Error(createErrorMessage(status, statusText))
-  }
-  
-  if (isTimeoutError(error)) {
-    console.error('🚨 ScrapingBee timeout - trying fallback')
-    return await extractContentWithFallback(url)
-  }
-  
-  throw new Error(`Content extraction failed: ${error.message}`)
-}
-
-// Fallback extraction method with simpler parameters
-async function extractContentWithFallback(url: string): Promise<ExtractedContent> {
-  try {
-    console.log(`🔄 Trying fallback extraction for: ${url}`)
-    
-    const response = await axios.get('https://app.scrapingbee.com/api/v1/', {
-      params: {
-        api_key: process.env.SCRAPINGBEE_API_KEY,
-        url: url,
-        render_js: '0', // Disable JS rendering for faster response
-        wait: '0' // No wait time
-      },
-      timeout: 20000, // Shorter timeout
-      responseType: 'arraybuffer'
-    })
-
-    if (response.status !== 200) {
-      throw new Error(`Fallback extraction failed with status ${response.status}`)
-    }
-
-    const html = response.data.toString()
-    const dom = new JSDOM(html, { url })
-    const reader = new Readability(dom.window.document)
-    const article = reader.parse()
-
-    if (!article || !article.textContent || article.textContent.length < 50) {
-      // More lenient content length for fallback
-      throw new Error('Insufficient content from fallback extraction')
-    }
-
-    const cleanText = cleanContent(article.textContent)
-    const wordCount = calculateWordCount(cleanText)
-    const title = article.title || extractTitleFromUrl(url)
-    const ogImage = extractOgImage(dom.window.document, url)
-
-    console.log(`✅ Fallback extracted ${cleanText.length} characters (${wordCount} words) from: ${title}`)
-
-    return {
-      title: cleanTitle(title),
-      ogImage,
-      text: cleanText,
-      wordCount,
-      url
-    }
-  } catch (error: any) {
-    console.error('Fallback extraction also failed:', error)
-    
-    // Generate a minimal content object as last resort
-    const fallbackText = `Content extraction temporarily unavailable for this link. Please try visiting ${url} directly.`
-    return {
-      title: extractTitleFromUrl(url),
-      text: fallbackText,
-      wordCount: calculateWordCount(fallbackText),
-      url,
-      ogImage: undefined
-    }
-  }
-}
-
-function extractTitleFromUrl(url: string): string {
-  try {
-    const urlObj = new URL(url)
-    const hostname = urlObj.hostname.replace('www.', '')
-    const path = urlObj.pathname
-    
-    // Try to extract meaningful title from URL
-    if (path && path !== '/') {
-      const segments = path.split('/').filter(s => s.length > 0)
-      if (segments.length > 0) {
-        const lastSegment = segments[segments.length - 1]
-        return `${hostname}: ${lastSegment.replace(/[-_]/g, ' ')}`
-      }
-    }
-    
-    return `Content from ${hostname}`
-  } catch {
-    return 'Shared Link'
-  }
-}
-
-
-function cleanContent(text: string): string {
-  return text
-    .replace(/<[^>]*>/g, '')
-    .replace(/&[a-zA-Z0-9#]+;/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
-function cleanTitle(title: string): string {
-  return title
-    .replace(/\s*[-–—|]\s*.+$/, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
-function calculateWordCount(text: string): number {
-  if (!text || text.trim().length === 0) {
-    return 0
-  }
-  
-  // Split by whitespace and filter out empty strings
-  const words = text.trim().split(/\s+/).filter(word => word.length > 0)
-  return words.length
-}
-
-export async function summarizeForAudio(text: string, maxWords: number = 150, sourceUrl?: string): Promise<string> {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY is required')
-  }
-
-  const words = text.split(/\s+/)
-  if (words.length <= maxWords) {
-    // Even for short text, we want to add source attribution and structure
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
-    })
-
-    const prompt = PROMPTS.summarizeForAudio(maxWords, sourceUrl).replace('{text}', text)
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ 
-        role: "user", 
-        content: prompt 
-      }],
-      max_tokens: Math.ceil(maxWords * 1.5),
-      temperature: 0.3
-    })
-
-    const summary = response.choices[0]?.message?.content?.trim()
-    if (summary) return summary
-  }
-
-  console.log(`🤖 Summarizing ${words.length} words to ${maxWords} words with storytelling format`)
-
-  const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY
-  })
-
-  const prompt = PROMPTS.summarizeForAudio(maxWords, sourceUrl).replace('{text}', text.substring(0, 12000))
-
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [{ 
-      role: "user", 
-      content: prompt 
-    }],
-    max_tokens: Math.ceil(maxWords * 1.5),
-    temperature: 0.3
-  })
-
-  const summary = response.choices[0]?.message?.content?.trim()
-
-  if (!summary) {
-    throw new Error('Failed to generate summary')
-  }
-
-  return summary
-}
-
-const IMAGE_SELECTORS = [
-  { selector: 'meta[property="og:image"]', attr: 'content', name: 'og:image' },
-  { selector: 'meta[name="twitter:image"]', attr: 'content', name: 'twitter:image' },
-  { selector: 'link[rel="image_src"]', attr: 'href', name: 'image_src' }
-]
-
-function tryExtractImage(document: Document, baseUrl: string, config: typeof IMAGE_SELECTORS[0]): string | undefined {
-  const element = document.querySelector(config.selector)
-  if (!element) return undefined
-  
-  const content = element.getAttribute(config.attr)
-  console.log(`Found ${config.name}:`, content)
-  
-  if (!content) return undefined
-  
-  const resolvedUrl = resolveImageUrl(content, baseUrl)
-  if (isValidImageUrl(resolvedUrl)) {
-    console.log(`✅ Using ${config.name}:`, resolvedUrl)
-    return resolvedUrl
-  }
-  
-  return undefined
-}
-
-function extractOgImage(document: Document, baseUrl: string): string | undefined {
-  console.log('🖼️ Extracting OG image...')
-  
-  for (const config of IMAGE_SELECTORS) {
-    const imageUrl = tryExtractImage(document, baseUrl, config)
-    if (imageUrl) return imageUrl
-  }
-
-  console.log('❌ No OG image found')
-  return undefined
-}
-
-function isValidImageUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url)
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
-  } catch {
-    return false
-  }
-}
-
-function resolveImageUrl(imageUrl: string, baseUrl: string): string {
-  try {
-    return new URL(imageUrl, baseUrl).href
-  } catch {
-    return imageUrl
-  }
-}
-
-// Direct extraction method without ScrapingBee for video generator
-export async function extractContentDirect(url: string): Promise<ExtractedContent> {
-  try {
-    console.log(`🔗 Direct extraction from: ${url}`)
-    
-    // Fetch content directly
-    const response = await axios.get(url, {
-      timeout: 20000,
+    // Fetch the webpage
+    const response = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      }
+        'User-Agent': 'Mozilla/5.0 (compatible; Biirbal/1.0; +https://biirbal.com)',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+      },
+      signal: AbortSignal.timeout(30000), // 30 second timeout
     })
 
-    if (response.status !== 200) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    if (!response.ok) {
+      throw new Error(`Failed to fetch URL: ${response.status} ${response.statusText}`)
     }
 
-    const html = response.data
+    const html = await response.text()
+    
+    // Parse with JSDOM
     const dom = new JSDOM(html, { url })
-    const reader = new Readability(dom.window.document)
+    const document = dom.window.document
+
+    // Extract OG image before Readability modifies the document
+    let ogImage: string | undefined
+    const ogImageMeta = document.querySelector('meta[property="og:image"]') as HTMLMetaElement | null
+    if (ogImageMeta?.content) {
+      ogImage = ogImageMeta.content
+    } else {
+      // Try other image meta tags
+      const twitterImageMeta = document.querySelector('meta[name="twitter:image"]') as HTMLMetaElement | null
+      if (twitterImageMeta?.content) {
+        ogImage = twitterImageMeta.content
+      }
+    }
+
+    // Use Readability for content extraction
+    const reader = new Readability(document)
     const article = reader.parse()
 
-    if (!article || !article.textContent || article.textContent.length < 100) {
-      throw new Error('Insufficient content extracted from article')
+    if (!article || !article.textContent) {
+      throw new Error('Could not extract readable content from URL')
     }
 
-    const cleanText = cleanContent(article.textContent)
-    const wordCount = calculateWordCount(cleanText)
-    const title = cleanTitle(article.title || 'Untitled Article')
-    const ogImage = extractOgImage(dom.window.document, url)
+    const text = article.textContent.trim()
+    const wordCount = text.split(/\s+/).filter(Boolean).length
 
-    console.log(`✅ Direct extraction completed: ${title} (${wordCount} words)`)
-
-    return {
-      title,
-      text: cleanText,
+    contentLogger.info('Content extracted successfully', {
       url,
       wordCount,
-      ogImage
+      titleLength: article.title?.length || 0
+    })
+
+    return {
+      title: article.title || 'Untitled',
+      text,
+      url,
+      wordCount,
+      ogImage,
     }
-  } catch (error: any) {
-    console.error(`❌ Direct extraction failed for ${url}:`, error.message)
-    throw new Error(`Direct content extraction failed: ${error.message}`)
+  } catch (error) {
+    contentLogger.error('Failed to extract content', { url, error })
+    throw error
   }
 }
 
+export async function summarizeForAudio(text: string, maxWords: number = 150, url?: string): Promise<string> {
+  const summaryLogger = logger.child('content-extractor')
+  summaryLogger.info('Summarizing text for audio', { textLength: text.length, maxWords })
+
+  const wordCount = text.split(/\s+/).filter(Boolean).length
+  
+  // For short texts, return as-is or with minimal processing
+  if (wordCount <= maxWords) {
+    summaryLogger.info('Text is short enough, using OpenAI for short-text path', { wordCount, maxWords })
+    
+    try {
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `You are an expert at creating engaging audio summaries. Create a natural, conversational summary that sounds good when read aloud. Focus on the key insights and make it engaging. Target length: ${maxWords} words or less.`
+          },
+          {
+            role: 'user',
+            content: `Please create a concise audio summary of this content:\n\n${text}${url ? `\n\nSource: ${url}` : ''}`
+          }
+        ],
+        max_tokens: 500,
+        temperature: 0.7,
+      })
+      
+      const summary = response.choices[0]?.message?.content?.trim()
+      if (summary) return summary
+      // OpenAI returned empty content — throw instead of falling through to the
+      // long-text path below, which would make a second paid API call silently.
+      throw new Error('OpenAI returned empty summary for short text content')
+    } catch (error) {
+      summaryLogger.error('Failed to summarize short text with OpenAI', { error })
+      throw error
+    }
+  }
+
+  // For longer texts, use chunking approach
+  summaryLogger.info('Text is long, using chunking approach', { wordCount, maxWords })
+  
+  try {
+    // Split text into chunks if needed
+    const maxChunkWords = 2000
+    const words = text.split(/\s+/)
+    const chunks: string[] = []
+    
+    for (let i = 0; i < words.length; i += maxChunkWords) {
+      chunks.push(words.slice(i, i + maxChunkWords).join(' '))
+    }
+    
+    let combinedSummary: string
+    
+    if (chunks.length === 1) {
+      // Single chunk - direct summarization
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `You are an expert at creating engaging audio summaries. Create a natural, conversational summary that sounds good when read aloud. Focus on the key insights and make it engaging. Target length: ${maxWords} words or less.`
+          },
+          {
+            role: 'user',
+            content: `Please create a concise audio summary of this content:\n\n${text}${url ? `\n\nSource: ${url}` : ''}`
+          }
+        ],
+        max_tokens: 600,
+        temperature: 0.7,
+      })
+      
+      combinedSummary = response.choices[0]?.message?.content?.trim() || text.substring(0, 500)
+    } else {
+      // Multiple chunks - summarize each then combine
+      const chunkSummaries: string[] = []
+      
+      for (const chunk of chunks) {
+        const response = await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'Extract the key points from this text section in 2-3 sentences.'
+            },
+            {
+              role: 'user',
+              content: chunk
+            }
+          ],
+          max_tokens: 200,
+          temperature: 0.5,
+        })
+        
+        const chunkSummary = response.choices[0]?.message?.content?.trim()
+        if (chunkSummary) {
+          chunkSummaries.push(chunkSummary)
+        }
+      }
+      
+      // Final synthesis
+      const finalResponse = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `You are an expert at creating engaging audio summaries. Create a natural, conversational summary that sounds good when read aloud. Target length: ${maxWords} words or less.`
+          },
+          {
+            role: 'user',
+            content: `Create a cohesive audio summary from these key points:\n\n${chunkSummaries.join('\n\n')}${url ? `\n\nSource: ${url}` : ''}`
+          }
+        ],
+        max_tokens: 600,
+        temperature: 0.7,
+      })
+      
+      combinedSummary = finalResponse.choices[0]?.message?.content?.trim() || chunkSummaries.join(' ')
+    }
+    
+    summaryLogger.info('Summary created successfully', {
+      originalWordCount: wordCount,
+      summaryWordCount: combinedSummary.split(/\s+/).filter(Boolean).length
+    })
+    
+    return combinedSummary
+    
+  } catch (error) {
+    summaryLogger.error('Failed to summarize text', { error })
+    throw error
+  }
+}
