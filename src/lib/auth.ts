@@ -20,10 +20,15 @@ const originalGetUserByEmail = customAdapter.getUserByEmail!
 customAdapter.getUserByEmail = async (email: string) => {
   try {
     return await originalGetUserByEmail(email)
-  } catch (error) {
-    // If user exists but with different provider, return null to allow linking
-    console.log(`🔗 Allowing account linking for email: ${email}`)
-    return null
+  } catch (error: any) {
+    // Only suppress Prisma P2002 (unique constraint) — the legitimate cross-provider
+    // account-linking case. All other errors (DB timeouts, connection drops) must
+    // be rethrown so NextAuth fails safely instead of creating a ghost user.
+    if (error?.code === 'P2002') {
+      console.log(`🔗 Allowing account linking for email: ${email}`)
+      return null
+    }
+    throw error
   }
 }
 
@@ -384,6 +389,7 @@ export const authOptions: NextAuthOptions = {
               if (!canAdd.allowed) {
                 console.log('Cannot add new user due to seat limit:', canAdd.reason)
                 userSeatAllowed = false
+                return '/auth/error?error=SeatLimitExceeded'
               }
             }
 
@@ -525,6 +531,9 @@ export const authOptions: NextAuthOptions = {
             if (defaultTeam.slackUserId) {
               session.user.slackUserId = defaultTeam.slackUserId
             }
+          } else {
+            // User has no active team memberships — signal clients to redirect to onboarding
+            session.user.noTeamAccess = true
           }
         }
       }
