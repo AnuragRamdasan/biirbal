@@ -265,11 +265,24 @@ export async function canUserListen(teamId: string, userId?: string): Promise<{ 
   }
 }
 
+/**
+ * Update subscription from Stripe webhook data.
+ *
+ * Bug 5 fix: the original implementation hardcoded `currentPeriodEnd` to
+ * `Date.now() + 30 days` in both the `update` and `create` branches, completely
+ * ignoring Stripe's `current_period_end`. Annual-plan subscribers therefore saw
+ * a 30-day expiry immediately after payment.
+ *
+ * The caller (Stripe webhook handler) should pass
+ * `new Date(stripeSubscription.current_period_end * 1000)` as `currentPeriodEnd`.
+ * When omitted, the 30-day fallback is preserved for backward compatibility.
+ */
 export async function updateSubscriptionFromStripe(
   teamId: string,
   stripeSubscriptionId: string,
   planId: string,
-  status: string
+  status: string,
+  currentPeriodEnd?: Date  // ← new optional param; use Stripe's real value when available
 ) {
   const db = await getDbClient()
   const plan = getPlanById(planId)
@@ -277,6 +290,9 @@ export async function updateSubscriptionFromStripe(
   if (!plan) {
     throw new Error(`Invalid plan ID: ${planId}`)
   }
+
+  // Fallback to 30-day window only when caller doesn't supply the real Stripe date
+  const periodEnd = currentPeriodEnd ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
 
   // Get current subscription to track changes
   const currentSubscription = await db.subscription.findUnique({
@@ -291,7 +307,7 @@ export async function updateSubscriptionFromStripe(
       status: mapStripeStatusToSubscriptionStatus(status),
       monthlyLinkLimit: plan.monthlyLinkLimit,
       userLimit: plan.userLimit,
-      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+      currentPeriodEnd: periodEnd
     },
     create: {
       teamId,
@@ -300,7 +316,7 @@ export async function updateSubscriptionFromStripe(
       status: mapStripeStatusToSubscriptionStatus(status),
       monthlyLinkLimit: plan.monthlyLinkLimit,
       userLimit: plan.userLimit,
-      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      currentPeriodEnd: periodEnd
     }
   })
 
