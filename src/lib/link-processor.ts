@@ -114,14 +114,14 @@ async function setupChannelAndRecord({
     })
     
     if (existingLink) {
-      console.log(`🔁 Found existing processed link for URL: ${existingLink.id}`)
+      console.log(`📁 Found existing processed link for URL: ${existingLink.id}`)
     }
   }
 
   // Create or update processing record
   let processedLink
   if (linkId) {
-    console.log(`🔄 Restarting existing link ID: ${linkId}`)
+    console.log(`📄 Restarting existing link ID: ${linkId}`)
     processedLink = await db.processedLink.update({
       where: { id: linkId },
       data: {
@@ -366,8 +366,26 @@ export async function processLink(params: ProcessLinkParams, updateProgress?: (p
     if (context.subscriptionTeamId) {
       trackProcessingMetrics(context as ProcessingContext, false)
     }
+
+    // Bug 3 fix: mark the processedLink record as FAILED so it does not remain
+    // stuck in PROCESSING status forever. The update is wrapped in its own
+    // try/catch so a secondary DB failure cannot swallow the original error.
+    if (context.processedLink?.id) {
+      try {
+        const db = await getDbClient()
+        await db.processedLink.update({
+          where: { id: context.processedLink.id },
+          data: {
+            processingStatus: 'FAILED',
+            errorMessage: error instanceof Error ? error.message : String(error),
+            updatedAt: new Date()
+          }
+        })
+      } catch (updateError) {
+        console.error('Failed to mark processedLink as FAILED:', updateError)
+      }
+    }
     
     throw error
   }
 }
-
