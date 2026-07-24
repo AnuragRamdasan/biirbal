@@ -21,10 +21,8 @@ export interface UsageStats {
 export async function getTeamUsageStats(teamId: string): Promise<UsageStats> {
   const db = await getDbClient()
   
-  // Check if this is an exception team first
   const isException = isExceptionTeam(teamId)
   
-  // Get team subscription - teamId is actually the Slack team ID
   const team = await db.team.findUnique({
     where: { slackTeamId: teamId },
     include: { 
@@ -53,7 +51,6 @@ export async function getTeamUsageStats(teamId: string): Promise<UsageStats> {
     throw new Error('Team subscription not found')
   }
 
-  // Get plan details - use subscription's actual limits, not default plan limits
   const basePlan = getPlanById(subscription.planId) || PRICING_PLANS.FREE
   const plan = {
     ...basePlan,
@@ -61,11 +58,9 @@ export async function getTeamUsageStats(teamId: string): Promise<UsageStats> {
     userLimit: subscription.userLimit
   }
   
-  // Calculate current usage
   const currentLinks = team.processedLinks.length
   const currentUsers = team.memberships.filter(membership => membership.isActive).length
 
-  // For exception teams, bypass all limits
   if (isException) {
     return {
       currentLinks,
@@ -82,10 +77,8 @@ export async function getTeamUsageStats(teamId: string): Promise<UsageStats> {
     }
   }
 
-  // Check limits for regular teams
   const limits = checkUsageLimits(plan, currentLinks, currentUsers)
 
-  // Calculate usage percentages
   const linkUsagePercentage = plan.monthlyLinkLimit === -1 ? 0 : 
     Math.round((currentLinks / plan.monthlyLinkLimit) * 100)
   const userUsagePercentage = plan.userLimit === -1 ? 0 : 
@@ -146,16 +139,13 @@ export async function canUserConsume(teamId: string, userId: string): Promise<bo
       userLimit: team.subscription.userLimit
     }
     
-    // For paid plans with unlimited users, allow access
     if (plan.userLimit === -1) {
       return true
     }
     
-    // For all plans with user limits (including free), check seat limits
     const userIndex = team.memberships.findIndex(m => m.userId === userId)
     const withinUserLimit = userIndex !== -1 && userIndex < plan.userLimit
     
-    // Free plans also need to check link limits
     if (plan.id === 'free') {
       const currentDate = new Date()
       const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
@@ -173,7 +163,6 @@ export async function canUserConsume(teamId: string, userId: string): Promise<bo
       return withinUserLimit && withinLinkLimit
     }
     
-    // For paid plans with user limits, only check user limits
     return withinUserLimit
     
   } catch (error) {
@@ -184,7 +173,6 @@ export async function canUserConsume(teamId: string, userId: string): Promise<bo
 
 export async function canAddNewUser(teamId: string): Promise<{ allowed: boolean, reason?: string }> {
   try {
-    // Exception teams are always allowed
     if (isExceptionTeam(teamId)) {
       return { allowed: true }
     }
@@ -211,17 +199,10 @@ function createLimitResponse(allowed: boolean, reason?: string) {
 
 export async function canProcessNewLink(teamId: string, userId?: string): Promise<{ allowed: boolean, reason?: string }> {
   try {
-    // CRITICAL: Link processing should ALWAYS be unlimited for ALL plans
-    // Free plans: unlimited link processing, but listen access limited after 20 links
-    // Paid plans: unlimited link processing and listen access (subject to user limits only)
-    // This ensures unlimited link processing as per business requirements
-    
     if (isExceptionTeam(teamId)) {
       return createLimitResponse(true)
     }
 
-    // ALL PLANS: NEVER block link processing - it's always unlimited
-    // Link limits and user limits only affect listen access, not link processing
     return createLimitResponse(true)
   } catch (error) {
     console.error('Error checking usage limits:', error)
@@ -231,7 +212,6 @@ export async function canProcessNewLink(teamId: string, userId?: string): Promis
 
 export async function canUserListen(teamId: string, userId?: string): Promise<{ allowed: boolean, reason?: string }> {
   try {
-    // Exception teams have unlimited access
     if (isExceptionTeam(teamId)) {
       return createLimitResponse(true)
     }
@@ -248,7 +228,6 @@ export async function canUserListen(teamId: string, userId?: string): Promise<{ 
         return createLimitResponse(false, 'User access disabled due to seat limit exceeded. Contact admin to upgrade plan.')
       }
     } else {
-      // Free plan checks both link and user limits for listening
       if (stats.linkLimitExceeded) {
         return createLimitResponse(false, `Monthly link limit of ${stats.plan.monthlyLinkLimit} reached. Upgrade your plan to process more links.`)
       }
@@ -269,7 +248,8 @@ export async function updateSubscriptionFromStripe(
   teamId: string,
   stripeSubscriptionId: string,
   planId: string,
-  status: string
+  status: string,
+  currentPeriodEnd?: Date
 ) {
   const db = await getDbClient()
   const plan = getPlanById(planId)
@@ -278,7 +258,6 @@ export async function updateSubscriptionFromStripe(
     throw new Error(`Invalid plan ID: ${planId}`)
   }
 
-  // Get current subscription to track changes
   const currentSubscription = await db.subscription.findUnique({
     where: { teamId }
   })
@@ -291,7 +270,7 @@ export async function updateSubscriptionFromStripe(
       status: mapStripeStatusToSubscriptionStatus(status),
       monthlyLinkLimit: plan.monthlyLinkLimit,
       userLimit: plan.userLimit,
-      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+      currentPeriodEnd: currentPeriodEnd ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
     },
     create: {
       teamId,
@@ -300,15 +279,13 @@ export async function updateSubscriptionFromStripe(
       status: mapStripeStatusToSubscriptionStatus(status),
       monthlyLinkLimit: plan.monthlyLinkLimit,
       userLimit: plan.userLimit,
-      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      currentPeriodEnd: currentPeriodEnd ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
     }
   })
 
-  // Track subscription events
   const mappedStatus = mapStripeStatusToSubscriptionStatus(status)
   
   if (mappedStatus === 'ACTIVE') {
-    // Track subscription started or upgraded
     trackSubscriptionStarted({
       team_id: teamId,
       plan_type: planId as 'pro' | 'enterprise',
@@ -317,7 +294,6 @@ export async function updateSubscriptionFromStripe(
       value: plan.price || 0
     })
   } else if (mappedStatus === 'CANCELED') {
-    // Track subscription cancelled
     trackSubscriptionCancelled({
       team_id: teamId,
       plan_type: planId as 'pro' | 'enterprise',
@@ -386,7 +362,6 @@ export function getUpgradeMessage(stats: UsageStats): string | null {
   return isPaidPlan ? getPaidPlanMessage(stats) : getFreePlanMessage(stats)
 }
 
-// Additional functions expected by tests
 export async function getCurrentPlan(teamId: string) {
   try {
     const stats = await getTeamUsageStats(teamId)

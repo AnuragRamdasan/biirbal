@@ -363,6 +363,23 @@ export async function processLink(params: ProcessLinkParams, updateProgress?: (p
   } catch (error) {
     console.error('Link processing failed:', error)
     
+    // Update the record to FAILED status so it doesn't stay stuck as PROCESSING
+    if (context.processedLink?.id) {
+      try {
+        const db = await getDbClient()
+        await db.processedLink.update({
+          where: { id: context.processedLink.id },
+          data: {
+            processingStatus: 'FAILED',
+            errorMessage: error instanceof Error ? error.message : String(error),
+            updatedAt: new Date()
+          }
+        })
+      } catch (dbError) {
+        console.error('Failed to update processedLink status to FAILED:', dbError)
+      }
+    }
+    
     if (context.subscriptionTeamId) {
       trackProcessingMetrics(context as ProcessingContext, false)
     }
@@ -370,4 +387,3 @@ export async function processLink(params: ProcessLinkParams, updateProgress?: (p
     throw error
   }
 }
-
