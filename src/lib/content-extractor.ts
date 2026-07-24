@@ -228,7 +228,12 @@ export async function summarizeForAudio(text: string, maxWords: number = 150, so
     })
 
     const summary = response.choices[0]?.message?.content?.trim()
-    if (summary) return summary
+    if (summary !== undefined && summary !== null) {
+      if (summary === '') {
+        throw new Error('OpenAI returned empty summary for short text content')
+      }
+      return summary
+    }
   }
 
   console.log(`🤖 Summarizing ${words.length} words to ${maxWords} words with storytelling format`)
@@ -356,4 +361,3 @@ export async function extractContentDirect(url: string): Promise<ExtractedConten
     throw new Error(`Direct content extraction failed: ${error.message}`)
   }
 }
-
