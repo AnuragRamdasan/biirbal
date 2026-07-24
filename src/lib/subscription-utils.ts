@@ -269,7 +269,8 @@ export async function updateSubscriptionFromStripe(
   teamId: string,
   stripeSubscriptionId: string,
   planId: string,
-  status: string
+  status: string,
+  currentPeriodEnd?: Date
 ) {
   const db = await getDbClient()
   const plan = getPlanById(planId)
@@ -277,6 +278,9 @@ export async function updateSubscriptionFromStripe(
   if (!plan) {
     throw new Error(`Invalid plan ID: ${planId}`)
   }
+
+  // Use Stripe-provided period end if available; fall back to 30-day window
+  const periodEnd = currentPeriodEnd ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
 
   // Get current subscription to track changes
   const currentSubscription = await db.subscription.findUnique({
@@ -291,7 +295,7 @@ export async function updateSubscriptionFromStripe(
       status: mapStripeStatusToSubscriptionStatus(status),
       monthlyLinkLimit: plan.monthlyLinkLimit,
       userLimit: plan.userLimit,
-      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+      currentPeriodEnd: periodEnd
     },
     create: {
       teamId,
@@ -300,7 +304,7 @@ export async function updateSubscriptionFromStripe(
       status: mapStripeStatusToSubscriptionStatus(status),
       monthlyLinkLimit: plan.monthlyLinkLimit,
       userLimit: plan.userLimit,
-      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      currentPeriodEnd: periodEnd
     }
   })
 
