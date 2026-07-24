@@ -20,10 +20,16 @@ const originalGetUserByEmail = customAdapter.getUserByEmail!
 customAdapter.getUserByEmail = async (email: string) => {
   try {
     return await originalGetUserByEmail(email)
-  } catch (error) {
-    // If user exists but with different provider, return null to allow linking
-    console.log(`🔗 Allowing account linking for email: ${email}`)
-    return null
+  } catch (error: any) {
+    // Bug 1 fix: Only suppress P2002 (unique constraint violation — legitimate
+    // cross-provider account-linking). All other errors (DB timeouts, connection
+    // failures, etc.) are rethrown so NextAuth fails safely instead of silently
+    // creating duplicate user records.
+    if (error?.code === 'P2002') {
+      console.log(`🔗 Allowing account linking for email: ${email}`)
+      return null
+    }
+    throw error
   }
 }
 
@@ -36,7 +42,7 @@ customAdapter.createUser = async (user) => {
   const newUser = await originalCreateUser(user)
   
   // For Google/Email sign-ins, create a personal team and membership
-  console.log(`🏢 Creating personal team for new user: ${user.email}`)
+  console.log(`🏠 Creating personal team for new user: ${user.email}`)
   const webTeamId = `web_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
   
   try {
@@ -139,7 +145,7 @@ export const authOptions: NextAuthOptions = {
       token: "https://slack.com/api/oauth.v2.access",
       userinfo: {
         async request({ tokens, client, provider }) {
-          console.log('🔍 Slack userinfo request:', {
+          console.log('🍀 Slack userinfo request:', {
             hasAccessToken: !!tokens.access_token,
             hasAuthedUser: !!tokens.authed_user,
             userId: tokens.authed_user?.id,
@@ -274,7 +280,7 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user, account, profile }) {
-      console.log(`🔐 Sign in attempt: ${user.email} via ${account?.provider}`)
+      console.log(`📐 Sign in attempt: ${user.email} via ${account?.provider}`)
       
       // Handle Slack OAuth team and user creation
       if (account?.provider === 'slack' && profile) {
@@ -383,7 +389,8 @@ export const authOptions: NextAuthOptions = {
               const canAdd = await canAddNewUser(teamId)
               if (!canAdd.allowed) {
                 console.log('Cannot add new user due to seat limit:', canAdd.reason)
-                userSeatAllowed = false
+                // Bug 2a fix: return redirect string instead of falling through to return true
+                return '/auth/error?error=SeatLimitExceeded'
               }
             }
 
@@ -525,6 +532,10 @@ export const authOptions: NextAuthOptions = {
             if (defaultTeam.slackUserId) {
               session.user.slackUserId = defaultTeam.slackUserId
             }
+          } else {
+            // Bug 2b fix: users with zero active team memberships get noTeamAccess=true
+            // so clients can redirect to onboarding instead of crashing on undefined teamId
+            session.user.noTeamAccess = true
           }
         }
       }
