@@ -18,7 +18,7 @@ export async function extractContentFromUrl(url: string): Promise<ExtractedConte
   }
 
   try {
-    console.log(`🕷️ Extracting content from: ${url}`)
+    console.log(`🍷️ Extracting content from: ${url}`)
     
     const response = await axios.get('https://app.scrapingbee.com/api/v1/', {
       params: {
@@ -79,18 +79,18 @@ async function handleExtractionError(error: any, url: string): Promise<Extracted
     const status = error.response.status
     const statusText = error.response.statusText || 'Unknown error'
     
-    console.error(`🚨 ScrapingBee error (${status}): ${statusText}`)
+    console.error(`\uD83D\uDAA8 ScrapingBee error (${status}): ${statusText}`)
     
     if (status === 500 || isTimeoutError(error)) {
-      console.error('🚨 Retrying with fallback strategy')
+      console.error('\uD83D\uDAA8 Retrying with fallback strategy')
       return await extractContentWithFallback(url)
     }
     
     throw new Error(createErrorMessage(status, statusText))
   }
-  
+ 
   if (isTimeoutError(error)) {
-    console.error('🚨 ScrapingBee timeout - trying fallback')
+    console.error('\uD83D\uDAA8 ScrapingBee timeout - trying fallback')
     return await extractContentWithFallback(url)
   }
   
@@ -229,6 +229,10 @@ export async function summarizeForAudio(text: string, maxWords: number = 150, so
 
     const summary = response.choices[0]?.message?.content?.trim()
     if (summary) return summary
+    // Don't silently fall through to the long-text path — that would make
+    // a second paid OpenAI API call with different params, wasting money and
+    // producing inconsistent results. Fail explicitly instead.
+    throw new Error('OpenAI returned an empty summary for short text content')
   }
 
   console.log(`🤖 Summarizing ${words.length} words to ${maxWords} words with storytelling format`)
@@ -283,7 +287,7 @@ function tryExtractImage(document: Document, baseUrl: string, config: typeof IMA
 }
 
 function extractOgImage(document: Document, baseUrl: string): string | undefined {
-  console.log('🖼️ Extracting OG image...')
+  console.log('🖨️ Extracting OG image...')
   
   for (const config of IMAGE_SELECTORS) {
     const imageUrl = tryExtractImage(document, baseUrl, config)

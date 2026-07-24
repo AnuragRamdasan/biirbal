@@ -12,7 +12,7 @@ interface ProcessLinkParams {
   url: string
   messageTs: string
   channelId: string
-  teamId: string        // Internal database ID
+  teamId: string       // Internal database ID
   slackTeamId?: string  // Slack team ID - used for subscription checks
   linkId?: string       // Optional - for restarting existing stuck jobs
 }
@@ -320,7 +320,7 @@ export async function processLink(params: ProcessLinkParams, updateProgress?: (p
     
     // Step 2: Check if we can reuse existing processed link
     if (existingLink) {
-      console.log('🚀 Using existing processed link data - skipping content processing')
+      console.log('🎀 Using existing processed link data - skipping content processing')
       await copyExistingLinkData(existingLink, processedLink.id, updateProgress)
       
       // Create mock extractedContent for analytics with existing data
@@ -362,6 +362,23 @@ export async function processLink(params: ProcessLinkParams, updateProgress?: (p
 
   } catch (error) {
     console.error('Link processing failed:', error)
+    
+    // Update processedLink record to FAILED status so it doesn't remain stuck
+    // in PROCESSING forever (zombie records block retry logic and confuse users).
+    if (context.processedLink?.id) {
+      try {
+        const db = await getDbClient()
+        await db.processedLink.update({
+          where: { id: context.processedLink.id },
+          data: {
+            processingStatus: 'FAILED',
+            errorMessage: error instanceof Error ? error.message : String(error)
+          }
+        })
+      } catch (dbError) {
+        console.error('Failed to update processedLink to FAILED status:', dbError)
+      }
+    }
     
     if (context.subscriptionTeamId) {
       trackProcessingMetrics(context as ProcessingContext, false)

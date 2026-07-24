@@ -20,10 +20,16 @@ const originalGetUserByEmail = customAdapter.getUserByEmail!
 customAdapter.getUserByEmail = async (email: string) => {
   try {
     return await originalGetUserByEmail(email)
-  } catch (error) {
-    // If user exists but with different provider, return null to allow linking
-    console.log(`🔗 Allowing account linking for email: ${email}`)
-    return null
+  } catch (error: any) {
+    // Only swallow P2002 (unique constraint) errors — these indicate the user already
+    // exists with a different provider, which is expected during account linking.
+    // All other errors (DB timeouts, schema errors, etc.) must be re-thrown so they
+    // surface as actual failures rather than silently returning "user not found".
+    if (error?.code === 'P2002') {
+      console.log(`🔗 Allowing account linking for email: ${email}`)
+      return null
+    }
+    throw error
   }
 }
 
@@ -525,6 +531,10 @@ export const authOptions: NextAuthOptions = {
             if (defaultTeam.slackUserId) {
               session.user.slackUserId = defaultTeam.slackUserId
             }
+          } else {
+            // User has no active team memberships — flag session so the UI can redirect
+            // to onboarding or display an appropriate error instead of breaking silently.
+            session.user.noTeamAccess = true
           }
         }
       }
