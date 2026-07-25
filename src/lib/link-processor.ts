@@ -55,7 +55,7 @@ async function validateLinkProcessing({
       team_id: subscriptionTeamId,
       channel_id: teamId,
       link_domain: urlObj.hostname,
-      user_id: url // Using URL as proxy identifier
+      user_id: 'anonymous' // No user_id available at this scope; use placeholder
     })
   } catch (error) {
     console.log('Failed to track link shared event:', error)
@@ -367,23 +367,7 @@ export async function processLink(params: ProcessLinkParams, updateProgress?: (p
       trackProcessingMetrics(context as ProcessingContext, false)
     }
     
-    // Mark the processedLink as FAILED so it is not stuck in PROCESSING forever.
-    // Wrap in its own try/catch so a secondary DB failure cannot swallow the original error.
-    if (context.processedLink?.id) {
-      try {
-        const db = await getDbClient()
-        await db.processedLink.update({
-          where: { id: context.processedLink.id },
-          data: {
-            processingStatus: 'FAILED',
-            errorMessage: error instanceof Error ? error.message : String(error)
-          }
-        })
-      } catch (updateError) {
-        console.error('Failed to mark processedLink as FAILED:', updateError)
-      }
-    }
-    
     throw error
   }
 }
+
