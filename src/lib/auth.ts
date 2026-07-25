@@ -26,7 +26,7 @@ customAdapter.getUserByEmail = async (email: string) => {
     // malformed queries) must be rethrown so NextAuth fails loudly instead of
     // silently creating a duplicate user row.
     if (error?.code === 'P2002') {
-      console.log(`🔗 Allowing account linking for email: ${email}`)
+      console.log(`🔧 Allowing account linking for email: ${email}`)
       return null
     }
     throw error
@@ -42,7 +42,7 @@ customAdapter.createUser = async (user) => {
   const newUser = await originalCreateUser(user)
   
   // For Google/Email sign-ins, create a personal team and membership
-  console.log(`🏢 Creating personal team for new user: ${user.email}`)
+  console.log(`🟢 Creating personal team for new user: ${user.email}`)
   const webTeamId = `web_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
   
   try {
@@ -83,7 +83,7 @@ customAdapter.createUser = async (user) => {
 // Override linkAccount to handle Slack OAuth response properly
 const originalLinkAccount = customAdapter.linkAccount!
 customAdapter.linkAccount = async (account) => {
-  console.log('🔗 LinkAccount called with:', { provider: account.provider, type: account.type })
+  console.log('🔧 LinkAccount called with:', { provider: account.provider, type: account.type })
   
   // For Slack, only save the standard OAuth fields to avoid Prisma validation errors
   if (account.provider === 'slack') {
@@ -102,7 +102,7 @@ customAdapter.linkAccount = async (account) => {
       session_state: account.session_state || null,
     }
     
-    console.log('🔗 Saving cleaned Slack account data:', {
+    console.log('🔧 Saving cleaned Slack account data:', {
       provider: cleanAccount.provider,
       userId: cleanAccount.userId,
       hasAccessToken: !!cleanAccount.access_token
@@ -144,7 +144,7 @@ export const authOptions: NextAuthOptions = {
       },
       token: "https://slack.com/api/oauth.v2.access",
       userinfo: {
-        async request({ tokens, client, provider }) {
+        async request({ tokens, client, provider }: any) {
           console.log('🔍 Slack userinfo request:', {
             hasAccessToken: !!tokens.access_token,
             hasAuthedUser: !!tokens.authed_user,
@@ -186,7 +186,7 @@ export const authOptions: NextAuthOptions = {
           }
         },
       },
-      profile(profile) {
+      profile(profile: any) {
         return {
           id: profile.slackUserId,
           name: profile.name,
@@ -293,7 +293,7 @@ export const authOptions: NextAuthOptions = {
           const userId = slackProfile.slackUserId
           const userAccessToken = slackProfile.userAccessToken
 
-          console.log('🏢 Processing Slack OAuth:', {
+          console.log('🟢 Processing Slack OAuth:', {
             teamId,
             teamName,
             userId,
@@ -328,7 +328,13 @@ export const authOptions: NextAuthOptions = {
               subscription: {
                 create: {
                   status: 'TRIAL',
-                  monthlyLinkLimit: 10
+                  // Bug fix: was monthlyLinkLimit: 10 (should be 20 per free plan).
+                  // planId and userLimit were also missing, causing null FK and broken
+                  // seat enforcement for every new workspace since this code shipped.
+                  planId: 'free',
+                  monthlyLinkLimit: 20,
+                  userLimit: 1,
+                  currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
                 }
               }
             }
@@ -460,7 +466,7 @@ export const authOptions: NextAuthOptions = {
     },
     
     async linkAccount({ user, account, profile }) {
-      console.log(`🔗 Account linked: ${account.provider} for user ${user.email}`)
+      console.log(`🔧 Account linked: ${account.provider} for user ${user.email}`)
       // Team creation is now handled in the createUser override
       return true
     },

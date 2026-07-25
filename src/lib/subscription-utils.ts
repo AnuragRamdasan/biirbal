@@ -50,7 +50,24 @@ export async function getTeamUsageStats(teamId: string): Promise<UsageStats> {
 
   const subscription = team.subscription
   if (!subscription) {
-    throw new Error('Team subscription not found')
+    // Bug fix: return safe free-plan defaults instead of throwing.
+    // Throwing here crashes the dashboard and link processing gate during
+    // new-team setup race conditions or after data migrations.
+    console.warn(`[getTeamUsageStats] No subscription found for team ${teamId} — returning free-plan defaults`)
+    const freePlan = PRICING_PLANS.FREE
+    return {
+      currentLinks: team.processedLinks.length,
+      currentUsers: team.memberships.filter(m => m.isActive).length,
+      plan: freePlan,
+      canProcessMore: true,
+      linkLimitExceeded: false,
+      userLimitExceeded: false,
+      linkWarning: false,
+      userWarning: false,
+      linkUsagePercentage: 0,
+      userUsagePercentage: 0,
+      isExceptionTeam: isException
+    }
   }
 
   // Get plan details - use subscription's actual limits, not default plan limits
@@ -427,6 +444,11 @@ export async function updateSubscription(teamId: string, data: {
 }): Promise<{ success: boolean, error?: string }> {
   try {
     const db = await getDbClient()
+    // Resolve plan limits from planId so callers don't need to pass them explicitly.
+    // Bug fix: create branch previously hardcoded monthlyLinkLimit: 20 and userLimit: 1
+    // regardless of the actual plan, causing Stripe-paying customers to be silently
+    // capped at free-plan limits when no prior subscription row existed.
+    const resolvedPlan = data.planId ? (getPlanById(data.planId) || PRICING_PLANS.FREE) : PRICING_PLANS.FREE
     
     await db.subscription.upsert({
       where: { teamId },
@@ -442,8 +464,9 @@ export async function updateSubscription(teamId: string, data: {
         status: data.status || 'ACTIVE',
         stripeCustomerId: data.stripeCustomerId,
         stripeSubscriptionId: data.stripeSubscriptionId,
-        monthlyLinkLimit: 20,
-        userLimit: 1,
+        // Bug fix: use plan-derived limits instead of hardcoded values
+        monthlyLinkLimit: resolvedPlan.monthlyLinkLimit,
+        userLimit: resolvedPlan.userLimit,
         currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
       }
     })
