@@ -14,6 +14,7 @@ interface ProcessLinkParams {
   channelId: string
   teamId: string        // Internal database ID
   slackTeamId?: string  // Slack team ID - used for subscription checks
+  slackUserId?: string  // Slack user ID - used for analytics tracking
   linkId?: string       // Optional - for restarting existing stuck jobs
 }
 
@@ -29,7 +30,8 @@ interface ProcessingContext {
 async function validateLinkProcessing({
   url,
   teamId,
-  slackTeamId
+  slackTeamId,
+  slackUserId
 }: ProcessLinkParams): Promise<{ team: any; subscriptionTeamId: string; isLimitExceeded: boolean }> {
   const db = await getDbClient()
   
@@ -55,7 +57,7 @@ async function validateLinkProcessing({
       team_id: subscriptionTeamId,
       channel_id: teamId,
       link_domain: urlObj.hostname,
-      user_id: url // Using URL as proxy identifier
+      user_id: slackUserId // Bug fix: pass actual Slack user ID (was incorrectly set to URL string)
     })
   } catch (error) {
     console.log('Failed to track link shared event:', error)
