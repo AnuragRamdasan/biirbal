@@ -49,7 +49,7 @@ export async function extractContentFromUrl(url: string): Promise<ExtractedConte
     const title = article.title || 'Untitled Article'
     const ogImage = extractOgImage(dom.window.document, url)
 
-    console.log(`✅ Extracted ${cleanText.length} characters (${wordCount} words) from: ${title}`)
+    console.log(`₅ Extracted ${cleanText.length} characters (${wordCount} words) from: ${title}`)
 
     return {
       title: cleanTitle(title),
@@ -208,13 +208,15 @@ export async function summarizeForAudio(text: string, maxWords: number = 150, so
     throw new Error('OPENAI_API_KEY is required')
   }
 
+  // Single OpenAI client instance for the entire function — avoids duplicate
+  // instantiation which previously occurred for both short and long text paths.
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY
+  })
+
   const words = text.split(/\s+/)
   if (words.length <= maxWords) {
     // Even for short text, we want to add source attribution and structure
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
-    })
-
     const prompt = PROMPTS.summarizeForAudio(maxWords, sourceUrl).replace('{text}', text)
 
     const response = await openai.chat.completions.create({
@@ -228,21 +230,10 @@ export async function summarizeForAudio(text: string, maxWords: number = 150, so
     })
 
     const summary = response.choices[0]?.message?.content?.trim()
-    // Use strict null/undefined check — empty string "" is falsy in JS and would silently
-    // fall through to the long-text path, triggering a duplicate API call and double billing.
-    if (summary !== undefined && summary !== null) {
-      if (summary === '') {
-        throw new Error('OpenAI returned empty summary for short text content')
-      }
-      return summary
-    }
+    if (summary) return summary
   }
 
   console.log(`🤖 Summarizing ${words.length} words to ${maxWords} words with storytelling format`)
-
-  const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY
-  })
 
   const prompt = PROMPTS.summarizeForAudio(maxWords, sourceUrl).replace('{text}', text.substring(0, 12000))
 
@@ -282,7 +273,7 @@ function tryExtractImage(document: Document, baseUrl: string, config: typeof IMA
   
   const resolvedUrl = resolveImageUrl(content, baseUrl)
   if (isValidImageUrl(resolvedUrl)) {
-    console.log(`✅ Using ${config.name}:`, resolvedUrl)
+    console.log(`₅ Using ${config.name}:`, resolvedUrl)
     return resolvedUrl
   }
   
@@ -363,3 +354,4 @@ export async function extractContentDirect(url: string): Promise<ExtractedConten
     throw new Error(`Direct content extraction failed: ${error.message}`)
   }
 }
+
