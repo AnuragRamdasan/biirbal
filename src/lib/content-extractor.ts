@@ -228,7 +228,15 @@ export async function summarizeForAudio(text: string, maxWords: number = 150, so
     })
 
     const summary = response.choices[0]?.message?.content?.trim()
-    if (summary) return summary
+    // Bug fix: use explicit null/undefined check instead of falsy check.
+    // When OpenAI returns an empty string '', the falsy check falls through
+    // and triggers a second paid API call with identical content.
+    if (summary !== undefined && summary !== null) {
+      if (summary === '') {
+        throw new Error('OpenAI returned empty summary for short text content')
+      }
+      return summary
+    }
   }
 
   console.log(`🤖 Summarizing ${words.length} words to ${maxWords} words with storytelling format`)
@@ -356,4 +364,3 @@ export async function extractContentDirect(url: string): Promise<ExtractedConten
     throw new Error(`Direct content extraction failed: ${error.message}`)
   }
 }
-

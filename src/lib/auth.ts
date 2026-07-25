@@ -20,10 +20,16 @@ const originalGetUserByEmail = customAdapter.getUserByEmail!
 customAdapter.getUserByEmail = async (email: string) => {
   try {
     return await originalGetUserByEmail(email)
-  } catch (error) {
-    // If user exists but with different provider, return null to allow linking
-    console.log(`🔗 Allowing account linking for email: ${email}`)
-    return null
+  } catch (error: any) {
+    // Only suppress P2002 (unique constraint) — the legitimate cross-provider
+    // account-linking case. All other errors (DB timeouts, connection drops,
+    // malformed queries) must be rethrown so NextAuth fails loudly instead of
+    // silently creating a duplicate user row.
+    if (error?.code === 'P2002') {
+      console.log(`🔗 Allowing account linking for email: ${email}`)
+      return null
+    }
+    throw error
   }
 }
 
@@ -384,6 +390,10 @@ export const authOptions: NextAuthOptions = {
               if (!canAdd.allowed) {
                 console.log('Cannot add new user due to seat limit:', canAdd.reason)
                 userSeatAllowed = false
+                // Bug fix: actually block sign-in when seat limit is exceeded.
+                // Without this early return the code falls through to `return true`
+                // and grants a session regardless of the seat check result.
+                return '/auth/error?error=SeatLimitExceeded'
               }
             }
 
@@ -525,6 +535,12 @@ export const authOptions: NextAuthOptions = {
             if (defaultTeam.slackUserId) {
               session.user.slackUserId = defaultTeam.slackUserId
             }
+          } else {
+            // Bug fix: signal to downstream code that this user has no active
+            // team membership (e.g. invited but not yet onboarded, or removed
+            // from all teams). Without this flag, session.user.teamId is
+            // undefined and API routes crash with unhandled null-dereferences.
+            session.user.noTeamAccess = true
           }
         }
       }

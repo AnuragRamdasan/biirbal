@@ -269,8 +269,13 @@ export async function updateSubscriptionFromStripe(
   teamId: string,
   stripeSubscriptionId: string,
   planId: string,
-  status: string
+  status: string,
+  // Bug fix: accept Stripe's actual period end so annual plans expire
+  // correctly. Falls back to +30 days when not supplied (e.g. legacy callers).
+  currentPeriodEnd?: Date
 ) {
+  // Use Stripe-provided period end; fall back to +30 days for legacy callers.
+  const periodEnd = currentPeriodEnd ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
   const db = await getDbClient()
   const plan = getPlanById(planId)
   
@@ -291,7 +296,7 @@ export async function updateSubscriptionFromStripe(
       status: mapStripeStatusToSubscriptionStatus(status),
       monthlyLinkLimit: plan.monthlyLinkLimit,
       userLimit: plan.userLimit,
-      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+      currentPeriodEnd: periodEnd // from Stripe webhook or +30-day fallback
     },
     create: {
       teamId,
@@ -300,7 +305,7 @@ export async function updateSubscriptionFromStripe(
       status: mapStripeStatusToSubscriptionStatus(status),
       monthlyLinkLimit: plan.monthlyLinkLimit,
       userLimit: plan.userLimit,
-      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      currentPeriodEnd: periodEnd // from Stripe webhook or +30-day fallback
     }
   })
 

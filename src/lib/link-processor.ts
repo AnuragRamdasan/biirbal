@@ -367,7 +367,24 @@ export async function processLink(params: ProcessLinkParams, updateProgress?: (p
       trackProcessingMetrics(context as ProcessingContext, false)
     }
     
+    // Bug fix: mark the processedLink record as FAILED so the UI can surface
+    // the error state. Without this, the record stays permanently in PROCESSING,
+    // giving users no feedback and preventing retries.
+    if (context.processedLink?.id) {
+      try {
+        const db = await getDbClient()
+        await db.processedLink.update({
+          where: { id: context.processedLink.id },
+          data: {
+            processingStatus: 'FAILED',
+            errorMessage: error instanceof Error ? error.message : String(error)
+          }
+        })
+      } catch (updateError) {
+        console.error('Failed to mark processedLink as FAILED:', updateError)
+      }
+    }
+    
     throw error
   }
 }
-
