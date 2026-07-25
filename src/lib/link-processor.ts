@@ -14,6 +14,7 @@ interface ProcessLinkParams {
   channelId: string
   teamId: string        // Internal database ID
   slackTeamId?: string  // Slack team ID - used for subscription checks
+  slackUserId?: string  // Slack user ID - for analytics (bug fix: was missing)
   linkId?: string       // Optional - for restarting existing stuck jobs
 }
 
@@ -29,7 +30,8 @@ interface ProcessingContext {
 async function validateLinkProcessing({
   url,
   teamId,
-  slackTeamId
+  slackTeamId,
+  slackUserId
 }: ProcessLinkParams): Promise<{ team: any; subscriptionTeamId: string; isLimitExceeded: boolean }> {
   const db = await getDbClient()
   
@@ -55,7 +57,9 @@ async function validateLinkProcessing({
       team_id: subscriptionTeamId,
       channel_id: teamId,
       link_domain: urlObj.hostname,
-      user_id: url // Using URL as proxy identifier
+      // Bug fix: user_id was incorrectly set to the full URL string instead of a user identifier.
+      // Now accepts slackUserId threaded from the Slack link_shared event payload (event.user).
+      user_id: slackUserId || undefined
     })
   } catch (error) {
     console.log('Failed to track link shared event:', error)
@@ -114,14 +118,14 @@ async function setupChannelAndRecord({
     })
     
     if (existingLink) {
-      console.log(`🔁 Found existing processed link for URL: ${existingLink.id}`)
+      console.log(`💁 Found existing processed link for URL: ${existingLink.id}`)
     }
   }
 
   // Create or update processing record
   let processedLink
   if (linkId) {
-    console.log(`🔄 Restarting existing link ID: ${linkId}`)
+    console.log(`📄 Restarting existing link ID: ${linkId}`)
     processedLink = await db.processedLink.update({
       where: { id: linkId },
       data: {
@@ -320,7 +324,7 @@ export async function processLink(params: ProcessLinkParams, updateProgress?: (p
     
     // Step 2: Check if we can reuse existing processed link
     if (existingLink) {
-      console.log('🚀 Using existing processed link data - skipping content processing')
+      console.log('♻️ Using existing processed link data - skipping content processing')
       await copyExistingLinkData(existingLink, processedLink.id, updateProgress)
       
       // Create mock extractedContent for analytics with existing data

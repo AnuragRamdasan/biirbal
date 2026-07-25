@@ -46,3 +46,6 @@ next-env.d.ts
 .env.local
 
 /public/uploads
+
+# Redis snapshot — never commit (may contain sensitive cached session/queue data)
+dump.rdb
