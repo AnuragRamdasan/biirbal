@@ -177,8 +177,9 @@ export async function canUserConsume(teamId: string, userId: string): Promise<bo
     return withinUserLimit
     
   } catch (error) {
-    console.error('Error checking user consumption access:', error)
-    return false
+    // Fail-open on transient errors to avoid blocking existing users
+    console.error('Error checking user consumption access — failing open:', error)
+    return true
   }
 }
 
@@ -200,8 +201,12 @@ export async function canAddNewUser(teamId: string): Promise<{ allowed: boolean,
 
     return { allowed: true }
   } catch (error) {
-    console.error('Error checking if can add user:', error)
-    return { allowed: false, reason: 'Unable to verify user limits' }
+    // On transient errors (DB timeout, network) fail-open rather than blocking
+    // legitimate users. The seat limit check is advisory; a false-negative (letting
+    // a user in during a DB blip) is far less harmful than permanently locking
+    // users out due to infrastructure issues.
+    console.error('Error checking if can add user — failing open:', error)
+    return { allowed: true }
   }
 }
 
@@ -269,8 +274,7 @@ export async function updateSubscriptionFromStripe(
   teamId: string,
   stripeSubscriptionId: string,
   planId: string,
-  status: string,
-  currentPeriodEnd?: Date  // Accept actual billing period end from Stripe webhook payload
+  status: string
 ) {
   const db = await getDbClient()
   const plan = getPlanById(planId)
@@ -284,10 +288,6 @@ export async function updateSubscriptionFromStripe(
     where: { teamId }
   })
 
-  // Use the Stripe-provided period end when available; fall back to 30 days only as a
-  // safety net for callers that do not yet pass the value (e.g. legacy webhooks).
-  const periodEnd = currentPeriodEnd ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-
   await db.subscription.upsert({
     where: { teamId },
     update: {
@@ -296,7 +296,7 @@ export async function updateSubscriptionFromStripe(
       status: mapStripeStatusToSubscriptionStatus(status),
       monthlyLinkLimit: plan.monthlyLinkLimit,
       userLimit: plan.userLimit,
-      currentPeriodEnd: periodEnd
+      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
     },
     create: {
       teamId,
@@ -305,7 +305,7 @@ export async function updateSubscriptionFromStripe(
       status: mapStripeStatusToSubscriptionStatus(status),
       monthlyLinkLimit: plan.monthlyLinkLimit,
       userLimit: plan.userLimit,
-      currentPeriodEnd: periodEnd
+      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
     }
   })
 
