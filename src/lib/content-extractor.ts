@@ -18,7 +18,7 @@ export async function extractContentFromUrl(url: string): Promise<ExtractedConte
   }
 
   try {
-    console.log(`🌷️ Extracting content from: ${url}`)
+    console.log(`🕷️ Extracting content from: ${url}`)
     
     const response = await axios.get('https://app.scrapingbee.com/api/v1/', {
       params: {
@@ -79,18 +79,18 @@ async function handleExtractionError(error: any, url: string): Promise<Extracted
     const status = error.response.status
     const statusText = error.response.statusText || 'Unknown error'
     
-    console.error(`🪨 ScrapingBee error (${status}): ${statusText}`)
+    console.error(`🚨 ScrapingBee error (${status}): ${statusText}`)
     
     if (status === 500 || isTimeoutError(error)) {
-      console.error('🪨 Retrying with fallback strategy')
+      console.error('🚨 Retrying with fallback strategy')
       return await extractContentWithFallback(url)
     }
     
     throw new Error(createErrorMessage(status, statusText))
   }
- 
+  
   if (isTimeoutError(error)) {
-    console.error('🪨 ScrapingBee timeout - trying fallback')
+    console.error('🚨 ScrapingBee timeout - trying fallback')
     return await extractContentWithFallback(url)
   }
   
@@ -228,15 +228,17 @@ export async function summarizeForAudio(text: string, maxWords: number = 150, so
     })
 
     const summary = response.choices[0]?.message?.content?.trim()
-    if (summary) return summary
-
-    // OpenAI returned an empty response for the short-text path.
-    // Throw immediately — do NOT fall through to the long-text path below,
-    // which would waste a second paid API call with different parameters.
-    throw new Error('OpenAI returned empty summary for short text content')
+    // Use strict null/undefined check — empty string "" is falsy in JS and would silently
+    // fall through to the long-text path, triggering a duplicate API call and double billing.
+    if (summary !== undefined && summary !== null) {
+      if (summary === '') {
+        throw new Error('OpenAI returned empty summary for short text content')
+      }
+      return summary
+    }
   }
 
-  console.log(`🦦 Summarizing ${words.length} words to ${maxWords} words with storytelling format`)
+  console.log(`🤖 Summarizing ${words.length} words to ${maxWords} words with storytelling format`)
 
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY

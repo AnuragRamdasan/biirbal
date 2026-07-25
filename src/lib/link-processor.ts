@@ -114,7 +114,7 @@ async function setupChannelAndRecord({
     })
     
     if (existingLink) {
-      console.log(`💡 Found existing processed link for URL: ${existingLink.id}`)
+      console.log(`🔁 Found existing processed link for URL: ${existingLink.id}`)
     }
   }
 
@@ -215,7 +215,7 @@ async function notifySlack(
   
   // Skip Slack notifications for web-only teams (no Slack integration)
   if (!team.accessToken || !team.slackTeamId || team.slackTeamId.startsWith('web_')) {
-    console.log(`📣 Skipping Slack notification for web-only team: ${team.slackTeamId || team.id}`)
+    console.log(`📧 Skipping Slack notification for web-only team: ${team.slackTeamId || team.id}`)
     if (updateProgress) await updateProgress(100)
     return
   }
@@ -360,16 +360,15 @@ export async function processLink(params: ProcessLinkParams, updateProgress?: (p
       trackProcessingMetrics(context as ProcessingContext, true, extractedContent)
     }
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Link processing failed:', error)
     
     if (context.subscriptionTeamId) {
       trackProcessingMetrics(context as ProcessingContext, false)
     }
-
-    // Mark the record as FAILED so it is visible on dashboards and eligible
-    // for retry logic. Wrap in its own try/catch so a secondary DB failure
-    // does not mask the original error.
+    
+    // Mark the processedLink as FAILED so it is not stuck in PROCESSING forever.
+    // Wrap in its own try/catch so a secondary DB failure cannot swallow the original error.
     if (context.processedLink?.id) {
       try {
         const db = await getDbClient()
@@ -377,7 +376,7 @@ export async function processLink(params: ProcessLinkParams, updateProgress?: (p
           where: { id: context.processedLink.id },
           data: {
             processingStatus: 'FAILED',
-            errorMessage: error?.message ?? 'Unknown error'
+            errorMessage: error instanceof Error ? error.message : String(error)
           }
         })
       } catch (updateError) {
