@@ -7,11 +7,21 @@ import { WebClient } from '@slack/web-api'
 import { getBaseUrl } from '@/lib/config'
 import { canProcessNewLink } from '@/lib/subscription-utils'
 
+// FIX (Bug 3): reject requests older than 5 minutes before checking the HMAC.
+// Without this staleness guard any captured valid request can be replayed
+// indefinitely — Slack's own security guidance requires this check.
 function verifySlackRequest(body: string, signature: string, timestamp: string): boolean {
   const signingSecret = process.env.SLACK_SIGNING_SECRET
   if (!signingSecret) {
     throw new Error('Slack signing secret is not configured')
   }
+
+  // Reject requests older than 5 minutes to prevent replay attacks
+  const now = Math.floor(Date.now() / 1000)
+  if (Math.abs(now - parseInt(timestamp, 10)) > 300) {
+    return false
+  }
+
   const hmac = crypto.createHmac('sha256', signingSecret)
   const [version, hash] = signature.split('=')
   
@@ -34,19 +44,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing headers' }, { status: 400 })
     }
 
-    // Verify request is from Slack
     if (!verifySlackRequest(body, signature, timestamp)) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
 
     const event = JSON.parse(body)
 
-    // Handle URL verification challenge
     if (event.type === 'url_verification') {
       return NextResponse.json({ challenge: event.challenge })
     }
 
-    // Handle events
     if (event.type === 'event_callback') {
       const { event: slackEvent } = event
       console.log(`🎯 Event callback received: ${slackEvent.type} from team ${event.team_id}`)
@@ -147,9 +154,9 @@ async function queueLinksForProcessing(context: MessageContext): Promise<boolean
     console.log(`⏳ Adding ${queuePromises.length} jobs to queue...`)
     const jobIds = await Promise.all(queuePromises)
     console.log(`✅ Successfully queued ${jobIds.length} links for processing`)
-    console.log(`🆔 Job IDs:`, jobIds.map(job => job?.id || 'undefined'))
+    console.log(`🆔 Job IDs:`, jobIds.map((job: any) => job?.id || 'undefined'))
     return true
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Failed to queue link processing jobs:', error?.message || error)
     return false
   }
@@ -166,7 +173,7 @@ function addSlackReaction(team: any, event: any): void {
         name: 'hourglass_flowing_sand'
       })
       console.log(`✅ Processing reaction added to Slack message`)
-    } catch (err) {
+    } catch (err: any) {
       console.log(`❌ Could not add processing reaction:`, err?.message || err)
     }
   })
@@ -197,7 +204,7 @@ function triggerWorkerProcess(): void {
         console.warn(`⚠️ Worker responded with ${response.status}:`, errorText.substring(0, 200))
         console.warn(`⚠️ Jobs are still queued and will be processed by cron`)
       }
-    } catch (error) {
+    } catch (error: any) {
       if (error.name === 'TimeoutError') {
         console.warn('⏰ Worker trigger timed out, but jobs are queued. Cron will process them.')
       } else {
@@ -213,7 +220,6 @@ async function handleMessage(event: any, teamId: string) {
   console.log(`📝 Message text: "${event.text?.substring(0, 100)}${event.text?.length > 100 ? '...' : ''}"`)
   console.log(`👤 User ID: ${event.user}`)
   
-  // Early returns for invalid messages
   if (shouldSkipMessage(event)) {
     console.log(`⏭️ Skipping message: bot_id=${!!event.bot_id}, no_text=${!event.text}, subtype=${event.subtype}`)
     return
@@ -227,7 +233,6 @@ async function handleMessage(event: any, teamId: string) {
     return
   }
 
-  // Validate team and usage limits
   const { team, canProcess, reason } = await validateTeamAndUsage(teamId, event.user)
   if (!canProcess) {
     console.log(`❌ Cannot process: ${reason}`)
@@ -236,7 +241,6 @@ async function handleMessage(event: any, teamId: string) {
 
   console.log(`✅ Usage limits OK - proceeding with link processing`)
   
-  // Filter valid links
   const validLinks = links.filter(url => shouldProcessUrl(url))
   console.log(`🔍 Valid links after filtering: ${validLinks.length}/${links.length}`)
   
@@ -245,7 +249,6 @@ async function handleMessage(event: any, teamId: string) {
     return
   }
 
-  // Update channel and queue processing
   await updateChannelInfo(event.channel, team.id)
   
   const context: MessageContext = { event, teamId, team, links, validLinks }
@@ -257,8 +260,7 @@ async function handleMessage(event: any, teamId: string) {
   }
 }
 
-async function handleAppMention(event: any) {
-  // Handle app mentions for commands like help, status, etc.
+async function handleAppMention(event: any, _teamId?: string) {
   console.log('App mention received:', event)
 }
 
