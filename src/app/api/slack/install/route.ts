@@ -3,6 +3,7 @@ import { WebClient } from '@slack/web-api'
 import { getDbClient } from '@/lib/db'
 import { logger } from '@/lib/logger'
 import { getBaseUrl } from '@/lib/config'
+import { PRICING_PLANS } from '@/lib/stripe'
 import { canAddNewUser } from '@/lib/subscription-utils'
 import { adminNotifications } from '@/lib/admin-notifications'
 
@@ -35,15 +36,12 @@ export async function GET(request: NextRequest) {
       )
     }
     
-    // Check if Slack OAuth is configured
     if (!process.env.SLACK_CLIENT_ID || !process.env.SLACK_CLIENT_SECRET) {
       throw new Error('Slack OAuth is not configured')
     }
     
-    // Create WebClient for OAuth exchange
     const slackClient = new WebClient()
     
-    // Exchange code for tokens
     const result = await slackClient.oauth.v2.access({
       client_id: process.env.SLACK_CLIENT_ID,
       client_secret: process.env.SLACK_CLIENT_SECRET,
@@ -60,7 +58,6 @@ export async function GET(request: NextRequest) {
     const accessToken = result.access_token
     const botUserId = result.bot_user_id
     
-    // Extract user information from install result
     const userId = result.authed_user?.id
     const userAccessToken = result.authed_user?.access_token
 
@@ -73,11 +70,9 @@ export async function GET(request: NextRequest) {
       hasUserToken: !!userAccessToken
     })
 
-    // Store team and user information in database
     try {
       const db = await getDbClient()
 
-      // Check if this is a new team
       const existingTeam = await db.team.findUnique({
         where: { slackTeamId: teamId },
         include: { users: true }
@@ -85,7 +80,11 @@ export async function GET(request: NextRequest) {
 
       const isNewTeam = !existingTeam
 
-      // Create or update team
+      // FIX (Bug 2): provision new teams with correct free-plan defaults so
+      // planId, monthlyLinkLimit, userLimit, and currentPeriodEnd are all set
+      // correctly from day one. Previously this created a broken subscription
+      // row with monthlyLinkLimit:10 and no planId/userLimit/currentPeriodEnd.
+      const freePlan = PRICING_PLANS.FREE
       const team = await db.team.upsert({
         where: { slackTeamId: teamId },
         update: {
@@ -103,14 +102,16 @@ export async function GET(request: NextRequest) {
           isActive: true,
           subscription: {
             create: {
+              planId: freePlan.id,
               status: 'TRIAL',
-              monthlyLinkLimit: 10
+              monthlyLinkLimit: freePlan.monthlyLinkLimit,
+              userLimit: freePlan.userLimit,
+              currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
             }
           }
         }
       })
 
-      // Send admin notification for new team signup
       if (isNewTeam) {
         try {
           await adminNotifications.notifyTeamSignup({
@@ -125,15 +126,12 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Handle user creation/update if user info is available
       if (userId && userAccessToken) {
         try {
-          // Get user info from Slack
           const userSlackClient = new WebClient(userAccessToken)
           const userInfo = await userSlackClient.users.info({ user: userId })
 
           if (userInfo.ok && userInfo.user) {
-            // Find existing user by email (since same person can be in multiple Slack teams)
             let dbUser = null
             if (userInfo.user.profile?.email) {
               dbUser = await db.user.findUnique({
@@ -142,7 +140,6 @@ export async function GET(request: NextRequest) {
               })
             }
 
-            // If no user found by email, create a new user
             if (!dbUser) {
               dbUser = await db.user.create({
                 data: {
@@ -154,7 +151,6 @@ export async function GET(request: NextRequest) {
               })
             }
 
-            // Check if user is already a member of this team
             const existingMembership = await db.teamMembership.findUnique({
               where: {
                 userId_teamId: {
@@ -177,7 +173,6 @@ export async function GET(request: NextRequest) {
               }
             }
 
-            // Create or update team membership
             await db.teamMembership.upsert({
               where: {
                 userId_teamId: {
@@ -213,7 +208,6 @@ export async function GET(request: NextRequest) {
               }
             })
 
-            // Send user signup notification for new memberships
             if (!existingMembership) {
               try {
                 await adminNotifications.notifyUserSignup({
@@ -237,7 +231,6 @@ export async function GET(request: NextRequest) {
       installLogger.error('Error persisting Slack install data', { persistError })
     }
     
-    // Redirect to success page
     return NextResponse.redirect(
       new URL('/?installed=true&source=slack', getBaseUrl())
     )
